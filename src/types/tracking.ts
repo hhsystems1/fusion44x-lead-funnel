@@ -1,5 +1,10 @@
 import type { FunnelStepId, DiagnosticQuestionId } from "@/types/funnel";
-import type { InternalEventName } from "@/config/tracking-events";
+import type {
+  InternalEventName,
+  MetaEventName,
+} from "@/config/tracking-events";
+
+export type { InternalEventName, MetaEventName };
 
 // =============================================================================
 // Internal (Supabase) Events
@@ -33,8 +38,6 @@ export interface UtmParams {
 // Meta Conversions API Events
 // =============================================================================
 
-export type MetaEventName = "Contact" | "Schedule";
-
 export interface MetaEventPayload {
   event_name: MetaEventName;
   /** Shared UUID — same as internal event_id for deduplication */
@@ -47,25 +50,25 @@ export interface MetaEventPayload {
 }
 
 export interface MetaUserData {
-  /** SHA256-hashed email(s) — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed email(s) — normalized and hashed server-side */
   em?: string[];
-  /** SHA256-hashed phone(s) — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed phone(s) — normalized and hashed server-side */
   ph?: string[];
-  /** SHA256-hashed first name — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed first name — normalized and hashed server-side */
   fn?: string;
-  /** SHA256-hashed last name — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed last name — normalized and hashed server-side */
   ln?: string;
-  /** SHA256-hashed postal code — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed postal code — normalized and hashed server-side */
   zp?: string;
-  /** SHA256-hashed external identifier — hashing NOT YET IMPLEMENTED */
+  /** SHA256-hashed external identifier — normalized and hashed server-side */
   external_id?: string;
-  /** RAW IP address — do NOT hash */
+  /** RAW — do NOT hash */
   client_ip_address?: string;
-  /** RAW user agent — do NOT hash */
+  /** RAW — do NOT hash */
   client_user_agent?: string;
-  /** RAW Facebook click ID — do NOT hash */
+  /** RAW — do NOT hash */
   fbc?: string;
-  /** RAW Facebook browser ID — do NOT hash */
+  /** RAW — do NOT hash */
   fbp?: string;
 }
 

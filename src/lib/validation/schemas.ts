@@ -20,7 +20,9 @@ export const poolSizeSchema = z.enum(POOL_SIZE_CODES);
 
 export const currentTreatmentSchema = z.enum(CURRENT_TREATMENT_CODES);
 
-export const currentIssuesSchema = z.array(z.enum(CURRENT_ISSUES_CODES));
+export const currentIssuesSchema = z
+  .array(z.enum(CURRENT_ISSUES_CODES))
+  .min(1, "At least one issue must be selected");
 
 export const primaryGoalSchema = z.enum(PRIMARY_GOAL_CODES);
 
@@ -33,7 +35,7 @@ export const diagnosticAnswersSchema = z.object({
   installation_type: installationTypeSchema,
   pool_size: poolSizeSchema,
   current_treatment: currentTreatmentSchema,
-  current_issues: currentIssuesSchema.optional(),
+  current_issues: currentIssuesSchema,
   primary_goal: primaryGoalSchema,
 });
 

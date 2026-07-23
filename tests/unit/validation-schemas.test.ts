@@ -77,6 +77,10 @@ describe("currentIssuesSchema", () => {
     ).toBe(true);
   });
 
+  it("rejects an empty array", () => {
+    expect(currentIssuesSchema.safeParse([]).success).toBe(false);
+  });
+
   it("rejects an array containing an invalid code", () => {
     const result = currentIssuesSchema.safeParse(["algae", "leak"]);
     expect(result.success).toBe(false);
@@ -111,7 +115,19 @@ describe("diagnosticAnswersSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts answers without optional current_issues", () => {
+  it("accepts answers with current_issues", () => {
+    const result = diagnosticAnswersSchema.safeParse({
+      water_feature: "spa",
+      installation_type: "above_ground",
+      pool_size: "not_sure",
+      current_treatment: "salt",
+      current_issues: ["algae"],
+      primary_goal: "easier_maintenance",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects answers without required current_issues", () => {
     const result = diagnosticAnswersSchema.safeParse({
       water_feature: "spa",
       installation_type: "above_ground",
@@ -119,7 +135,19 @@ describe("diagnosticAnswersSchema", () => {
       current_treatment: "salt",
       primary_goal: "easier_maintenance",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects answers with empty current_issues", () => {
+    const result = diagnosticAnswersSchema.safeParse({
+      water_feature: "pool",
+      installation_type: "in_ground",
+      pool_size: "under_10000",
+      current_treatment: "chlorine",
+      current_issues: [],
+      primary_goal: "clearer_water",
+    });
+    expect(result.success).toBe(false);
   });
 
   it("rejects an invalid value in any required field", () => {

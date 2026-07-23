@@ -205,3 +205,106 @@ describe("CustomerInfo shape", () => {
     expect(info.client_ip_address).toBe("192.168.1.1");
   });
 });
+
+describe("MetaEventPayload constraints", () => {
+  it("includes all required future Meta fields", () => {
+    const requiredFields = [
+      "event_time",
+      "event_name",
+      "event_source_url",
+      "action_source",
+      "event_id",
+    ] as const;
+    const userDataFields = [
+      "email",
+      "phone",
+      "first_name",
+      "last_name",
+      "zip_code",
+      "external_id",
+      "client_ip_address",
+      "client_user_agent",
+      "fbc",
+      "fbp",
+    ] as const;
+
+    const payload: MetaEventPayload = {
+      event_name: "Contact",
+      event_id: "uuid-all-fields",
+      event_time: 1721700000,
+      event_source_url: "https://example.com/funnel",
+      action_source: "website",
+      user_data: {
+        em: ["a@b.com"],
+        ph: ["15551234567"],
+        fn: "John",
+        ln: "Doe",
+        zp: "90210",
+        external_id: "ext-001",
+        client_ip_address: "192.168.1.1",
+        client_user_agent: "Mozilla/5.0",
+        fbc: "fb.1.123",
+        fbp: "fb.1.456",
+      },
+    };
+
+    for (const field of requiredFields) {
+      expect(payload).toHaveProperty(field);
+    }
+    for (const field of userDataFields) {
+      expect(payload.user_data).toHaveProperty(
+        field === "email" ? "em" :
+        field === "phone" ? "ph" :
+        field === "first_name" ? "fn" :
+        field === "last_name" ? "ln" :
+        field === "zip_code" ? "zp" :
+        field,
+      );
+    }
+  });
+
+  it("does not include diagnostic answer fields in the payload", () => {
+    const diagKeys = [
+      "water_feature",
+      "installation_type",
+      "pool_size",
+      "current_treatment",
+      "current_issues",
+      "primary_goal",
+    ];
+
+    const payload: MetaEventPayload = {
+      event_name: "Contact",
+      event_id: "uuid-no-diag",
+      event_time: 1721700000,
+      action_source: "website",
+      user_data: {},
+    };
+
+    const payloadKeys = new Set(Object.keys(payload));
+    for (const key of diagKeys) {
+      expect(payloadKeys.has(key)).toBe(false);
+    }
+  });
+
+  it("shares event_id between browser and server for deduplication", () => {
+    const sharedEventId = "dedup-uuid-001";
+    const serverPayload: MetaEventPayload = {
+      event_name: "Schedule",
+      event_id: sharedEventId,
+      event_time: 1721700000,
+      action_source: "server",
+      user_data: {},
+    };
+    const clientPayload: MetaEventPayload = {
+      event_name: "Schedule",
+      event_id: sharedEventId,
+      event_time: 1721700000,
+      action_source: "website",
+      user_data: {},
+    };
+    expect(serverPayload.event_id).toBe(clientPayload.event_id);
+    expect(serverPayload.action_source).toBe("server");
+    expect(clientPayload.action_source).toBe("website");
+  });
+});
