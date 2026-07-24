@@ -21,6 +21,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "water-feature",
     type: "single-select",
     required: true,
+    title: "What type of water feature do you have?",
+    subtitle: "Select the option that best describes your setup.",
     options: [
       { code: "pool", label: "Pool" },
       { code: "spa", label: "Spa" },
@@ -31,6 +33,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "installation-type",
     type: "single-select",
     required: true,
+    title: "How is your pool installed?",
+    subtitle: "Not sure? Select \"I'm not sure\".",
     options: [
       { code: "in_ground", label: "In-Ground" },
       { code: "above_ground", label: "Above Ground" },
@@ -41,6 +45,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "pool-size",
     type: "single-select",
     required: true,
+    title: "What is your approximate pool size?",
+    subtitle: "Estimate is fine — we just need a general idea.",
     options: [
       { code: "under_10000", label: "Under 10,000 gallons" },
       { code: "10000_to_20000", label: "10,000 – 20,000 gallons" },
@@ -53,6 +59,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "current-treatment",
     type: "single-select",
     required: true,
+    title: "What sanitization method do you currently use?",
+    subtitle: "Choose the primary method for your pool or spa.",
     options: [
       { code: "chlorine", label: "Chlorine" },
       { code: "salt", label: "Salt System" },
@@ -66,6 +74,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "current-issues",
     type: "multi-select",
     required: true,
+    title: "What issues are you currently experiencing?",
+    subtitle: "Select all that apply.",
     options: [
       { code: "chemical_smell", label: "Strong chemical smell" },
       { code: "skin_eye_irritation", label: "Skin or eye irritation" },
@@ -85,6 +95,8 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     id: "primary-goal",
     type: "single-select",
     required: true,
+    title: "What is your primary goal?",
+    subtitle: "What matters most to you in your water care routine?",
     options: [
       { code: "reduce_chemicals", label: "Reduce chemical usage" },
       { code: "clearer_water", label: "Crystal clear water" },
