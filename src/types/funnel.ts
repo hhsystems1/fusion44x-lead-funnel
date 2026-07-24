@@ -128,6 +128,8 @@ export interface DiagnosticQuestion {
   id: DiagnosticQuestionId;
   type: QuestionType;
   required: boolean;
+  title: string;
+  subtitle?: string;
   options: AnswerOption[];
 }
 
@@ -148,9 +150,20 @@ export interface DiagnosticAnswers {
 // Funnel State
 // =============================================================================
 
+export type SubmissionState =
+  | "idle"
+  | "submitting"
+  | "success"
+  | "duplicate"
+  | "error";
+
 export interface FunnelState {
   current_step: FunnelStepId;
-  lead_id?: string;
+  session_id: string | null;
+  lead_id: string | null;
   diagnostic_answers: DiagnosticAnswers;
   completed_steps: FunnelStepId[];
+  submission_state: SubmissionState;
+  validation_errors: Record<string, string>;
+  diag_current_index: number;
 }
