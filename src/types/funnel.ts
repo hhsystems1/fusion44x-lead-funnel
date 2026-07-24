@@ -167,4 +167,11 @@ export interface FunnelState {
   validation_errors: Record<string, string>;
   diag_current_index: number;
   hydration_ready: boolean;
+  // Booking state
+  selected_date: string | null;
+  selected_slot_start: string | null;
+  selected_slot_end: string | null;
+  appointment_id: string | null;
+  booking_submission_state: SubmissionState;
+  booking_error: string | null;
 }

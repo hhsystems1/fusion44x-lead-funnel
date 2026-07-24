@@ -20,10 +20,16 @@ import {
   getSessionId,
   getCurrentStep,
   getLeadId,
+  getSelectedDate,
+  getSelectedSlotStart,
+  getSelectedSlotEnd,
   saveDiagnosticAnswers,
   saveDiagIndex,
   saveCurrentStep,
   saveLeadId,
+  saveSelectedDate,
+  saveSelectedSlotEnd,
+  saveSelectedSlotStart,
   getPersistedQuestionAnswer,
   saveBookingStep,
 } from "./persistence";
@@ -32,6 +38,7 @@ import { createTracker, type Tracker } from "@/lib/analytics/tracker";
 import { submitLead as submitLeadApi, buildLeadPayload } from "./api";
 import { validateContactForm, type ContactFormData } from "./contact-validation";
 import { diagnosticQuestions } from "@/config/funnel-questions";
+import { createBookingRequest } from "./booking-api";
 
 interface FunnelContextValue {
   state: FunnelState;
@@ -47,6 +54,8 @@ interface FunnelContextValue {
   isCurrentQuestionAnswered: () => boolean;
   isDiagValid: () => boolean;
   diagProgress: { current: number; total: number };
+  selectSlot: (start: string, end: string) => void;
+  submitBooking: (event_id: string) => Promise<void>;
 }
 
 const FunnelContext = createContext<FunnelContextValue | null>(null);
@@ -62,6 +71,9 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   const hasCompletedDiagnosticRef = useRef(false);
   const prevQuestionRef = useRef<string | null>(null);
   const prevStepRef = useRef<FunnelStepId | null>(null);
+  const hasTrackedCalendarView = useRef(false);
+  const hasTrackedConfirmationView = useRef(false);
+  const bookingCompletedRef = useRef(false);
 
   // Hydrate persisted state after mount
   useEffect(() => {
@@ -70,6 +82,9 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     const sessionId = getSessionId();
     const step = getCurrentStep();
     const leadId = getLeadId();
+    const selectedDate = getSelectedDate();
+    const selectedSlotStart = getSelectedSlotStart();
+    const selectedSlotEnd = getSelectedSlotEnd();
     dispatch({
       type: "HYDRATE",
       payload: {
@@ -78,6 +93,9 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         ...(sessionId ? { session_id: sessionId } : {}),
         ...(step ? { current_step: step } : {}),
         ...(leadId ? { lead_id: leadId } : {}),
+        ...(selectedDate ? { selected_date: selectedDate } : {}),
+        ...(selectedSlotStart ? { selected_slot_start: selectedSlotStart } : {}),
+        ...(selectedSlotEnd ? { selected_slot_end: selectedSlotEnd } : {}),
       },
     });
   }, []);
@@ -133,6 +151,49 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
       saveLeadId(state.lead_id);
     }
   }, [state.lead_id, state.hydration_ready]);
+
+  // Persist selected date (only after hydration ready)
+  useEffect(() => {
+    if (state.hydration_ready) {
+      saveSelectedDate(state.selected_date);
+    }
+  }, [state.selected_date, state.hydration_ready]);
+
+  // Persist selected slot (only after hydration ready)
+  useEffect(() => {
+    if (state.hydration_ready) {
+      saveSelectedSlotStart(state.selected_slot_start);
+      saveSelectedSlotEnd(state.selected_slot_end);
+    }
+  }, [state.selected_slot_start, state.selected_slot_end, state.hydration_ready]);
+
+  // Track calendar_viewed
+  useEffect(() => {
+    if (
+      tracker &&
+      !hasTrackedCalendarView.current &&
+      state.current_step === FUNNEL_STEPS.BOOKING
+    ) {
+      hasTrackedCalendarView.current = true;
+      tracker.track(InternalEvents.CALENDAR_VIEWED, {
+        step_id: FUNNEL_STEPS.BOOKING,
+      });
+    }
+  }, [tracker, state.current_step]);
+
+  // Track confirmation_viewed
+  useEffect(() => {
+    if (
+      tracker &&
+      !hasTrackedConfirmationView.current &&
+      state.current_step === FUNNEL_STEPS.CONFIRMATION
+    ) {
+      hasTrackedConfirmationView.current = true;
+      tracker.track(InternalEvents.CONFIRMATION_VIEWED, {
+        step_id: FUNNEL_STEPS.CONFIRMATION,
+      });
+    }
+  }, [tracker, state.current_step]);
 
   // Track diagnostic_started
   useEffect(() => {
@@ -370,6 +431,105 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "COMPLETE_DIAGNOSTIC" });
   }, [state.current_step, state.completed_steps, state.diagnostic_answers, tracker, isDiagValid]);
 
+  const selectSlot = useCallback(
+    (start: string, end: string) => {
+      dispatch({ type: "SELECT_SLOT", start, end });
+      if (tracker) {
+        tracker.track(InternalEvents.TIME_SLOT_SELECTED, {
+          step_id: FUNNEL_STEPS.BOOKING,
+          metadata: { start_time: start },
+        });
+      }
+    },
+    [tracker],
+  );
+
+  const submitBooking = useCallback(
+    async (event_id: string) => {
+      if (!state.lead_id || !state.session_id || !state.selected_slot_start) {
+        dispatch({ type: "BOOKING_FAIL", error: "missing_fields" });
+        return;
+      }
+
+      if (bookingCompletedRef.current) return;
+
+      dispatch({ type: "BOOKING_START" });
+      bookingCompletedRef.current = true;
+
+      if (tracker) {
+        tracker.track(InternalEvents.BOOKING_STARTED, {
+          step_id: FUNNEL_STEPS.BOOKING,
+          lead_id: state.lead_id,
+        });
+      }
+
+      try {
+        const result = await createBookingRequest({
+          lead_id: state.lead_id,
+          session_id: state.session_id,
+          start_time: state.selected_slot_start,
+          timezone: "America/New_York",
+          event_id,
+        });
+
+        if (result.error) {
+          if (result.error.status === 409) {
+            dispatch({ type: "BOOKING_CONFLICT" });
+            bookingCompletedRef.current = false;
+            if (tracker) {
+              tracker.track(InternalEvents.BOOKING_FAILED, {
+                step_id: FUNNEL_STEPS.BOOKING,
+                lead_id: state.lead_id,
+                metadata: { reason: "conflict" },
+              });
+            }
+            return;
+          }
+          dispatch({ type: "BOOKING_FAIL", error: "server_error" });
+          bookingCompletedRef.current = false;
+          if (tracker) {
+            tracker.track(InternalEvents.BOOKING_FAILED, {
+              step_id: FUNNEL_STEPS.BOOKING,
+              lead_id: state.lead_id,
+              metadata: { reason: "server_error" },
+            });
+          }
+          return;
+        }
+
+        dispatch({
+          type: "BOOKING_SUCCESS",
+          appointment_id: result.appointment_id!,
+          start_time: result.start_time!,
+          end_time: result.end_time!,
+        });
+
+        if (tracker) {
+          tracker.track(InternalEvents.BOOKING_COMPLETED, {
+            step_id: FUNNEL_STEPS.BOOKING,
+            lead_id: state.lead_id,
+            metadata: { appointment_id: result.appointment_id },
+          });
+        }
+
+        dispatch({ type: "COMPLETE_STEP", step: FUNNEL_STEPS.BOOKING });
+        dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.CONFIRMATION });
+        saveBookingStep(FUNNEL_STEPS.CONFIRMATION);
+      } catch {
+        dispatch({ type: "BOOKING_FAIL", error: "network_error" });
+        bookingCompletedRef.current = false;
+        if (tracker) {
+          tracker.track(InternalEvents.BOOKING_FAILED, {
+            step_id: FUNNEL_STEPS.BOOKING,
+            lead_id: state.lead_id,
+            metadata: { reason: "network_error" },
+          });
+        }
+      }
+    },
+    [state.lead_id, state.session_id, state.selected_slot_start, tracker],
+  );
+
   const value: FunnelContextValue = {
     state,
     dispatch,
@@ -384,6 +544,8 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     isCurrentQuestionAnswered,
     isDiagValid,
     diagProgress,
+    selectSlot,
+    submitBooking,
   };
 
   return (

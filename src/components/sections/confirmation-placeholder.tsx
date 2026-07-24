@@ -1,7 +1,28 @@
+"use client";
+
+import { useFunnel } from "@/lib/funnel/funnel-context";
 import { siteContent } from "@/config/site-content";
 import { SectionContainer } from "@/components/ui/section-container";
+import { BookingSuccess } from "@/components/booking/booking-success";
 
 export function ConfirmationPlaceholder() {
+  const { state, tracker } = useFunnel();
+
+  if (state.appointment_id) {
+    return (
+      <SectionContainer id="confirmation" background="dark">
+        <div className="mx-auto max-w-xl">
+          <BookingSuccess
+            appointmentId={state.appointment_id}
+            startTime={state.selected_slot_start ?? ""}
+            endTime={state.selected_slot_end ?? ""}
+            tracker={tracker}
+          />
+        </div>
+      </SectionContainer>
+    );
+  }
+
   return (
     <SectionContainer id="confirmation" background="dark">
       <div className="text-center">

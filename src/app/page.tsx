@@ -4,7 +4,7 @@ import { VideoTestimonialsSection } from "@/components/sections/video-testimonia
 import { HowItWorksSection } from "@/components/sections/how-it-works-section";
 import { PoolDiagnosticSection } from "@/components/sections/pool-diagnostic-section";
 import { ContactSection } from "@/components/sections/contact-section";
-import { BookingPlaceholder } from "@/components/sections/booking-placeholder";
+import { BookingSection } from "@/components/booking/booking-section";
 import { ConfirmationPlaceholder } from "@/components/sections/confirmation-placeholder";
 
 export default function Home() {
@@ -15,7 +15,7 @@ export default function Home() {
       <HowItWorksSection />
       <PoolDiagnosticSection />
       <ContactSection />
-      <BookingPlaceholder />
+      <BookingSection />
       <ConfirmationPlaceholder />
     </FunnelProvider>
   );

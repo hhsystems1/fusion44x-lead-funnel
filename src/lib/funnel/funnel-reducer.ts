@@ -25,7 +25,15 @@ export type FunnelAction =
   | { type: "CLEAR_VALIDATION_ERRORS" }
   | { type: "COMPLETE_STEP"; step: FunnelStepId }
   | { type: "RESET" }
-  | { type: "COMPLETE_DIAGNOSTIC" };
+  | { type: "COMPLETE_DIAGNOSTIC" }
+  // Booking actions
+  | { type: "SELECT_DATE"; date: string }
+  | { type: "SELECT_SLOT"; start: string; end: string }
+  | { type: "BOOKING_START" }
+  | { type: "BOOKING_SUCCESS"; appointment_id: string; start_time: string; end_time: string }
+  | { type: "BOOKING_FAIL"; error: string }
+  | { type: "BOOKING_CONFLICT" }
+  | { type: "CLEAR_BOOKING_SELECTION" };
 
 export function createInitialState(): FunnelState {
   return {
@@ -38,6 +46,12 @@ export function createInitialState(): FunnelState {
     validation_errors: {},
     diag_current_index: 0,
     hydration_ready: false,
+    selected_date: null,
+    selected_slot_start: null,
+    selected_slot_end: null,
+    appointment_id: null,
+    booking_submission_state: "idle",
+    booking_error: null,
   };
 }
 
@@ -175,6 +189,71 @@ export function funnelReducer(
         current_step: FUNNEL_STEPS.CONTACT_INFORMATION,
       };
     }
+
+    // ---------------------------------------------------------------------------
+    // Booking actions
+    // ---------------------------------------------------------------------------
+
+    case "SELECT_DATE":
+      return {
+        ...state,
+        selected_date: action.date,
+        selected_slot_start: null,
+        selected_slot_end: null,
+        booking_submission_state: "idle",
+        booking_error: null,
+      };
+
+    case "SELECT_SLOT":
+      return {
+        ...state,
+        selected_slot_start: action.start,
+        selected_slot_end: action.end,
+      };
+
+    case "BOOKING_START":
+      return {
+        ...state,
+        booking_submission_state: "submitting",
+        booking_error: null,
+      };
+
+    case "BOOKING_SUCCESS":
+      return {
+        ...state,
+        booking_submission_state: "success",
+        appointment_id: action.appointment_id,
+        selected_slot_start: action.start_time,
+        selected_slot_end: action.end_time,
+        booking_error: null,
+      };
+
+    case "BOOKING_FAIL":
+      return {
+        ...state,
+        booking_submission_state: "error",
+        booking_error: action.error,
+      };
+
+    case "BOOKING_CONFLICT":
+      return {
+        ...state,
+        booking_submission_state: "idle",
+        selected_slot_start: null,
+        selected_slot_end: null,
+        booking_error: "conflict",
+      };
+
+    case "CLEAR_BOOKING_SELECTION":
+      return {
+        ...state,
+        selected_date: null,
+        selected_slot_start: null,
+        selected_slot_end: null,
+        appointment_id: null,
+        booking_submission_state: "idle",
+        booking_error: null,
+      };
 
     default:
       return state;
