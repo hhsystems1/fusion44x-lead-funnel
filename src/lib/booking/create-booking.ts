@@ -10,6 +10,7 @@ import {
   markDeliveryDelivered,
   markDeliveryFailed,
 } from "@/lib/booking/integration-delivery";
+import { schedulePendingEmailDelivery } from "@/lib/email/notifications";
 
 interface CreateBookingResult {
   appointment_id: string;
@@ -343,6 +344,19 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       await markDeliveryDelivered({ deliveryId });
     } catch {
       // non-fatal — appointment is already confirmed
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. Best-effort pending email delivery preparation
+    //    Future: once an EmailProvider is configured, replace with
+    //    sendBookingConfirmation(prepared, provider) from
+    //    src/lib/email/notifications. See docs/email-notifications.md.
+    //    Booking API success must not depend on email.
+    // -------------------------------------------------------------------------
+    try {
+      await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+    } catch {
+      // non-fatal — email preparation failure must not affect booking
     }
 
     return {

@@ -1,0 +1,13 @@
+-- Migration: 20260724000500_email_notification_delivery_columns
+-- Adds columns for email booking-confirmation delivery tracking.
+-- This migration is NOT applied automatically. See docs/email-notifications.md.
+
+-- alter table public.integration_deliveries
+--   add column if not exists template_version text;
+-- alter table public.integration_deliveries
+--   add column if not exists provider_message_id text;
+-- alter table public.integration_deliveries
+--   add column if not exists next_attempt_at timestamptz;
+-- create unique index if not exists idx_integration_deliveries_email_booking_unique
+--   on public.integration_deliveries (appointment_id, destination, event_type, template_version)
+--   where destination = 'email' and event_type = 'booking_confirmation';

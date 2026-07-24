@@ -1,0 +1,240 @@
+import "server-only";
+import { getServerSupabaseClient } from "@/lib/supabase";
+import { EMAIL_CONFIG } from "@/config/email";
+import {
+  generateGoogleCalendarUrl,
+  generateOutlookWebUrl,
+  generateIcsContent,
+} from "@/lib/booking/calendar-links";
+import type { SendEmailInput, EmailProvider, SendEmailResult, ProviderError } from "@/lib/email/provider/types";
+import {
+  findEmailDelivery,
+  createPendingEmailDelivery,
+  markEmailDeliveryProcessing,
+  markEmailDeliveryDelivered,
+  markEmailDeliveryFailed,
+} from "@/lib/email/delivery";
+import { calculateEndTime } from "@/lib/booking/slots";
+
+export interface PreparedConfirmation {
+  appointmentId: string;
+  leadId: string;
+  recipientEmail: string;
+  recipientFirstName: string;
+  confirmedStartTime: string;
+  confirmedEndTime: string;
+  timezone: string;
+  bookingEventId: string | null;
+}
+
+export interface SendConfirmationResult {
+  deliveryId: string;
+  status: "delivered" | "prepared";
+  messageId?: string;
+}
+
+export type SendConfirmationError = ProviderError;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function prepareBookingConfirmation(params: {
+  appointmentId: string;
+}): Promise<PreparedConfirmation | null> {
+  const supabase = getServerSupabaseClient();
+
+  const { data: appointment, error: appError } = await supabase
+    .from("appointments")
+    .select("id, lead_id, status, start_time, end_time, timezone, booking_event_id")
+    .eq("id", params.appointmentId)
+    .single();
+
+  if (appError || !appointment) {
+    return null;
+  }
+
+  const row = appointment as Record<string, unknown>;
+
+  if (row.status !== "confirmed") {
+    return null;
+  }
+
+  const leadId = row.lead_id as string;
+  const { data: lead, error: leadError } = await supabase
+    .from("leads")
+    .select("first_name, email")
+    .eq("id", leadId)
+    .single();
+
+  if (leadError || !lead) {
+    return null;
+  }
+
+  const leadRow = lead as Record<string, unknown>;
+  const email = (leadRow.email as string) ?? "";
+  const firstName = ((leadRow.first_name as string) ?? "").trim();
+
+  if (!EMAIL_REGEX.test(email)) {
+    return null;
+  }
+
+  return {
+    appointmentId: row.id as string,
+    leadId,
+    recipientEmail: email,
+    recipientFirstName: firstName,
+    confirmedStartTime: row.start_time as string,
+    confirmedEndTime: row.end_time as string,
+    timezone: (row.timezone as string) || EMAIL_CONFIG.TIMEZONE,
+    bookingEventId: (row.booking_event_id as string) ?? null,
+  };
+}
+
+export async function sendBookingConfirmation(
+  prepared: PreparedConfirmation,
+  provider: EmailProvider,
+): Promise<SendConfirmationResult | SendConfirmationError> {
+  const {
+    appointmentId,
+    recipientEmail,
+    recipientFirstName,
+    confirmedStartTime,
+    confirmedEndTime,
+    timezone,
+    bookingEventId,
+  } = prepared;
+
+  if (!EMAIL_REGEX.test(recipientEmail)) {
+    return {
+      code: "INVALID_RECIPIENT",
+      message: "Invalid recipient email address",
+      retryable: false,
+    };
+  }
+
+  const templateVersion = EMAIL_CONFIG.TEMPLATE_VERSION;
+
+  const existingDelivery = await findEmailDelivery(appointmentId, templateVersion);
+  if (existingDelivery) {
+    if (existingDelivery.status === "delivered") {
+      return {
+        deliveryId: existingDelivery.id,
+        status: "delivered",
+        messageId: existingDelivery.provider_message_id ?? undefined,
+      };
+    }
+    if (existingDelivery.status === "pending" || existingDelivery.status === "failed") {
+      return {
+        deliveryId: existingDelivery.id,
+        status: "prepared",
+      };
+    }
+    if (existingDelivery.status === "processing") {
+      return {
+        deliveryId: existingDelivery.id,
+        status: "prepared",
+      };
+    }
+  }
+
+  const deliveryId = await createPendingEmailDelivery({
+    appointmentId,
+    bookingEventId,
+    templateVersion,
+  });
+
+  const endTime = confirmedEndTime || calculateEndTime(confirmedStartTime);
+
+  const googleCalendarLink = generateGoogleCalendarUrl({
+    startTime: confirmedStartTime,
+    endTime: endTime,
+    title: EMAIL_CONFIG.CONSULTATION_TITLE,
+  });
+
+  const outlookCalendarLink = generateOutlookWebUrl({
+    startTime: confirmedStartTime,
+    endTime: endTime,
+    title: EMAIL_CONFIG.CONSULTATION_TITLE,
+  });
+
+  const icsContent = generateIcsContent({
+    startTime: confirmedStartTime,
+    endTime: endTime,
+    title: EMAIL_CONFIG.CONSULTATION_TITLE,
+    organizer: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
+  });
+
+  const sendInput: SendEmailInput = {
+    recipientEmail,
+    recipientFirstName,
+    appointmentId,
+    confirmedStartTime,
+    confirmedEndTime: endTime,
+    timezone,
+    googleCalendarLink,
+    outlookCalendarLink,
+    icsContent,
+    replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
+  };
+
+  await markEmailDeliveryProcessing(deliveryId);
+
+  let result: SendEmailResult;
+  try {
+    result = await provider.sendBookingConfirmation(sendInput);
+  } catch (err) {
+    const error = err as { code?: string; message?: string; retryable?: boolean };
+    const safeCode = error?.code ?? "PROVIDER_ERROR";
+    const retryable = error?.retryable !== false;
+
+    await markEmailDeliveryFailed({
+      deliveryId,
+      safeErrorCode: safeCode,
+    });
+
+    return {
+      code: safeCode,
+      message: error?.message ?? "Email provider error",
+      retryable,
+    };
+  }
+
+  await markEmailDeliveryDelivered({
+    deliveryId,
+    providerMessageId: result.messageId,
+  });
+
+  return {
+    deliveryId,
+    status: "delivered",
+    messageId: result.messageId,
+  };
+}
+
+export async function schedulePendingEmailDelivery(params: {
+  appointmentId: string;
+}): Promise<string | null> {
+  const prepared = await prepareBookingConfirmation(params);
+  if (!prepared) {
+    return null;
+  }
+
+  const templateVersion = EMAIL_CONFIG.TEMPLATE_VERSION;
+  const existingDelivery = await findEmailDelivery(
+    params.appointmentId,
+    templateVersion,
+  );
+  if (existingDelivery && existingDelivery.status !== "failed") {
+    return existingDelivery.id;
+  }
+
+  try {
+    const deliveryId = await createPendingEmailDelivery({
+      appointmentId: params.appointmentId,
+      bookingEventId: prepared.bookingEventId,
+      templateVersion,
+    });
+    return deliveryId;
+  } catch {
+    return null;
+  }
+}
