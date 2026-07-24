@@ -6,6 +6,7 @@ const ANSWERS_KEY = "fusion44x_diagnostic_answers";
 const CURRENT_INDEX_KEY = "fusion44x_diag_index";
 const STEP_KEY = "fusion44x_current_step";
 const LEAD_ID_KEY = "fusion44x_lead_id";
+const BOOKING_STEP_KEY = "fusion44x_booking_step";
 
 type StorageArea = "local" | "session";
 
@@ -132,6 +133,18 @@ export function getLeadId(): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Booking Step (sessionStorage)
+// ---------------------------------------------------------------------------
+
+export function saveBookingStep(step: FunnelStepId): void {
+  setItem(BOOKING_STEP_KEY, step, "session");
+}
+
+export function getBookingStep(): FunnelStepId | null {
+  return getItem(BOOKING_STEP_KEY, "session") as FunnelStepId | null;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -157,17 +170,11 @@ export function getPersistedQuestionAnswer(
   }
 }
 
-export function clearSessionDataExceptLead(): void {
-  removeItem(SESSION_ID_KEY, "session");
-  removeItem(ANSWERS_KEY, "session");
-  removeItem(CURRENT_INDEX_KEY, "session");
-  removeItem(STEP_KEY, "session");
-}
-
 export function clearSessionData(): void {
   removeItem(SESSION_ID_KEY, "session");
   removeItem(ANSWERS_KEY, "session");
   removeItem(CURRENT_INDEX_KEY, "session");
   removeItem(STEP_KEY, "session");
   removeItem(LEAD_ID_KEY, "session");
+  removeItem(BOOKING_STEP_KEY, "session");
 }

@@ -46,7 +46,6 @@ import {
   getLeadId,
   getPersistedQuestionAnswer,
   clearSessionData,
-  clearSessionDataExceptLead,
 } from "@/lib/funnel/persistence";
 
 describe("persistence", () => {
@@ -161,57 +160,25 @@ describe("persistence", () => {
       const result = getPersistedQuestionAnswer("water-feature", {});
       expect(result).toBeUndefined();
     });
+});
+
+describe("clearSessionData", () => {
+  it("clears sessionStorage data but keeps anonymous ID", () => {
+    localStore.set("fusion44x_anonymous_id", "anon-test");
+    saveSessionId("s1");
+    saveDiagnosticAnswers({ water_feature: "pool" });
+    saveDiagIndex(2);
+    saveCurrentStep("booking");
+    saveLeadId("lead-1");
+
+    clearSessionData();
+
+    expect(getSessionId()).toBeNull();
+    expect(getDiagnosticAnswers()).toBeNull();
+    expect(getDiagIndex()).toBe(0);
+    expect(getCurrentStep()).toBeNull();
+    expect(getLeadId()).toBeNull();
+    expect(getAnonymousId()).toBe("anon-test");
   });
-
-  describe("clearSessionData", () => {
-    it("clears sessionStorage data but keeps anonymous ID", () => {
-      localStore.set("fusion44x_anonymous_id", "anon-test");
-      saveSessionId("s1");
-      saveDiagnosticAnswers({ water_feature: "pool" });
-      saveDiagIndex(2);
-      saveCurrentStep("booking");
-      saveLeadId("lead-1");
-
-      clearSessionData();
-
-      expect(getSessionId()).toBeNull();
-      expect(getDiagnosticAnswers()).toBeNull();
-      expect(getDiagIndex()).toBe(0);
-      expect(getCurrentStep()).toBeNull();
-      expect(getLeadId()).toBeNull();
-      expect(getAnonymousId()).toBe("anon-test");
-    });
-  });
-
-  describe("clearSessionDataExceptLead", () => {
-    it("clears session data but preserves lead ID", () => {
-      localStore.set("fusion44x_anonymous_id", "anon-test");
-      saveSessionId("s1");
-      saveDiagnosticAnswers({ water_feature: "pool" });
-      saveDiagIndex(2);
-      saveCurrentStep("booking");
-      saveLeadId("lead-1");
-
-      clearSessionDataExceptLead();
-
-      expect(getSessionId()).toBeNull();
-      expect(getDiagnosticAnswers()).toBeNull();
-      expect(getDiagIndex()).toBe(0);
-      expect(getCurrentStep()).toBeNull();
-      expect(getLeadId()).toBe("lead-1");
-      expect(getAnonymousId()).toBe("anon-test");
-    });
-
-    it("does not affect anonymous ID", () => {
-      localStore.set("fusion44x_anonymous_id", "anon-persist");
-      saveLeadId("lead-2");
-      saveSessionId("s2");
-
-      clearSessionDataExceptLead();
-
-      expect(getAnonymousId()).toBe("anon-persist");
-      expect(getLeadId()).toBe("lead-2");
-      expect(getSessionId()).toBeNull();
-    });
-  });
+});
 });

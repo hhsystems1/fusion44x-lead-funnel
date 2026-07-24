@@ -25,13 +25,16 @@ import {
   saveCurrentStep,
   saveLeadId,
   getPersistedQuestionAnswer,
-  clearSessionDataExceptLead,
+  saveBookingStep,
 } from "./persistence";
 import { initializeSession } from "./session";
 import { createTracker, type Tracker } from "@/lib/analytics/tracker";
 import { submitLead as submitLeadApi, buildLeadPayload } from "./api";
 import { validateContactForm, type ContactFormData } from "./contact-validation";
 import { diagnosticQuestions } from "@/config/funnel-questions";
+
+const DIAGNOSTIC_QUESTION_COUNT = diagnosticQuestions.length;
+const FINAL_DIAG_INDEX = DIAGNOSTIC_QUESTION_COUNT - 1;
 
 interface FunnelContextValue {
   state: FunnelState;
@@ -60,6 +63,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   const hasTrackedContactView = useRef(false);
   const hasTrackedDiagComplete = useRef(false);
   const prevQuestionRef = useRef<string | null>(null);
+  const prevDiagIndexRef = useRef<number>(0);
 
   // Hydrate persisted state after mount
   useEffect(() => {
@@ -94,37 +98,43 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Track page_viewed after tracker is ready
+  // Track page_viewed after tracker is ready AND hydration is complete
   useEffect(() => {
-    if (tracker && !hasTrackedPageView.current) {
+    if (tracker && !hasTrackedPageView.current && state.hydration_ready) {
       hasTrackedPageView.current = true;
       tracker.track(InternalEvents.PAGE_VIEWED, {
         step_id: state.current_step,
       });
     }
-  }, [tracker, state.current_step]);
+  }, [tracker, state.current_step, state.hydration_ready]);
 
-  // Persist diagnostic answers
+  // Persist diagnostic answers (only after hydration ready)
   useEffect(() => {
-    saveDiagnosticAnswers(state.diagnostic_answers);
-  }, [state.diagnostic_answers]);
+    if (state.hydration_ready) {
+      saveDiagnosticAnswers(state.diagnostic_answers);
+    }
+  }, [state.diagnostic_answers, state.hydration_ready]);
 
-  // Persist diagnostic index
+  // Persist diagnostic index (only after hydration ready)
   useEffect(() => {
-    saveDiagIndex(state.diag_current_index);
-  }, [state.diag_current_index]);
+    if (state.hydration_ready) {
+      saveDiagIndex(state.diag_current_index);
+    }
+  }, [state.diag_current_index, state.hydration_ready]);
 
-  // Persist current step
+  // Persist current step (only after hydration ready)
   useEffect(() => {
-    saveCurrentStep(state.current_step);
-  }, [state.current_step]);
+    if (state.hydration_ready) {
+      saveCurrentStep(state.current_step);
+    }
+  }, [state.current_step, state.hydration_ready]);
 
-  // Persist lead ID
+  // Persist lead ID (only after hydration ready)
   useEffect(() => {
-    if (state.lead_id) {
+    if (state.hydration_ready && state.lead_id) {
       saveLeadId(state.lead_id);
     }
-  }, [state.lead_id]);
+  }, [state.lead_id, state.hydration_ready]);
 
   // Track diagnostic_started
   useEffect(() => {
@@ -140,9 +150,10 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     }
   }, [tracker, state.current_step]);
 
-  // Track question_viewed on change
+  // Track question_viewed on change - ONLY on POOL_DIAGNOSTIC step
   useEffect(() => {
     if (!tracker) return;
+    if (state.current_step !== FUNNEL_STEPS.POOL_DIAGNOSTIC) return;
     const q = diagnosticQuestions[state.diag_current_index];
     if (!q) return;
     if (prevQuestionRef.current !== q.id) {
@@ -152,7 +163,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         question_id: q.id,
       });
     }
-  }, [tracker, state.diag_current_index]);
+  }, [tracker, state.diag_current_index, state.current_step]);
 
   // Track contact_step_viewed
   useEffect(() => {
@@ -168,18 +179,17 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     }
   }, [tracker, state.current_step]);
 
-  // Track diagnostic_completed
+  // Track diagnostic_completed - only on explicit final diagNext transition
   useEffect(() => {
-    if (
-      tracker &&
-      !hasTrackedDiagComplete.current &&
-      state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION
-    ) {
-      hasTrackedDiagComplete.current = true;
-      tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
-        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-      });
-    }
+    if (!tracker) return;
+    if (state.current_step !== FUNNEL_STEPS.CONTACT_INFORMATION) return;
+    if (prevDiagIndexRef.current !== FINAL_DIAG_INDEX) return;
+    if (hasTrackedDiagComplete.current) return;
+
+    hasTrackedDiagComplete.current = true;
+    tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
+      step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+    });
   }, [tracker, state.current_step]);
 
   const goToStep = useCallback(
@@ -236,12 +246,14 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   );
 
   const diagNext = useCallback(() => {
+    prevDiagIndexRef.current = state.diag_current_index;
     dispatch({ type: "DIAG_NEXT" });
-  }, []);
+  }, [state.diag_current_index]);
 
   const diagBack = useCallback(() => {
+    prevDiagIndexRef.current = state.diag_current_index;
     dispatch({ type: "DIAG_BACK" });
-  }, []);
+  }, [state.diag_current_index]);
 
   const isCurrentQuestionAnswered = useCallback((): boolean => {
     const q = diagnosticQuestions[state.diag_current_index];
@@ -323,7 +335,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
             step: FUNNEL_STEPS.CONTACT_INFORMATION,
           });
           dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.BOOKING });
-          clearSessionDataExceptLead();
+          saveBookingStep(FUNNEL_STEPS.BOOKING);
         } else {
           dispatch({ type: "CONTACT_SUBMIT_ERROR" });
         }
