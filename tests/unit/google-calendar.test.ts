@@ -1199,6 +1199,141 @@ describe("compensation failure handled safely", () => {
   });
 });
 
+describe("fail_funnel_appointment failure after compensation", () => {
+  beforeEach(() => {
+    resetAllMocks();
+    setGoogleEnv();
+    mockJWT.mockImplementation(function (this: Record<string, unknown>) {
+      this.authorize = vi.fn().mockResolvedValue({});
+      return this;
+    });
+  });
+
+  it("never returns confirmed when fail_funnel_appointment fails", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-fail-after-comp", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+    });
+    mockGcalDelete.mockResolvedValue({ data: {} });
+
+    const rpcNames: string[] = [];
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-fail-after-comp", error: null },
+      deliveryInsertResult: { id: "del-fail-after-comp" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-fail-after-comp",
+        start_time: "2026-08-10T13:00:00.000Z",
+        end_time: "2026-08-10T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-fail-after-comp",
+      },
+      leadRow: {
+        first_name: "Fail",
+        last_name: "AfterComp",
+        email: "failafter@test.com",
+        phone: "555-0900",
+        zip_code: "90001",
+      },
+    });
+    supabase.rpc.mockImplementation((name: string) => {
+      rpcNames.push(name);
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appt-fail-after-comp", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      if (name === "fail_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Appointment not in pending state" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-10T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000110",
+    });
+
+    expect(rpcNames).toContain("fail_funnel_appointment");
+    expect(result).not.toHaveProperty("appointment_id");
+    expect(result).toHaveProperty("status", 500);
+  });
+
+  it("delivery records APPOINTMENT_FAIL_AFTER_COMPENSATION_FAILED when fail_funnel_appointment fails", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-code-check", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+    });
+    mockGcalDelete.mockResolvedValue({ data: {} });
+
+    let deliveryErrorCode = "";
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-code-check", error: null },
+      deliveryInsertResult: { id: "del-code-check" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-code-check",
+        start_time: "2026-08-10T14:00:00.000Z",
+        end_time: "2026-08-10T14:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-code-check",
+      },
+      leadRow: {
+        first_name: "Code",
+        last_name: "Check",
+        email: "code@test.com",
+        phone: "555-1000",
+        zip_code: "10010",
+      },
+    });
+    supabase.rpc.mockImplementation((name: string) => {
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appt-code-check", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      if (name === "fail_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Appointment not in pending state" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    supabase.update.mockImplementation((values: Record<string, unknown>) => {
+      if (values.error_message) {
+        deliveryErrorCode = values.error_message as string;
+      }
+      return supabase;
+    });
+
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-10T14:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000111",
+    });
+
+    expect(deliveryErrorCode).toBe("APPOINTMENT_FAIL_AFTER_COMPENSATION_FAILED");
+  });
+});
+
 describe("no raw provider payload returned", () => {
   beforeEach(() => {
     resetAllMocks();

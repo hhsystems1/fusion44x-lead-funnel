@@ -368,34 +368,17 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
   }
 }
 
-type CompensationResult = "compensated" | "compensation_failed";
+type CompensationResult = "compensated" | "compensation_failed" | "appointment_fail_failed";
 
 async function compensateGcalEvent(
   externalEventId: string,
   appointmentId: string,
   deliveryId: string,
 ): Promise<CompensationResult> {
+  // Step 1: Delete the Google Calendar event
   try {
     const provider = createGoogleCalendarProvider();
     await provider.deleteEvent(externalEventId);
-
-    // Google event deleted successfully — mark appointment failed
-    try {
-      await failAppointmentViaRpc({
-        appointmentId,
-        safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED",
-      });
-    } catch {
-      // swallow — failAppointmentViaRpc already handles pending-only
-    }
-
-    try {
-      await markDeliveryFailed({ deliveryId, safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED" });
-    } catch {
-      // swallow
-    }
-
-    return "compensated";
   } catch {
     // Google event deletion failed — do NOT mark appointment failed since the
     // external event may still exist. Record the compensation failure.
@@ -427,4 +410,32 @@ async function compensateGcalEvent(
 
     return "compensation_failed";
   }
+
+  // Step 2: Google event deleted — mark appointment failed (required)
+  try {
+    await failAppointmentViaRpc({
+      appointmentId,
+      safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED",
+    });
+  } catch {
+    // Appointment could not be marked failed — log and record distinct code
+    console.error("appointment_id=%s safe_code=%s", appointmentId, "APPOINTMENT_FAIL_AFTER_COMPENSATION_FAILED");
+
+    try {
+      await markDeliveryFailed({ deliveryId, safeErrorCode: "APPOINTMENT_FAIL_AFTER_COMPENSATION_FAILED" });
+    } catch {
+      // swallow
+    }
+
+    return "appointment_fail_failed";
+  }
+
+  // Step 3: Delivery failure recording is best-effort after appointment is failed
+  try {
+    await markDeliveryFailed({ deliveryId, safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED" });
+  } catch {
+    // swallow
+  }
+
+  return "compensated";
 }
