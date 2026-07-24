@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
       p_email: email,
       p_phone: phone,
       p_zip_code: contact.zip_code,
-      p_preferred_contact_method: contact.preferred_contact_method ?? null,
       p_water_feature: diagnostic.water_feature,
       p_installation_type: diagnostic.installation_type,
       p_pool_size: diagnostic.pool_size,
@@ -75,8 +74,9 @@ export async function POST(request: NextRequest) {
       p_current_issues: diagnostic.current_issues,
       p_primary_goal: diagnostic.primary_goal,
       p_consent_to_contact: consent.consent_to_contact,
-      p_marketing_consent: consent.marketing_consent,
       p_consent_text_version: consent.consent_text_version,
+      p_preferred_contact_method: contact.preferred_contact_method ?? null,
+      p_marketing_consent: consent.marketing_consent,
       p_source: source ?? null,
     } as never,
   );

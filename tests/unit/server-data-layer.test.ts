@@ -260,7 +260,8 @@ describe("leadCreateSchema", () => {
   });
 
   it("rejects missing session_id", () => {
-    const { session_id: _sid, ...rest } = valid as Record<string, unknown>;
+    const rest = { ...valid } as Record<string, unknown>;
+    delete rest.session_id;
     const result = leadCreateSchema.safeParse(rest);
     expect(result.success).toBe(false);
   });
@@ -351,7 +352,8 @@ describe("consent requirement", () => {
   });
 
   it("rejects consent_to_contact = undefined", () => {
-    const { consent_to_contact: _ctc, ...consentRest } = base.consent;
+    const consentRest: Record<string, unknown> = { ...base.consent };
+    delete consentRest.consent_to_contact;
     const result = leadCreateSchema.safeParse({
       ...base,
       consent: consentRest,
@@ -477,6 +479,191 @@ describe("checkRateLimit", () => {
 // =============================================================================
 // Safe error shape
 // =============================================================================
+
+// =============================================================================
+// RPC parameter behavior — explicit null / false for optional fields
+// =============================================================================
+
+describe("RPC parameter behavior", () => {
+  const base = {
+    session_id: SESSION_UUID,
+    contact: {
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "jane@example.com",
+      phone: "+15551234567",
+      zip_code: "10001",
+    },
+    diagnostic: {
+      water_feature: "pool",
+      installation_type: "in_ground",
+      pool_size: "under_10000",
+      current_treatment: "chlorine",
+      current_issues: ["algae"],
+      primary_goal: "clearer_water",
+    },
+    consent: {
+      consent_to_contact: true,
+      marketing_consent: false,
+      consent_text_version: "v1",
+    },
+  };
+
+  it("outputs undefined for omitted preferred_contact_method", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.contact.preferred_contact_method).toBeUndefined();
+    }
+  });
+
+  it("outputs explicit null fallback for omitted preferred_contact_method via ?? null", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const apiValue = result.data.contact.preferred_contact_method ?? null;
+      expect(apiValue).toBeNull();
+    }
+  });
+
+  it("defaults marketing_consent to false when omitted", () => {
+    const result = leadCreateSchema.safeParse({
+      ...base,
+      consent: { consent_to_contact: true, consent_text_version: "v1" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consent.marketing_consent).toBe(false);
+    }
+  });
+
+  it("outputs explicit false for marketing_consent", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consent.marketing_consent).toBe(false);
+    }
+  });
+
+  it("outputs undefined for omitted source", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.source).toBeUndefined();
+    }
+  });
+
+  it("outputs explicit null fallback for omitted source via ?? null", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const apiValue = result.data.source ?? null;
+      expect(apiValue).toBeNull();
+    }
+  });
+});
+
+// =============================================================================
+// Current issues array validation
+// =============================================================================
+
+describe("current_issues validation", () => {
+  const base = {
+    session_id: SESSION_UUID,
+    contact: {
+      first_name: "Bob",
+      last_name: "Smith",
+      email: "bob@example.com",
+      phone: "+15551234567",
+      zip_code: "20001",
+    },
+    diagnostic: {
+      water_feature: "pool",
+      installation_type: "in_ground",
+      pool_size: "under_10000",
+      current_treatment: "chlorine",
+      current_issues: ["algae"],
+      primary_goal: "clearer_water",
+    },
+    consent: {
+      consent_to_contact: true,
+      marketing_consent: false,
+      consent_text_version: "v1",
+    },
+  };
+
+  it("rejects empty current_issues", () => {
+    const result = leadCreateSchema.safeParse({
+      ...base,
+      diagnostic: { ...base.diagnostic, current_issues: [] },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects null current_issues", () => {
+    const result = leadCreateSchema.safeParse({
+      ...base,
+      diagnostic: { ...base.diagnostic, current_issues: null },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts current_issues with a single entry", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts current_issues with duplicate entries (API allows, RPC enforces)", () => {
+    const result = leadCreateSchema.safeParse({
+      ...base,
+      diagnostic: {
+        ...base.diagnostic,
+        current_issues: ["algae", "algae"],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// =============================================================================
+// Lead conflict behavior — schema cannot detect already-linked sessions
+// =============================================================================
+
+describe("lead conflict detection (schema level)", () => {
+  const base = {
+    session_id: SESSION_UUID,
+    contact: {
+      first_name: "Alice",
+      last_name: "Jones",
+      email: "alice@example.com",
+      phone: "+15551234567",
+      zip_code: "30001",
+    },
+    diagnostic: {
+      water_feature: "spa",
+      installation_type: "above_ground",
+      pool_size: "not_sure",
+      current_treatment: "salt",
+      current_issues: ["cloudy_water"],
+      primary_goal: "easier_maintenance",
+    },
+    consent: {
+      consent_to_contact: true,
+      marketing_consent: false,
+      consent_text_version: "v1",
+    },
+  };
+
+  it("accepts a valid lead submission regardless of session state", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+  });
+
+  it("does not reject already-linked sessions at schema level", () => {
+    const result = leadCreateSchema.safeParse(base);
+    expect(result.success).toBe(true);
+  });
+});
 
 describe("createPublicError", () => {
   it("returns a safe error shape", () => {

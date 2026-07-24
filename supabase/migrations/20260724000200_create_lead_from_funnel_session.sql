@@ -9,6 +9,14 @@
 --   5. Inserts a lead_created funnel event
 --   6. Returns the new lead ID
 --
+-- Concurrency:
+--   Locks the session row (SELECT ... FOR UPDATE) before checking lead_id
+--   so two simultaneous requests cannot both proceed.
+--
+-- Validation:
+--   - p_consent_to_contact must be true
+--   - p_current_issues must not be null, empty, or contain duplicates
+--
 -- Security:
 --   - SECURITY DEFINER ensures execution with owner privileges
 --   - search_path is set to public for secure resolution
@@ -17,24 +25,27 @@
 --   - Uses parameterized PL/pgSQL (no dynamic SQL)
 -- =============================================================================
 
+-- All parameters are required (no DEFAULT) so the caller must provide
+-- explicit values. This avoids invalid PostgreSQL syntax where a
+-- defaulted parameter appears before a non-defaulted one.
 create or replace function public.create_lead_from_funnel_session(
-  p_session_id            uuid,
-  p_first_name            text,
-  p_last_name             text,
-  p_email                 text,
-  p_phone                 text,
-  p_zip_code              text,
-  p_preferred_contact_method text default null,
-  p_water_feature         text,
-  p_installation_type     text,
-  p_pool_size             text,
-  p_current_treatment     text,
-  p_current_issues        text[],
-  p_primary_goal          text,
-  p_consent_to_contact    boolean,
-  p_marketing_consent     boolean default false,
-  p_consent_text_version  text,
-  p_source                text default null
+  p_session_id              uuid,
+  p_first_name              text,
+  p_last_name               text,
+  p_email                   text,
+  p_phone                   text,
+  p_zip_code                text,
+  p_water_feature           text,
+  p_installation_type       text,
+  p_pool_size               text,
+  p_current_treatment       text,
+  p_current_issues          text[],
+  p_primary_goal            text,
+  p_consent_to_contact      boolean,
+  p_consent_text_version    text,
+  p_preferred_contact_method text,
+  p_marketing_consent       boolean,
+  p_source                  text
 )
 returns uuid
 language plpgsql
@@ -42,17 +53,40 @@ security definer
 set search_path = public
 as $$
 declare
-  v_lead_id    uuid;
-  v_issue_text text;
+  v_lead_id      uuid;
+  v_issue_text   text;
+  v_page_version text;
+  v_session_lead_id uuid;
 begin
-  -- Validate the session exists
-  if not exists (select 1 from public.funnel_sessions where id = p_session_id) then
-    raise exception 'Session not found' using errcode = 'P0002';
-  end if;
+  -- Lock the session row and check existence + lead_id in one query
+  select lead_id, page_version
+  into strict v_session_lead_id, v_page_version
+  from public.funnel_sessions
+  where id = p_session_id
+  for update;
 
   -- Reject a session already linked to another lead
-  if exists (select 1 from public.funnel_sessions where id = p_session_id and lead_id is not null) then
+  if v_session_lead_id is not null then
     raise exception 'Session already linked to a lead' using errcode = 'P0003';
+  end if;
+
+  -- Enforce consent at the database level
+  if p_consent_to_contact is not true then
+    raise exception 'consent_to_contact must be true' using errcode = 'P0004';
+  end if;
+
+  -- Validate current_issues: not null, not empty, no duplicates
+  if p_current_issues is null then
+    raise exception 'current_issues must not be null' using errcode = 'P0005';
+  end if;
+
+  if array_length(p_current_issues, 1) is null or array_length(p_current_issues, 1) = 0 then
+    raise exception 'current_issues must not be empty' using errcode = 'P0006';
+  end if;
+
+  if (select count(*) from unnest(p_current_issues) as x) <>
+     (select count(distinct x) from unnest(p_current_issues) as x) then
+    raise exception 'current_issues must not contain duplicate values' using errcode = 'P0007';
   end if;
 
   -- Create the lead
@@ -90,7 +124,7 @@ begin
     p_current_treatment,
     p_primary_goal,
     p_consent_to_contact,
-    case when p_consent_to_contact then now() else null end,
+    now(),
     p_marketing_consent,
     case when p_marketing_consent then now() else null end,
     p_consent_text_version,
@@ -109,7 +143,7 @@ begin
     (v_lead_id, 'primary-goal',        p_primary_goal,          6);
 
   -- Create lead_answers for each current_issues entry (multi-select)
-  for v_issue_text in select unnest(p_current_issues) loop
+  for v_issue_text in select distinct unnest(p_current_issues) loop
     insert into public.lead_answers (lead_id, question_id, answer_code, answer_order)
     values (v_lead_id, 'current-issues', v_issue_text, 5);
   end loop;
@@ -133,10 +167,7 @@ begin
     v_lead_id,
     'lead_created',
     'contact-information',
-    coalesce(
-      (select page_version from public.funnel_sessions where id = p_session_id),
-      'unknown'
-    )
+    v_page_version
   );
 
   return v_lead_id;
@@ -147,12 +178,12 @@ $$;
 -- Revoke all execution from public / anon / authenticated
 -- =============================================================================
 revoke execute on function public.create_lead_from_funnel_session(
-  uuid, text, text, text, text, text, text, text, text, text, text, text[], text, boolean, boolean, text, text
+  uuid, text, text, text, text, text, text, text, text, text, text[], text, boolean, text, text, boolean, text
 ) from public, anon, authenticated;
 
 -- =============================================================================
 -- Grant execution only to service_role (dashboard user)
 -- =============================================================================
 grant execute on function public.create_lead_from_funnel_session(
-  uuid, text, text, text, text, text, text, text, text, text, text, text[], text, boolean, boolean, text, text
+  uuid, text, text, text, text, text, text, text, text, text, text[], text, boolean, text, text, boolean, text
 ) to service_role;

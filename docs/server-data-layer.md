@@ -136,7 +136,7 @@ Create a lead and link it to an existing anonymous session.
 - Email is lowercased and trimmed.
 - Phone digits are extracted; a 10-digit number gets `+1` prepended (US default). An 11-digit number starting with `1` gets `+` prepended.
 
-**Consent:** `consent_to_contact` must be strictly `true`. This is enforced at the API validation layer.
+**Consent:** `consent_to_contact` must be strictly `true`. This is enforced at the API validation layer and independently re-checked inside the PostgreSQL RPC function.
 
 ---
 
@@ -148,8 +148,10 @@ The lead creation workflow is executed in a single PostgreSQL RPC call:
 POST /api/leads
   → Zod validation + normalization
   → supabase.rpc("create_lead_from_funnel_session", { ... })
-    → Validate session exists
+    → SELECT ... FOR UPDATE (lock session row)
     → Reject if session already linked to a lead
+    → Reject if consent_to_contact is not true
+    → Reject null/empty/duplicate current_issues
     → INSERT into leads
     → INSERT lead_answers rows (single-select + multi-select)
     → UPDATE funnel_sessions (lead_id, status = 'lead_created')
@@ -164,25 +166,49 @@ The RPC function `create_lead_from_funnel_session` is defined in:
 
 ```
 create_lead_from_funnel_session(
-  p_session_id            uuid,
-  p_first_name            text,
-  p_last_name             text,
-  p_email                 text,
-  p_phone                 text,
-  p_zip_code              text,
-  p_preferred_contact_method text default null,
-  p_water_feature         text,
-  p_installation_type     text,
-  p_pool_size             text,
-  p_current_treatment     text,
-  p_current_issues        text[],
-  p_primary_goal          text,
-  p_consent_to_contact    boolean,
-  p_marketing_consent     boolean default false,
-  p_consent_text_version  text,
-  p_source                text default null
+  p_session_id              uuid,
+  p_first_name              text,
+  p_last_name               text,
+  p_email                   text,
+  p_phone                   text,
+  p_zip_code                text,
+  p_water_feature           text,
+  p_installation_type       text,
+  p_pool_size               text,
+  p_current_treatment       text,
+  p_current_issues          text[],
+  p_primary_goal            text,
+  p_consent_to_contact      boolean,
+  p_consent_text_version    text,
+  p_preferred_contact_method text,
+  p_marketing_consent       boolean,
+  p_source                  text
 ) returns uuid
 ```
+
+All parameters are required (no DEFAULT values). The API route passes explicit values for every parameter:
+- `p_preferred_contact_method` receives `null` when the field is omitted
+- `p_marketing_consent` receives `false` when the field is omitted (Zod default)
+- `p_source` receives `null` when the field is omitted
+
+This design avoids PostgreSQL syntax errors caused by defaulted parameters preceding non-defaulted ones.
+
+### RPC-Level Validation
+
+The RPC function performs independent validation before any write:
+
+| Check | Exception Code | Condition |
+|-------|---------------|-----------|
+| Session exists | `P0002` | `SELECT ... FOR UPDATE` raises `no_data_found` if missing |
+| Session already linked | `P0003` | `lead_id` is not null on the locked row |
+| Consent required | `P0004` | `p_consent_to_contact IS NOT TRUE` |
+| current_issues not null | `P0005` | `p_current_issues IS NULL` |
+| current_issues not empty | `P0006` | `array_length = 0` |
+| current_issues no duplicates | `P0007` | Duplicate values after `unnest` |
+
+### Concurrency
+
+The RPC locks the session row with `SELECT ... FOR UPDATE` before checking `lead_id`. This prevents two simultaneous requests from both proceeding — the second caller blocks until the first completes, then sees the updated `lead_id` and raises `P0003`.
 
 ### Security
 
