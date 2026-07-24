@@ -1,24 +1,29 @@
 -- Migration: 20260725000100_internal_booking_notification_delivery
 -- Adds database protection for internal booking notification email delivery.
 --
--- This migration:
---   1. Verifies integration_deliveries can accept event_type = 'internal_booking_notification'
---   2. Safely adds a check constraint on event_type if one exists and does not allow it
---      (preserves all existing allowed event types)
---   3. Creates a unique partial index for internal booking notifications to enforce idempotency
+-- This migration handles three schema states:
+--   1. No event_type CHECK constraint exists → create one
+--   2. Existing constraint already permits internal_booking_notification → no-op
+--   3. Existing constraint excludes internal_booking_notification → replace it
+--      with existing allowed values + internal_booking_notification
+--
+-- Existing allowed event types are always preserved. The migration is
+-- transactional and idempotent.
 --
 -- This migration is NOT applied automatically. See docs/email-notifications.md.
 
 -- 1. Ensure event_type allows 'internal_booking_notification'
---
--- Only create the check constraint if no event_type check constraint currently exists.
--- The initial schema (000100) does not define one, so this is additive.
--- We use DO $$ ... $$ to check for an existing constraint before altering.
 
 do $$
+declare
+  v_has_constraint boolean;
+  v_has_internal   boolean;
+  v_old_values     text[];
+  v_new_values     text[];
+  v_sql            text;
 begin
-  -- Only add the constraint if no check constraint exists on event_type yet.
-  if not exists (
+  -- Check whether any CHECK constraint on event_type exists
+  select exists(
     select 1
     from pg_constraint c
     join pg_class t on c.conrelid = t.oid
@@ -27,13 +32,84 @@ begin
       and t.relname = 'integration_deliveries'
       and c.contype = 'c'
       and pg_get_constraintdef(c.oid) like '%event_type%'
-  ) then
+  ) into v_has_constraint;
+
+  -- Check whether any event_type CHECK constraint already permits internal_booking_notification
+  select exists(
+    select 1
+    from pg_constraint c
+    join pg_class t on c.conrelid = t.oid
+    join pg_namespace n on t.relnamespace = n.oid
+    where n.nspname = 'public'
+      and t.relname = 'integration_deliveries'
+      and c.contype = 'c'
+      and pg_get_constraintdef(c.oid) like '%event_type%'
+      and pg_get_constraintdef(c.oid) like '%internal_booking_notification%'
+  ) into v_has_internal;
+
+  -- Case 1: No event_type CHECK constraint exists — create one
+  if not v_has_constraint then
     alter table public.integration_deliveries
       add constraint integration_deliveries_event_type_check
         check (event_type in (
           'booking_confirmation',
           'internal_booking_notification'
         ));
+
+  -- Case 2: Constraint exists but does not permit internal_booking_notification — replace it
+  elsif not v_has_internal then
+    -- Extract existing allowed string literals from the first event_type CHECK constraint
+    select array_agg(m[1])
+    into v_old_values
+    from (
+      select pg_get_constraintdef(c.oid) as def
+      from pg_constraint c
+      join pg_class t on c.conrelid = t.oid
+      join pg_namespace n on t.relnamespace = n.oid
+      where n.nspname = 'public'
+        and t.relname = 'integration_deliveries'
+        and c.contype = 'c'
+        and pg_get_constraintdef(c.oid) like '%event_type%'
+      limit 1
+    ) sub,
+    lateral regexp_matches(sub.def, $$'([^']+)':?text?$$, 'g') as m;
+
+    -- Drop all existing event_type CHECK constraints (they are incompatible)
+    for v_sql in
+      select format(
+        'ALTER TABLE public.integration_deliveries DROP CONSTRAINT %I',
+        c.conname
+      )
+      from pg_constraint c
+      join pg_class t on c.conrelid = t.oid
+      join pg_namespace n on t.relnamespace = n.oid
+      where n.nspname = 'public'
+        and t.relname = 'integration_deliveries'
+        and c.contype = 'c'
+        and pg_get_constraintdef(c.oid) like '%event_type%'
+    loop
+      execute v_sql;
+    end loop;
+
+    -- Build the new value list: existing values + internal_booking_notification
+    select array_agg(distinct v order by v)
+    into v_new_values
+    from unnest(
+      array_cat(
+        coalesce(v_old_values, array[]::text[]),
+        array['internal_booking_notification']
+      )
+    ) v;
+
+    -- Recreate the constraint with all allowed values
+    execute format(
+      'ALTER TABLE public.integration_deliveries
+         ADD CONSTRAINT integration_deliveries_event_type_check
+           CHECK (event_type = ANY (ARRAY[%s]::text[]))',
+      (select string_agg(format('%L', val), ', ') from unnest(v_new_values) val)
+    );
+
+  -- Case 3: Constraint exists and already permits internal_booking_notification — no-op
   end if;
 end
 $$;
@@ -56,7 +132,6 @@ create unique index if not exists idx_integration_deliveries_internal_booking_un
 
 do $$
 begin
-  -- Verify 'booking_confirmation' is accepted (existing customer event type)
   if not exists (
     select 1
     from pg_constraint c
@@ -70,7 +145,6 @@ begin
     raise exception 'booking_confirmation must be allowed by event_type check constraint';
   end if;
 
-  -- Verify 'internal_booking_notification' is accepted
   if not exists (
     select 1
     from pg_constraint c
