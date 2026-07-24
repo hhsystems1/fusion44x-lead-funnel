@@ -19,17 +19,18 @@ create unique index if not exists idx_integration_deliveries_email_booking_uniqu
 
 -- 3. RPC: claim_email_delivery
 -- Atomically claims a delivery for processing if eligible.
--- Returns true if claimed, false if not eligible (already delivered, dead_letter, max attempts reached, or not due).
+-- Returns the claimed delivery row when successful, null when not eligible
+-- (already delivered, dead_letter, max attempts reached, not due, wrong status).
 create or replace function public.claim_email_delivery(
   p_delivery_id uuid,
   p_max_attempts int default 5
 )
-returns boolean
+returns setof public.integration_deliveries
 language plpgsql
 security definer
 as $$
 declare
-  v_delivery record;
+  v_delivery public.integration_deliveries%rowtype;
   v_now timestamptz := now();
 begin
   -- Lock the row for update
@@ -40,17 +41,17 @@ begin
   for update;
 
   if not found then
-    return false;
+    return;
   end if;
 
   -- Already delivered - idempotent success
   if v_delivery.status = 'delivered' then
-    return false;
+    return;
   end if;
 
   -- Dead letter - never retry
   if v_delivery.status = 'dead_letter' then
-    return false;
+    return;
   end if;
 
   -- Max attempts reached - move to dead_letter
@@ -59,17 +60,17 @@ begin
     set status = 'dead_letter',
         last_attempt_at = v_now
     where id = p_delivery_id;
-    return false;
+    return;
   end if;
 
   -- Not due yet (next_attempt_at in future)
   if v_delivery.next_attempt_at is not null and v_delivery.next_attempt_at > v_now then
-    return false;
+    return;
   end if;
 
   -- Only claim if pending or failed (retryable)
   if v_delivery.status not in ('pending', 'failed') then
-    return false;
+    return;
   end if;
 
   -- Claim it
@@ -79,9 +80,17 @@ begin
       last_attempt_at = v_now
   where id = p_delivery_id;
 
-  return true;
+  -- Return the updated row
+  select *
+  into v_delivery
+  from public.integration_deliveries
+  where id = p_delivery_id;
+
+  return next v_delivery;
 end;
 $$;
+
+grant execute on function public.claim_email_delivery(uuid, int) to service_role;
 
 -- 4. RPC: mark_email_delivery_delivered
 -- Marks delivery as delivered with provider message ID.
@@ -103,6 +112,8 @@ begin
 end;
 $$;
 
+grant execute on function public.mark_email_delivery_delivered(uuid, text) to service_role;
+
 -- 5. RPC: mark_email_delivery_failed
 -- Marks delivery as failed, schedules next attempt if retryable, or dead_letter if terminal/max attempts.
 create or replace function public.mark_email_delivery_failed(
@@ -117,7 +128,7 @@ language plpgsql
 security definer
 as $$
 declare
-  v_delivery record;
+  v_delivery public.integration_deliveries%rowtype;
   v_next_attempt timestamptz;
   v_backoff_ms int;
   v_now timestamptz := now();
@@ -171,3 +182,5 @@ begin
   where id = p_delivery_id;
 end;
 $$;
+
+grant execute on function public.mark_email_delivery_failed(uuid, text, boolean, int, int) to service_role;

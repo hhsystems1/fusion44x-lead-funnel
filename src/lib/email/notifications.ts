@@ -26,9 +26,17 @@ export interface PreparedConfirmation {
   bookingEventId: string | null;
 }
 
+export type SendConfirmationStatus =
+  | "delivered"
+  | "in_progress"
+  | "not_due"
+  | "max_attempts"
+  | "dead_letter"
+  | "prepared";
+
 export interface SendConfirmationResult {
   deliveryId: string;
-  status: "delivered" | "prepared" | "in_progress";
+  status: SendConfirmationStatus;
   messageId?: string;
 }
 
@@ -131,6 +139,30 @@ export async function sendBookingConfirmation(
     };
   }
 
+  // Dead letter - terminal state
+  if (existingDelivery?.status === "dead_letter") {
+    return {
+      deliveryId: existingDelivery.id,
+      status: "dead_letter",
+    };
+  }
+
+  // Max attempts reached
+  if (existingDelivery && existingDelivery.attempt_count >= 5) {
+    return {
+      deliveryId: existingDelivery.id,
+      status: "max_attempts",
+    };
+  }
+
+  // Not yet due for retry
+  if (existingDelivery?.next_attempt_at && new Date(existingDelivery.next_attempt_at) > new Date()) {
+    return {
+      deliveryId: existingDelivery.id,
+      status: "not_due",
+    };
+  }
+
   // Pending or failed - try to claim and send
   let deliveryId: string;
 
@@ -162,11 +194,27 @@ export async function sendBookingConfirmation(
   // Try to atomically claim the delivery for processing
   const claim = await claimEmailDelivery(deliveryId);
   if (!claim.claimed || !claim.delivery) {
-    // Not eligible for retry (delivered, dead_letter, max attempts, not due, etc.)
-    return {
-      deliveryId,
-      status: "in_progress",
-    };
+    // Not eligible: check specific reason
+    const fresh = await findEmailDelivery(appointmentId, templateVersion);
+    if (!fresh) {
+      return { deliveryId, status: "in_progress" };
+    }
+    if (fresh.status === "delivered") {
+      return { deliveryId: fresh.id, status: "delivered", messageId: fresh.provider_message_id ?? undefined };
+    }
+    if (fresh.status === "processing") {
+      return { deliveryId: fresh.id, status: "in_progress" };
+    }
+    if (fresh.status === "dead_letter") {
+      return { deliveryId: fresh.id, status: "dead_letter" };
+    }
+    if (fresh.attempt_count >= 5) {
+      return { deliveryId: fresh.id, status: "max_attempts" };
+    }
+    if (fresh.next_attempt_at && new Date(fresh.next_attempt_at) > new Date()) {
+      return { deliveryId: fresh.id, status: "not_due" };
+    }
+    return { deliveryId, status: "in_progress" };
   }
 
   const endTime = confirmedEndTime || calculateEndTime(confirmedStartTime);

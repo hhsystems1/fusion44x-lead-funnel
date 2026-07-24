@@ -43,6 +43,28 @@ export async function findEmailDelivery(
   return data as EmailDeliveryRecord | null;
 }
 
+export async function findEmailDeliveryById(
+  deliveryId: string,
+): Promise<EmailDeliveryRecord | null> {
+  const supabase = getServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("integration_deliveries")
+    .select("*")
+    .eq("id", deliveryId)
+    .eq("destination", "email")
+    .eq("event_type", "booking_confirmation")
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    throw new Error(`Email delivery lookup by ID failed: ${error.code}`);
+  }
+
+  return data as EmailDeliveryRecord | null;
+}
+
 export async function createPendingEmailDelivery(params: {
   appointmentId: string;
   bookingEventId: string | null;
@@ -106,23 +128,12 @@ export async function claimEmailDelivery(
     throw new Error(`Claim email delivery failed: ${error.code}`);
   }
 
-  const claimed = data as boolean;
-  if (!claimed) {
+  const rows = data as EmailDeliveryRecord[];
+  if (!rows || rows.length === 0) {
     return { claimed: false };
   }
 
-  // Fetch the updated delivery record
-  const { data: delivery, error: fetchError } = await supabase
-    .from("integration_deliveries")
-    .select("*")
-    .eq("id", deliveryId)
-    .single();
-
-  if (fetchError || !delivery) {
-    return { claimed: true };
-  }
-
-  return { claimed: true, delivery: delivery as EmailDeliveryRecord };
+  return { claimed: true, delivery: rows[0] };
 }
 
 export async function markEmailDeliveryDelivered(params: {

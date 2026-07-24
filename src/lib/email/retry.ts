@@ -2,7 +2,7 @@ import "server-only";
 import type { EmailProvider, ProviderError } from "@/lib/email/provider/types";
 import { EMAIL_CONFIG } from "@/config/email";
 import { prepareBookingConfirmation } from "@/lib/email/notifications";
-import { markEmailDeliveryFailed, markEmailDeliveryDelivered, claimEmailDelivery, findEmailDelivery } from "@/lib/email/delivery";
+import { findEmailDeliveryById, claimEmailDelivery, markEmailDeliveryDelivered, markEmailDeliveryFailed } from "@/lib/email/delivery";
 
 export interface RetryConfig {
   maxAttempts: number;
@@ -64,7 +64,8 @@ export async function retryFailedEmailDelivery(params: {
 }): Promise<RetryResult> {
   const cfg = { ...EMAIL_RETRY_CONFIG, ...params.config };
 
-  const delivery = await findEmailDelivery("", "");
+  // Load the exact delivery by ID
+  const delivery = await findEmailDeliveryById(params.deliveryId);
   if (!delivery) {
     return {
       deliveryId: params.deliveryId,
@@ -72,30 +73,100 @@ export async function retryFailedEmailDelivery(params: {
     };
   }
 
-  // Try to claim the delivery for retry
+  // Already delivered - idempotent success
+  if (delivery.status === "delivered") {
+    return {
+      deliveryId: params.deliveryId,
+      status: "delivered",
+    };
+  }
+
+  // Terminal states - skip
+  if (delivery.status === "dead_letter") {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Currently processing - skip to avoid concurrent send
+  if (delivery.status === "processing") {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Max attempts reached - skip
+  if (delivery.attempt_count >= cfg.maxAttempts) {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Not yet due for retry
+  if (delivery.next_attempt_at && new Date(delivery.next_attempt_at) > new Date()) {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Terminal error code recorded - skip
+  if (delivery.error_message && isTerminal(delivery.error_message)) {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Must be pending or failed to retry
+  if (delivery.status !== "pending" && delivery.status !== "failed") {
+    return {
+      deliveryId: params.deliveryId,
+      status: "skipped",
+    };
+  }
+
+  // Try to atomically claim for retry
   const claim = await claimEmailDelivery(params.deliveryId, cfg.maxAttempts);
-  if (!claim.claimed) {
-    // Not eligible for retry (delivered, dead_letter, max attempts, not due)
+  if (!claim.claimed || !claim.delivery) {
+    // Could not claim - another process got it, or not eligible
     return {
       deliveryId: params.deliveryId,
       status: "skipped",
     };
   }
 
-  const appointmentId = claim.delivery?.appointment_id;
-  if (!appointmentId) {
-    return {
-      deliveryId: params.deliveryId,
-      status: "skipped",
-    };
-  }
-
+  const appointmentId = claim.delivery.appointment_id;
   const prepared = await prepareBookingConfirmation({ appointmentId });
 
+  // Appointment no longer confirmed or preparation failed
   if (!prepared) {
+    await markEmailDeliveryFailed({
+      deliveryId: params.deliveryId,
+      safeErrorCode: "APPOINTMENT_NOT_CONFIRMED",
+      retryable: false,
+    });
     return {
       deliveryId: params.deliveryId,
-      status: "skipped",
+      status: "failed",
+      error: { code: "APPOINTMENT_NOT_CONFIRMED", message: "Appointment no longer confirmed", retryable: false },
+    };
+  }
+
+  // Validate recipient
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prepared.recipientEmail)) {
+    await markEmailDeliveryFailed({
+      deliveryId: params.deliveryId,
+      safeErrorCode: "INVALID_RECIPIENT",
+      retryable: false,
+    });
+    return {
+      deliveryId: params.deliveryId,
+      status: "failed",
+      error: { code: "INVALID_RECIPIENT", message: "Invalid recipient email", retryable: false },
     };
   }
 
