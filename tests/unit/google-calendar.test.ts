@@ -126,7 +126,7 @@ describe("provider event payload construction", () => {
 });
 
 // =============================================================================
-// Tests 4-6: Mock Google Calendar provider
+// Mock definitions
 // =============================================================================
 
 const mockGcalInsert = vi.fn();
@@ -165,6 +165,103 @@ function resetAllMocks() {
   mockJWT.mockReset();
   mockSupabase.mockReset();
 }
+
+// ---------------------------------------------------------------------------
+// Helper: create a supabase chain mock that supports sequenced maybeSingle
+// and single calls for the full booking workflow.
+// ---------------------------------------------------------------------------
+function createBookingChain(options: {
+  existingConfirmed?: Record<string, unknown> | null;
+  existingPending?: Record<string, unknown> | null;
+  existingDelivery?: Record<string, unknown> | null;
+  createRpcResult?: { data: unknown; error: unknown };
+  confirmRpcResult?: { data: unknown; error: unknown };
+  failRpcResult?: { data: unknown; error: unknown };
+  deliveryInsertResult?: Record<string, unknown> | null;
+  deliveryProcessingResult?: Record<string, unknown> | null;
+  appointmentRow?: Record<string, unknown> | null;
+  leadRow?: Record<string, unknown> | null;
+  compensationAppointmentRow?: Record<string, unknown> | null;
+}) {
+  let maybeSingleIndex = 0;
+  let singleIndex = 0;
+
+  const maybeSingleResults = [
+    () => Promise.resolve({ data: options.existingConfirmed ?? null, error: null }),
+    () => Promise.resolve({ data: options.existingPending ?? null, error: null }),
+    () => Promise.resolve({ data: options.existingDelivery ?? null, error: null }),
+  ];
+
+  const singleResults: Array<() => Promise<{ data: unknown; error: unknown }>> = [];
+
+  if (options.deliveryInsertResult) {
+    singleResults.push(() =>
+      Promise.resolve({ data: options.deliveryInsertResult!, error: null }),
+    );
+  }
+  if (options.deliveryProcessingResult) {
+    singleResults.push(() =>
+      Promise.resolve({ data: options.deliveryProcessingResult!, error: null }),
+    );
+  }
+  if (options.appointmentRow) {
+    singleResults.push(() =>
+      Promise.resolve({ data: options.appointmentRow!, error: null }),
+    );
+  }
+  if (options.leadRow) {
+    singleResults.push(() =>
+      Promise.resolve({ data: options.leadRow!, error: null }),
+    );
+  }
+  if (options.compensationAppointmentRow) {
+    singleResults.push(() =>
+      Promise.resolve({ data: options.compensationAppointmentRow!, error: null }),
+    );
+  }
+
+  const chain: Record<string, ReturnType<typeof vi.fn>> = {
+    from: vi.fn(() => chain),
+    select: vi.fn(() => chain),
+    eq: vi.fn(() => chain),
+    in: vi.fn(() => chain),
+    lt: vi.fn(() => chain),
+    gt: vi.fn(() => chain),
+    order: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    insert: vi.fn(() => chain),
+    update: vi.fn(() => chain),
+    delete: vi.fn(() => chain),
+    maybeSingle: vi.fn(() => {
+      const fn = maybeSingleResults[maybeSingleIndex] ?? (() => Promise.resolve({ data: null, error: null }));
+      maybeSingleIndex++;
+      return fn();
+    }),
+    single: vi.fn(() => {
+      const fn = singleResults[singleIndex] ?? (() => Promise.resolve({ data: null, error: null }));
+      singleIndex++;
+      return fn();
+    }),
+    rpc: vi.fn(),
+  };
+
+  if (options.createRpcResult) {
+    chain.rpc.mockImplementation((name: string) => {
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve(options.createRpcResult!);
+      }
+      return options.confirmRpcResult
+        ? Promise.resolve(options.confirmRpcResult)
+        : Promise.resolve({ data: null, error: null });
+    });
+  }
+
+  return chain;
+}
+
+// =============================================================================
+// Test 4-6: Provider-level tests
+// =============================================================================
 
 describe("successful event creation", () => {
   beforeEach(() => {
@@ -273,21 +370,8 @@ describe("provider error normalization", () => {
 });
 
 // =============================================================================
-// Tests 7+: Booking workflow tests using mocked Supabase
+// Test 7+: Booking workflow tests
 // =============================================================================
-
-function createMockSupabase(overrides: Record<string, ReturnType<typeof vi.fn>>) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  const autoReturn = [
-    "from", "select", "eq", "in", "lt", "gt", "order", "limit",
-    "insert", "update", "delete",
-  ];
-  for (const key of autoReturn) {
-    chain[key] = vi.fn(() => chain);
-  }
-  Object.assign(chain, overrides);
-  return chain;
-}
 
 describe("confirmed appointment idempotency", () => {
   beforeEach(() => {
@@ -299,21 +383,18 @@ describe("confirmed appointment idempotency", () => {
     });
   });
 
-  it("returns existing confirmed without creating second Google event", async () => {
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({
-        data: {
-          id: "existing-appt-id",
-          start_time: "2026-08-03T13:00:00.000Z",
-          end_time: "2026-08-03T13:30:00.000Z",
-          timezone: "America/New_York",
-          status: "confirmed",
-          external_event_id: "gcal-event-existing",
-        },
-        error: null,
-      }),
-      rpc: vi.fn(),
-      single: vi.fn(),
+  it("returns existing confirmed when all identity fields match", async () => {
+    const supabase = createBookingChain({
+      existingConfirmed: {
+        id: "existing-appt-id",
+        lead_id: "00000000-0000-0000-0000-000000000001",
+        session_id: "00000000-0000-0000-0000-000000000002",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        status: "confirmed",
+        external_event_id: "gcal-event-existing",
+      },
     });
     mockSupabase.mockReturnValue(supabase);
 
@@ -327,6 +408,293 @@ describe("confirmed appointment idempotency", () => {
     });
 
     expect(result).toHaveProperty("appointment_id", "existing-appt-id");
+    expect(result).toHaveProperty("status", "confirmed");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 on lead_id mismatch", async () => {
+    const supabase = createBookingChain({
+      existingConfirmed: {
+        id: "existing-appt-id",
+        lead_id: "different-lead-id",
+        session_id: "00000000-0000-0000-0000-000000000002",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        status: "confirmed",
+        external_event_id: "gcal-event-existing",
+      },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000010",
+    });
+
+    expect(result).toHaveProperty("status", 409);
+    expect(result).toHaveProperty("code", "EVENT_ID_MISMATCH");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 on session_id mismatch", async () => {
+    const supabase = createBookingChain({
+      existingConfirmed: {
+        id: "existing-appt-id",
+        lead_id: "00000000-0000-0000-0000-000000000001",
+        session_id: "different-session-id",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        status: "confirmed",
+        external_event_id: "gcal-event-existing",
+      },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000010",
+    });
+
+    expect(result).toHaveProperty("status", 409);
+    expect(result).toHaveProperty("code", "EVENT_ID_MISMATCH");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 on start_time mismatch", async () => {
+    const supabase = createBookingChain({
+      existingConfirmed: {
+        id: "existing-appt-id",
+        lead_id: "00000000-0000-0000-0000-000000000001",
+        session_id: "00000000-0000-0000-0000-000000000002",
+        start_time: "2026-08-03T14:00:00.000Z",
+        end_time: "2026-08-03T14:30:00.000Z",
+        timezone: "America/New_York",
+        status: "confirmed",
+        external_event_id: "gcal-event-existing",
+      },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000010",
+    });
+
+    expect(result).toHaveProperty("status", 409);
+    expect(result).toHaveProperty("code", "EVENT_ID_MISMATCH");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 on timezone mismatch", async () => {
+    const supabase = createBookingChain({
+      existingConfirmed: {
+        id: "existing-appt-id",
+        lead_id: "00000000-0000-0000-0000-000000000001",
+        session_id: "00000000-0000-0000-0000-000000000002",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "Europe/London",
+        status: "confirmed",
+        external_event_id: "gcal-event-existing",
+      },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000010",
+    });
+
+    expect(result).toHaveProperty("status", 409);
+    expect(result).toHaveProperty("code", "EVENT_ID_MISMATCH");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("getLeadInfo fail-closed", () => {
+  beforeEach(() => {
+    resetAllMocks();
+    setGoogleEnv();
+    mockJWT.mockImplementation(function (this: Record<string, unknown>) {
+      this.authorize = vi.fn().mockResolvedValue({});
+      return this;
+    });
+  });
+
+  it("returns 500 when getLeadInfo returns null (appointment not found)", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-lead-fail", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+    });
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-lead-fail", error: null },
+      deliveryInsertResult: { id: "del-lead-fail" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: null,
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000100",
+    });
+
+    expect(result).toHaveProperty("status", 500);
+    expect(result).toHaveProperty("code", "LEAD_INFO_FAILED");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when getLeadInfo returns null (lead not found)", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-lead-notfound", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+    });
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-lead-notfound", error: null },
+      deliveryInsertResult: { id: "del-lead-notfound" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-lead",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "nonexistent-lead",
+      },
+      leadRow: null,
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000101",
+    });
+
+    expect(result).toHaveProperty("status", 500);
+    expect(result).toHaveProperty("code", "LEAD_INFO_FAILED");
+    expect(mockGcalInsert).not.toHaveBeenCalled();
+  });
+
+  it("builds full_name from first_name and last_name", async () => {
+    let descriptionArg = "";
+
+    mockGcalInsert.mockImplementation((args: { requestBody?: { description?: string } }) => {
+      descriptionArg = args.requestBody?.description ?? "";
+      return Promise.resolve({
+        data: { id: "gcal-name-test", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+      });
+    });
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-name-test", error: null },
+      deliveryInsertResult: { id: "del-name-test" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-name",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-name",
+      },
+      leadRow: {
+        first_name: "  John  ",
+        last_name: "  Doe  ",
+        email: "john@test.com",
+        phone: "555-0100",
+        zip_code: "10001",
+      },
+      confirmRpcResult: { data: "confirmed-name-id", error: null },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000102",
+    });
+
+    expect(result).toHaveProperty("status", "confirmed");
+    expect(descriptionArg).toContain("Name: John Doe");
+  });
+
+  it("handles empty first_name and last_name gracefully", async () => {
+    mockGcalInsert.mockImplementation(() => {
+      return Promise.resolve({
+        data: { id: "gcal-empty-name", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
+      });
+    });
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-empty-name", error: null },
+      deliveryInsertResult: { id: "del-empty-name" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-empty",
+        start_time: "2026-08-03T13:00:00.000Z",
+        end_time: "2026-08-03T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-empty",
+      },
+      leadRow: {
+        first_name: "",
+        last_name: "",
+        email: "anon@test.com",
+        phone: "",
+        zip_code: "",
+      },
+      confirmRpcResult: { data: "confirmed-empty-id", error: null },
+    });
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    const result = await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-03T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000103",
+    });
+
     expect(result).toHaveProperty("status", "confirmed");
   });
 });
@@ -355,24 +723,28 @@ describe("Google event creation occurs once", () => {
       });
     });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockResolvedValue({ data: "appointment-id-1", error: null }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: "evt-1",
-          start_time: "2026-08-04T13:00:00.000Z",
-          end_time: "2026-08-04T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "John Doe",
-          email: "john@test.com",
-          phone: "555-0100",
-          zip_code: "10001",
-          lead_id: "lid-1",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-1", error: null },
+      deliveryInsertResult: { id: "del-id-1" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-1",
+        start_time: "2026-08-04T13:00:00.000Z",
+        end_time: "2026-08-04T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-1",
+      },
+      leadRow: {
+        first_name: "John",
+        last_name: "Doe",
+        email: "john@test.com",
+        phone: "555-0100",
+        zip_code: "10001",
+      },
+      confirmRpcResult: { data: "confirmed-id-1", error: null },
     });
     mockSupabase.mockReturnValue(supabase);
 
@@ -390,7 +762,7 @@ describe("Google event creation occurs once", () => {
   });
 });
 
-describe("database confirmation called", () => {
+describe("database confirmation called after Google event + delivery after RPC", () => {
   beforeEach(() => {
     resetAllMocks();
     setGoogleEnv();
@@ -400,8 +772,12 @@ describe("database confirmation called", () => {
     });
   });
 
-  it("calls confirm_funnel_appointment RPC after Google event creation", async () => {
+  it("calls confirm_funnel_appointment RPC after Google event creation, marks delivered after RPC success", async () => {
     const rpcCalls: string[] = [];
+    const deliveredAfterConfirm: boolean[] = [];
+    let confirmResolved = false;
+    let deliveryMarked = false;
+
     mockGcalInsert.mockResolvedValue({
       data: {
         id: "gcal-confirm-test",
@@ -411,31 +787,47 @@ describe("database confirmation called", () => {
       },
     });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        rpcCalls.push(name);
-        if (name === "confirm_funnel_appointment") {
-          return Promise.resolve({ data: "confirmed-appt-id", error: null });
-        }
-        return Promise.resolve({ data: "appointment-id-1", error: null });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: "evt-2",
-          start_time: "2026-08-05T13:00:00.000Z",
-          end_time: "2026-08-05T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Jane Doe",
-          email: "jane@test.com",
-          phone: "555-0200",
-          zip_code: "20001",
-          lead_id: "lid-2",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-confirm", error: null },
+      deliveryInsertResult: { id: "del-confirm" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-2",
+        start_time: "2026-08-05T13:00:00.000Z",
+        end_time: "2026-08-05T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-2",
+      },
+      leadRow: {
+        first_name: "Jane",
+        last_name: "Doe",
+        email: "jane@test.com",
+        phone: "555-0200",
+        zip_code: "20001",
+      },
     });
+    supabase.rpc.mockImplementation((name: string) => {
+      rpcCalls.push(name);
+      if (name === "confirm_funnel_appointment") {
+        confirmResolved = true;
+        return Promise.resolve({ data: "confirmed-appt-id", error: null });
+      }
+      return Promise.resolve({ data: "appointment-id-confirm", error: null });
+    });
+
+    supabase.update.mockImplementation((values: Record<string, unknown>) => {
+      if (values && values.status === "delivered") {
+        deliveryMarked = true;
+        if (confirmResolved) {
+          deliveredAfterConfirm.push(true);
+        }
+      }
+      return supabase;
+    });
+
     mockSupabase.mockReturnValue(supabase);
 
     const { createBooking } = await import("@/lib/booking/create-booking");
@@ -448,6 +840,8 @@ describe("database confirmation called", () => {
     });
 
     expect(rpcCalls).toContain("confirm_funnel_appointment");
+    expect(deliveryMarked).toBe(true);
+    expect(deliveredAfterConfirm.length).toBeGreaterThan(0);
     expect(result).toHaveProperty("status", "confirmed");
   });
 });
@@ -465,29 +859,27 @@ describe("failure marks appointment failed", () => {
   it("marks appointment failed when Google Calendar creation fails", async () => {
     mockGcalInsert.mockRejectedValue({ code: 403, message: "Calendar access forbidden" });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        if (name === "create_funnel_appointment") {
-          return Promise.resolve({ data: "appointment-id-1", error: null });
-        }
-        return Promise.resolve({ data: "failed-appt-id", error: null });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: "evt-3",
-          start_time: "2026-08-06T13:00:00.000Z",
-          end_time: "2026-08-06T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Bob",
-          email: "bob@test.com",
-          phone: "555-0300",
-          zip_code: "30001",
-          lead_id: "lid-3",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-fail", error: null },
+      deliveryInsertResult: { id: "del-fail" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-3",
+        start_time: "2026-08-06T13:00:00.000Z",
+        end_time: "2026-08-06T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-3",
+      },
+      leadRow: {
+        first_name: "Bob",
+        last_name: "",
+        email: "bob@test.com",
+        phone: "555-0300",
+        zip_code: "30001",
+      },
     });
     mockSupabase.mockReturnValue(supabase);
 
@@ -541,8 +933,11 @@ describe("compensation deletes Google event on DB failure", () => {
     });
   });
 
-  it("attempts to delete Google event when confirm_funnel_appointment fails", async () => {
+  it("deletes Google event and calls fail_funnel_appointment with DB_CONFIRM_FAILED_COMPENSATED", async () => {
     let gcalDeleteCalled = false;
+    const rpcNames: string[] = [];
+    let failCalledWithCode = "";
+
     mockGcalInsert.mockResolvedValue({
       data: { id: "gcal-comp-test", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
     });
@@ -551,30 +946,43 @@ describe("compensation deletes Google event on DB failure", () => {
       return Promise.resolve({ data: {} });
     });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        if (name === "create_funnel_appointment") {
-          return Promise.resolve({ data: "appointment-id-comp", error: null });
-        }
-        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: "evt-4",
-          start_time: "2026-08-08T13:00:00.000Z",
-          end_time: "2026-08-08T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Comp Test",
-          email: "comp@test.com",
-          phone: "555-0400",
-          zip_code: "40001",
-          lead_id: "lid-4",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-comp", error: null },
+      deliveryInsertResult: { id: "del-comp" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-4",
+        start_time: "2026-08-08T13:00:00.000Z",
+        end_time: "2026-08-08T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-4",
+      },
+      leadRow: {
+        first_name: "Comp",
+        last_name: "Test",
+        email: "comp@test.com",
+        phone: "555-0400",
+        zip_code: "40001",
+      },
     });
+    supabase.rpc.mockImplementation((name: string, args: Record<string, unknown>) => {
+      rpcNames.push(name);
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appointment-id-comp", error: null });
+      }
+      if (name === "fail_funnel_appointment") {
+        failCalledWithCode = (args as { p_safe_error_code?: string }).p_safe_error_code ?? "";
+        return Promise.resolve({ data: "failed-appt-id", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
     mockSupabase.mockReturnValue(supabase);
 
     const { createBooking } = await import("@/lib/booking/create-booking");
@@ -587,6 +995,8 @@ describe("compensation deletes Google event on DB failure", () => {
     });
 
     expect(gcalDeleteCalled).toBe(true);
+    expect(rpcNames).toContain("fail_funnel_appointment");
+    expect(failCalledWithCode).toBe("DB_CONFIRM_FAILED_COMPENSATED");
     expect(result).toHaveProperty("status", 500);
   });
 });
@@ -601,36 +1011,50 @@ describe("compensation failure handled safely", () => {
     });
   });
 
-  it("does not throw when compensation delete fails", async () => {
+  it("does not call fail_funnel_appointment when compensation delete fails", async () => {
     mockGcalInsert.mockResolvedValue({
       data: { id: "gcal-comp-fail-test", status: "confirmed" },
     });
     mockGcalDelete.mockRejectedValue(new Error("Compensation delete failed"));
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        if (name === "create_funnel_appointment") {
-          return Promise.resolve({ data: "appointment-id-comp-2", error: null });
-        }
-        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: "evt-5",
-          start_time: "2026-08-09T13:00:00.000Z",
-          end_time: "2026-08-09T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Comp Fail Test",
-          email: "compfail@test.com",
-          phone: "555-0500",
-          zip_code: "50001",
-          lead_id: "lid-5",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const rpcNames: string[] = [];
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-comp-2", error: null },
+      deliveryInsertResult: { id: "del-comp-2" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-5",
+        start_time: "2026-08-09T13:00:00.000Z",
+        end_time: "2026-08-09T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-5",
+      },
+      leadRow: {
+        first_name: "Comp",
+        last_name: "Fail",
+        email: "compfail@test.com",
+        phone: "555-0500",
+        zip_code: "50001",
+      },
+      compensationAppointmentRow: {
+        external_event_id: null,
+      },
     });
+    supabase.rpc.mockImplementation((name: string) => {
+      rpcNames.push(name);
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appointment-id-comp-2", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
     mockSupabase.mockReturnValue(supabase);
 
     const { createBooking } = await import("@/lib/booking/create-booking");
@@ -642,35 +1066,136 @@ describe("compensation failure handled safely", () => {
       event_id: "00000000-0000-0000-0000-000000000060",
     });
 
+    expect(rpcNames).not.toContain("fail_funnel_appointment");
     expect(result).toHaveProperty("status", 500);
   });
-});
 
-describe("integration delivery state transitions", () => {
-  it("starts as pending", () => {
-    const record = {
-      appointment_id: "appt-id",
-      destination: "google_calendar" as const,
-      event_type: "appointment_create" as const,
-      event_id: "evt-id",
-      status: "pending" as const,
-      attempt_count: 0,
-      response_code: null,
-      error_message: null,
-    };
-    expect(record.status).toBe("pending");
+  it("sets appointment back to pending when compensation delete fails and external_event_id is null", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-pending-test", status: "confirmed" },
+    });
+    mockGcalDelete.mockRejectedValue(new Error("Delete failed"));
+
+    let updatedStatus = "";
+
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-pending-test", error: null },
+      deliveryInsertResult: { id: "del-pending" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-pending",
+        start_time: "2026-08-09T13:00:00.000Z",
+        end_time: "2026-08-09T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-pending",
+      },
+      leadRow: {
+        first_name: "Pending",
+        last_name: "Test",
+        email: "pending@test.com",
+        phone: "555-0600",
+        zip_code: "60001",
+      },
+      compensationAppointmentRow: {
+        external_event_id: null,
+      },
+    });
+    supabase.rpc.mockImplementation((name: string) => {
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appt-pending-test", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    supabase.update.mockImplementation((values: Record<string, unknown>) => {
+      if (typeof values.status === "string") {
+        updatedStatus = values.status;
+      }
+      return supabase;
+    });
+
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-09T13:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000061",
+    });
+
+    expect(updatedStatus).toBe("pending");
   });
 
-  it("transitions to processing", () => {
-    expect({ status: "processing" as const }.status).toBe("processing");
-  });
+  it("does not revert to pending when external_event_id is already set", async () => {
+    mockGcalInsert.mockResolvedValue({
+      data: { id: "gcal-no-revert-test", status: "confirmed" },
+    });
+    mockGcalDelete.mockRejectedValue(new Error("Delete failed"));
 
-  it("transitions to delivered on success", () => {
-    expect({ status: "delivered" as const }.status).toBe("delivered");
-  });
+    let pendingStatusUpdateCalled = false;
 
-  it("transitions to failed on error", () => {
-    expect({ status: "failed" as const }.status).toBe("failed");
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appt-no-revert", error: null },
+      deliveryInsertResult: { id: "del-no-revert" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: "evt-no-revert",
+        start_time: "2026-08-09T14:00:00.000Z",
+        end_time: "2026-08-09T14:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-no-revert",
+      },
+      leadRow: {
+        first_name: "No",
+        last_name: "Revert",
+        email: "norevert@test.com",
+        phone: "555-0700",
+        zip_code: "70001",
+      },
+      compensationAppointmentRow: {
+        external_event_id: "gcal-no-revert-test",
+      },
+    });
+    supabase.rpc.mockImplementation((name: string) => {
+      if (name === "create_funnel_appointment") {
+        return Promise.resolve({ data: "appt-no-revert", error: null });
+      }
+      if (name === "confirm_funnel_appointment") {
+        return Promise.reject({ code: "P0103", message: "Cannot confirm" });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    supabase.update.mockImplementation((values: Record<string, unknown>) => {
+      if (values.status === "pending") {
+        pendingStatusUpdateCalled = true;
+      }
+      return supabase;
+    });
+
+    mockSupabase.mockReturnValue(supabase);
+
+    const { createBooking } = await import("@/lib/booking/create-booking");
+    await createBooking({
+      lead_id: "00000000-0000-0000-0000-000000000001",
+      session_id: "00000000-0000-0000-0000-000000000002",
+      start_time: "2026-08-09T14:00:00.000Z",
+      timezone: "America/New_York",
+      event_id: "00000000-0000-0000-0000-000000000062",
+    });
+
+    expect(pendingStatusUpdateCalled).toBe(false);
   });
 });
 
@@ -698,24 +1223,28 @@ describe("no raw provider payload returned", () => {
       },
     });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockResolvedValue({ data: "appointment-id-raw", error: null }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: null,
-          start_time: "2026-08-10T13:00:00.000Z",
-          end_time: "2026-08-10T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Raw Test",
-          email: "raw@test.com",
-          phone: "555-0600",
-          zip_code: "60001",
-          lead_id: "lid-raw",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-id-raw", error: null },
+      deliveryInsertResult: { id: "del-raw" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: null,
+        start_time: "2026-08-10T13:00:00.000Z",
+        end_time: "2026-08-10T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-raw",
+      },
+      leadRow: {
+        first_name: "Raw",
+        last_name: "Test",
+        email: "raw@test.com",
+        phone: "555-0600",
+        zip_code: "60001",
+      },
+      confirmRpcResult: { data: "confirmed-raw-id", error: null },
     });
     mockSupabase.mockReturnValue(supabase);
 
@@ -749,29 +1278,28 @@ describe("API returns confirmed only after both systems succeed", () => {
       data: { id: "gcal-both-success", status: "confirmed", created: "2026-07-24T12:00:00.000Z" },
     });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        if (name === "confirm_funnel_appointment") {
-          return Promise.resolve({ data: "confirmed-both-id", error: null });
-        }
-        return Promise.resolve({ data: "appointment-both-id", error: null });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: null,
-          start_time: "2026-08-11T13:00:00.000Z",
-          end_time: "2026-08-11T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Both Test",
-          email: "both@test.com",
-          phone: "555-0700",
-          zip_code: "70001",
-          lead_id: "lid-both",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-both-id", error: null },
+      deliveryInsertResult: { id: "del-both" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: null,
+        start_time: "2026-08-11T13:00:00.000Z",
+        end_time: "2026-08-11T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-both",
+      },
+      leadRow: {
+        first_name: "Both",
+        last_name: "Test",
+        email: "both@test.com",
+        phone: "555-0700",
+        zip_code: "70001",
+      },
+      confirmRpcResult: { data: "confirmed-both-id", error: null },
     });
     mockSupabase.mockReturnValue(supabase);
 
@@ -791,29 +1319,27 @@ describe("API returns confirmed only after both systems succeed", () => {
   it("does not return confirmed when Google Calendar fails", async () => {
     mockGcalInsert.mockRejectedValue({ code: 500, message: "Internal error" });
 
-    const supabase = createMockSupabase({
-      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      rpc: vi.fn().mockImplementation((name: string) => {
-        if (name === "create_funnel_appointment") {
-          return Promise.resolve({ data: "appointment-both-fail", error: null });
-        }
-        return Promise.resolve({ data: "failed-both-id", error: null });
-      }),
-      single: vi.fn().mockResolvedValue({
-        data: {
-          booking_event_id: null,
-          start_time: "2026-08-12T13:00:00.000Z",
-          end_time: "2026-08-12T13:30:00.000Z",
-          timezone: "America/New_York",
-          full_name: "Both Fail",
-          email: "bothfail@test.com",
-          phone: "555-0800",
-          zip_code: "80001",
-          lead_id: "lid-both-fail",
-        },
-        error: null,
-      }),
-      insert: vi.fn().mockReturnThis(),
+    const supabase = createBookingChain({
+      existingConfirmed: null,
+      existingPending: null,
+      existingDelivery: null,
+      createRpcResult: { data: "appointment-both-fail", error: null },
+      deliveryInsertResult: { id: "del-both-fail" },
+      deliveryProcessingResult: { attempt_count: 0 },
+      appointmentRow: {
+        booking_event_id: null,
+        start_time: "2026-08-12T13:00:00.000Z",
+        end_time: "2026-08-12T13:30:00.000Z",
+        timezone: "America/New_York",
+        lead_id: "lid-both-fail",
+      },
+      leadRow: {
+        first_name: "Both",
+        last_name: "Fail",
+        email: "bothfail@test.com",
+        phone: "555-0800",
+        zip_code: "80001",
+      },
     });
     mockSupabase.mockReturnValue(supabase);
 

@@ -48,8 +48,6 @@ function mapRpcErrorCode(code: string): SafeBookingError | null {
 interface RpcError {
   code?: string;
   message?: string;
-  details?: string;
-  hint?: string;
 }
 
 interface AppointmentRow {
@@ -60,9 +58,9 @@ interface AppointmentRow {
   status: string;
   external_event_id: string | null;
   booking_event_id: string | null;
+  lead_id?: string;
+  session_id?: string;
 }
-
-
 
 async function confirmAppointmentViaRpc(params: {
   appointmentId: string;
@@ -109,6 +107,7 @@ async function getLeadInfo(appointmentId: string): Promise<{
   timezone: string;
 } | null> {
   const supabase = getServerSupabaseClient();
+
   const { data, error } = await supabase
     .from("appointments")
     .select("booking_event_id, start_time, end_time, timezone, lead_id")
@@ -123,7 +122,7 @@ async function getLeadInfo(appointmentId: string): Promise<{
 
   const { data: leadData, error: leadError } = await supabase
     .from("leads")
-    .select("full_name, email, phone, zip_code")
+    .select("first_name, last_name, email, phone, zip_code")
     .eq("id", row.lead_id as string)
     .single();
 
@@ -132,12 +131,15 @@ async function getLeadInfo(appointmentId: string): Promise<{
   }
 
   const lead = leadData as Record<string, unknown>;
+  const firstName = ((lead.first_name as string) ?? "").trim();
+  const lastName = ((lead.last_name as string) ?? "").trim();
+  const fullName = `${firstName} ${lastName}`.trim();
 
   return {
-    full_name: lead.full_name as string,
-    email: lead.email as string,
-    phone: lead.phone as string,
-    zip_code: lead.zip_code as string,
+    full_name: fullName,
+    email: (lead.email as string) ?? "",
+    phone: (lead.phone as string) ?? "",
+    zip_code: (lead.zip_code as string) ?? "",
     booking_event_id: (row.booking_event_id as string) ?? null,
     start_time: row.start_time as string,
     end_time: row.end_time as string,
@@ -151,18 +153,31 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
 
   // ---------------------------------------------------------------------------
   // 1. Check for existing confirmed appointment with same event_id
+  //    Verify all booking identity fields match — never return an unrelated
+  //    appointment even if the event_id collides.
   // ---------------------------------------------------------------------------
   const supabase = getServerSupabaseClient();
 
   const { data: existingConfirmed } = await supabase
     .from("appointments")
-    .select("id, start_time, end_time, timezone, status, external_event_id")
+    .select("id, lead_id, session_id, start_time, end_time, timezone, status, external_event_id")
     .eq("booking_event_id", event_id)
     .eq("status", "confirmed")
     .maybeSingle();
 
   if (existingConfirmed) {
     const row = existingConfirmed as AppointmentRow;
+
+    if (
+      row.lead_id !== lead_id ||
+      row.session_id !== session_id ||
+      row.start_time !== start_time ||
+      row.end_time !== end_time ||
+      row.timezone !== timezone
+    ) {
+      return { status: 409, code: "EVENT_ID_MISMATCH", message: "Booking event ID already used with different booking data" };
+    }
+
     return {
       appointment_id: row.id,
       start_time: row.start_time,
@@ -194,6 +209,8 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
           appointmentId: pendingRow.id,
           externalEventId: gcalEvent.external_event_id,
         });
+
+        await markDeliveryDelivered({ deliveryId: existingDelivery.id });
 
         return {
           appointment_id: confirmedId,
@@ -293,7 +310,6 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       },
     });
   } catch (err) {
-    // Google Calendar creation failed
     try {
       await failAppointmentViaRpc({ appointmentId: appId, safeErrorCode: "GCAL_CREATE_FAILED" });
     } catch {
@@ -312,22 +328,22 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Mark delivery as delivered
-  // ---------------------------------------------------------------------------
-  try {
-    await markDeliveryDelivered({ deliveryId });
-  } catch {
-    // non-fatal
-  }
-
-  // ---------------------------------------------------------------------------
-  // 8. Confirm the appointment in the database
+  // 7. Confirm the appointment in the database
   // ---------------------------------------------------------------------------
   try {
     const confirmedId = await confirmAppointmentViaRpc({
       appointmentId: appId,
       externalEventId: gcalResult.external_event_id,
     });
+
+    // -------------------------------------------------------------------------
+    // 8. Mark delivery as delivered only AFTER database confirmation succeeds
+    // -------------------------------------------------------------------------
+    try {
+      await markDeliveryDelivered({ deliveryId });
+    } catch {
+      // non-fatal — appointment is already confirmed
+    }
 
     return {
       appointment_id: confirmedId,
@@ -337,45 +353,78 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       status: "confirmed",
     };
   } catch {
-    // Database confirmation failed — attempt compensation: delete the Google event
-    const compensationSucceeded = await compensateDeletedGcalEvent(gcalResult.external_event_id, deliveryId);
+    // Database confirmation failed — attempt compensation
+    const compensationResult = await compensateGcalEvent(
+      gcalResult.external_event_id,
+      appId,
+      deliveryId,
+    );
 
-    if (!compensationSucceeded) {
-      console.error(
-        `[compensation] gcal_delete_failed appointmentId=%s eventId=%s`,
-        appId,
-        gcalResult.external_event_id,
-      );
+    if (compensationResult === "compensated") {
+      return { status: 500, code: "DB_CONFIRM_FAILED", message: "Internal server error" };
     }
 
     return { status: 500, code: "DB_CONFIRM_FAILED", message: "Internal server error" };
   }
 }
 
-async function compensateDeletedGcalEvent(
+type CompensationResult = "compensated" | "compensation_failed";
+
+async function compensateGcalEvent(
   externalEventId: string,
+  appointmentId: string,
   deliveryId: string,
-): Promise<boolean> {
+): Promise<CompensationResult> {
   try {
     const provider = createGoogleCalendarProvider();
     await provider.deleteEvent(externalEventId);
 
+    // Google event deleted successfully — mark appointment failed
     try {
-      const supabase = getServerSupabaseClient();
-      await supabase
-        .from("integration_deliveries")
-        .update({
-          error_message: "COMPENSATED_DELETED_GCAL_EVENT",
-          status: "failed" as never,
-          last_attempt_at: new Date().toISOString(),
-        } as never)
-        .eq("id", deliveryId);
+      await failAppointmentViaRpc({
+        appointmentId,
+        safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED",
+      });
+    } catch {
+      // swallow — failAppointmentViaRpc already handles pending-only
+    }
+
+    try {
+      await markDeliveryFailed({ deliveryId, safeErrorCode: "DB_CONFIRM_FAILED_COMPENSATED" });
     } catch {
       // swallow
     }
 
-    return true;
+    return "compensated";
   } catch {
-    return false;
+    // Google event deletion failed — do NOT mark appointment failed since the
+    // external event may still exist. Record the compensation failure.
+    try {
+      await markDeliveryFailed({ deliveryId, safeErrorCode: "COMPENSATION_DELETE_FAILED" });
+    } catch {
+      // swallow
+    }
+
+    // If external_event_id is still null, the confirm RPC failed before
+    // setting it — revert to pending so the booking can be retried.
+    try {
+      const supabase = getServerSupabaseClient();
+      const { data: app } = await supabase
+        .from("appointments")
+        .select("external_event_id")
+        .eq("id", appointmentId)
+        .single();
+
+      if (app && !(app as Record<string, unknown>).external_event_id) {
+        await supabase
+          .from("appointments")
+          .update({ status: "pending" } as never)
+          .eq("id", appointmentId);
+      }
+    } catch {
+      // swallow
+    }
+
+    return "compensation_failed";
   }
 }
