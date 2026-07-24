@@ -33,9 +33,6 @@ import { submitLead as submitLeadApi, buildLeadPayload } from "./api";
 import { validateContactForm, type ContactFormData } from "./contact-validation";
 import { diagnosticQuestions } from "@/config/funnel-questions";
 
-const DIAGNOSTIC_QUESTION_COUNT = diagnosticQuestions.length;
-const FINAL_DIAG_INDEX = DIAGNOSTIC_QUESTION_COUNT - 1;
-
 interface FunnelContextValue {
   state: FunnelState;
   dispatch: React.Dispatch<FunnelAction>;
@@ -45,6 +42,7 @@ interface FunnelContextValue {
   answerMultiToggle: (question_id: DiagnosticQuestionId, code: string) => void;
   diagNext: () => void;
   diagBack: () => void;
+  completeDiagnostic: () => void;
   submitContact: (data: ContactFormData) => Promise<void>;
   isCurrentQuestionAnswered: () => boolean;
   isDiagValid: () => boolean;
@@ -61,9 +59,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   const hasTrackedPageView = useRef(false);
   const hasTrackedDiagStart = useRef(false);
   const hasTrackedContactView = useRef(false);
-  const hasTrackedDiagComplete = useRef(false);
   const prevQuestionRef = useRef<string | null>(null);
-  const prevDiagIndexRef = useRef<number>(0);
 
   // Hydrate persisted state after mount
   useEffect(() => {
@@ -177,20 +173,8 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
       });
     }
-  }, [tracker, state.current_step]);
+}, [tracker, state.current_step]);
 
-  // Track diagnostic_completed - only on explicit final diagNext transition
-  useEffect(() => {
-    if (!tracker) return;
-    if (state.current_step !== FUNNEL_STEPS.CONTACT_INFORMATION) return;
-    if (prevDiagIndexRef.current !== FINAL_DIAG_INDEX) return;
-    if (hasTrackedDiagComplete.current) return;
-
-    hasTrackedDiagComplete.current = true;
-    tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
-      step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-    });
-  }, [tracker, state.current_step]);
 
   const goToStep = useCallback(
     (step: FunnelStepId) => {
@@ -246,14 +230,12 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   );
 
   const diagNext = useCallback(() => {
-    prevDiagIndexRef.current = state.diag_current_index;
     dispatch({ type: "DIAG_NEXT" });
-  }, [state.diag_current_index]);
+  }, []);
 
   const diagBack = useCallback(() => {
-    prevDiagIndexRef.current = state.diag_current_index;
     dispatch({ type: "DIAG_BACK" });
-  }, [state.diag_current_index]);
+  }, []);
 
   const isCurrentQuestionAnswered = useCallback((): boolean => {
     const q = diagnosticQuestions[state.diag_current_index];
@@ -346,6 +328,34 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     [state.session_id, state.diagnostic_answers, tracker],
   );
 
+  const completeDiagnostic = useCallback(() => {
+    if (!isDiagValid()) return;
+
+    dispatch({ type: "COMPLETE_DIAGNOSTIC" });
+
+    if (tracker) {
+      tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
+        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+        metadata: {
+          total_questions: diagnosticQuestions.length,
+          answered: diagnosticQuestions.filter((q) => {
+            const a = getPersistedQuestionAnswer(q.id, state.diagnostic_answers);
+            return q.type === "multi-select"
+              ? Array.isArray(a) && a.length > 0
+              : typeof a === "string" && a.length > 0;
+          }).length,
+        },
+      });
+    }
+
+    const contactEl = document.getElementById("contact-information");
+    if (contactEl) {
+      contactEl.scrollIntoView({ behavior: "smooth" });
+    }
+
+    dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.CONTACT_INFORMATION });
+  }, [state.diagnostic_answers, tracker, isDiagValid]);
+
   const value: FunnelContextValue = {
     state,
     dispatch,
@@ -355,6 +365,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     answerMultiToggle,
     diagNext,
     diagBack,
+    completeDiagnostic,
     submitContact,
     isCurrentQuestionAnswered,
     isDiagValid,

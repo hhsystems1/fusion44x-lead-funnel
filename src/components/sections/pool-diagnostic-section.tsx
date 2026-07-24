@@ -2,8 +2,6 @@
 
 import { siteContent } from "@/config/site-content";
 import { diagnosticQuestions } from "@/config/funnel-questions";
-import { InternalEvents } from "@/config/tracking-events";
-import { FUNNEL_STEPS } from "@/types/funnel";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { getPersistedQuestionAnswer } from "@/lib/funnel/persistence";
 import { SectionContainer } from "@/components/ui/section-container";
@@ -19,10 +17,10 @@ export function PoolDiagnosticSection() {
     answerMultiToggle,
     diagNext,
     diagBack,
+    completeDiagnostic,
     isCurrentQuestionAnswered,
     isDiagValid,
     diagProgress,
-    tracker,
   } = useFunnel();
 
   const currentQuestion = diagnosticQuestions[state.diag_current_index];
@@ -41,22 +39,7 @@ export function PoolDiagnosticSection() {
 
   function handleNext() {
     if (isLast) {
-      tracker?.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
-        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-        metadata: {
-          total_questions: diagnosticQuestions.length,
-          answered: diagnosticQuestions.filter((q) => {
-            const a = getPersistedQuestionAnswer(q.id, state.diagnostic_answers);
-            return q.type === "multi-select"
-              ? Array.isArray(a) && a.length > 0
-              : typeof a === "string" && a.length > 0;
-          }).length,
-        },
-      });
-      const contactEl = document.getElementById("contact-information");
-      if (contactEl) {
-        contactEl.scrollIntoView({ behavior: "smooth" });
-      }
+      completeDiagnostic();
     } else {
       diagNext();
     }

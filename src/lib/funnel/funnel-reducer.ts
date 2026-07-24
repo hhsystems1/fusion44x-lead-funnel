@@ -24,7 +24,8 @@ export type FunnelAction =
   | { type: "SET_VALIDATION_ERRORS"; errors: Record<string, string> }
   | { type: "CLEAR_VALIDATION_ERRORS" }
   | { type: "COMPLETE_STEP"; step: FunnelStepId }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "COMPLETE_DIAGNOSTIC" };
 
 export function createInitialState(): FunnelState {
   return {
@@ -160,6 +161,9 @@ export function funnelReducer(
 
     case "RESET":
       return createInitialState();
+
+    case "COMPLETE_DIAGNOSTIC":
+      return state;
 
     default:
       return state;
