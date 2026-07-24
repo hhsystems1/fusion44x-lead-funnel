@@ -2,7 +2,10 @@ export type AppointmentStatus =
   | "pending"
   | "confirmed"
   | "cancelled"
-  | "completed";
+  | "completed"
+  | "rescheduled"
+  | "no_show"
+  | "failed";
 
 export interface TimeSlot {
   date: string;

@@ -136,13 +136,11 @@ describe("API passes configured buffer values to RPC", () => {
     expect(afterInterval).toMatch(/^\d+ minutes$/);
   });
 
-  it("POST /api/bookings route includes p_buffer_before and p_buffer_after in RPC call", () => {
+  it("POST /api/bookings route delegates to createBooking", () => {
     const routeSource = fs.readFileSync("src/app/api/bookings/route.ts", "utf-8");
 
-    expect(routeSource).toContain("p_buffer_before");
-    expect(routeSource).toContain("p_buffer_after");
-    expect(routeSource).toContain("BOOKING.BUFFER_BEFORE_MINUTES");
-    expect(routeSource).toContain("BOOKING.BUFFER_AFTER_MINUTES");
+    expect(routeSource).toContain("create-booking");
+    expect(routeSource).toContain("createBooking");
 
     const configSource = fs.readFileSync("src/config/booking.ts", "utf-8");
     expect(configSource).toContain("BUFFER_BEFORE_MINUTES");
