@@ -1,5 +1,4 @@
 import "server-only";
-import { getServerSupabaseClient } from "@/lib/supabase";
 import { EMAIL_CONFIG } from "@/config/email";
 import {
   generateGoogleCalendarUrl,
@@ -10,7 +9,7 @@ import type { SendEmailInput, EmailProvider, SendEmailResult, ProviderError } fr
 import {
   findEmailDelivery,
   createPendingEmailDelivery,
-  markEmailDeliveryProcessing,
+  claimEmailDelivery,
   markEmailDeliveryDelivered,
   markEmailDeliveryFailed,
 } from "@/lib/email/delivery";
@@ -29,7 +28,7 @@ export interface PreparedConfirmation {
 
 export interface SendConfirmationResult {
   deliveryId: string;
-  status: "delivered" | "prepared";
+  status: "delivered" | "prepared" | "in_progress";
   messageId?: string;
 }
 
@@ -40,7 +39,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function prepareBookingConfirmation(params: {
   appointmentId: string;
 }): Promise<PreparedConfirmation | null> {
-  const supabase = getServerSupabaseClient();
+  const supabase = (await import("@/lib/supabase")).getServerSupabaseClient();
 
   const { data: appointment, error: appError } = await supabase
     .from("appointments")
@@ -114,33 +113,61 @@ export async function sendBookingConfirmation(
   const templateVersion = EMAIL_CONFIG.TEMPLATE_VERSION;
 
   const existingDelivery = await findEmailDelivery(appointmentId, templateVersion);
+
+  // Already delivered - idempotent success
+  if (existingDelivery?.status === "delivered") {
+    return {
+      deliveryId: existingDelivery.id,
+      status: "delivered",
+      messageId: existingDelivery.provider_message_id ?? undefined,
+    };
+  }
+
+  // In progress - don't send concurrently
+  if (existingDelivery?.status === "processing") {
+    return {
+      deliveryId: existingDelivery.id,
+      status: "in_progress",
+    };
+  }
+
+  // Pending or failed - try to claim and send
+  let deliveryId: string;
+
   if (existingDelivery) {
-    if (existingDelivery.status === "delivered") {
-      return {
-        deliveryId: existingDelivery.id,
-        status: "delivered",
-        messageId: existingDelivery.provider_message_id ?? undefined,
-      };
-    }
-    if (existingDelivery.status === "pending" || existingDelivery.status === "failed") {
-      return {
-        deliveryId: existingDelivery.id,
-        status: "prepared",
-      };
-    }
-    if (existingDelivery.status === "processing") {
-      return {
-        deliveryId: existingDelivery.id,
-        status: "prepared",
-      };
+    deliveryId = existingDelivery.id;
+  } else {
+    // Create new pending delivery
+    try {
+      deliveryId = await createPendingEmailDelivery({
+        appointmentId,
+        bookingEventId,
+        templateVersion,
+      });
+    } catch {
+      // Race condition: another request created it
+      const retryDelivery = await findEmailDelivery(appointmentId, templateVersion);
+      if (retryDelivery) {
+        deliveryId = retryDelivery.id;
+      } else {
+        return {
+          code: "DELIVERY_CREATE_FAILED",
+          message: "Failed to create delivery record",
+          retryable: false,
+        };
+      }
     }
   }
 
-  const deliveryId = await createPendingEmailDelivery({
-    appointmentId,
-    bookingEventId,
-    templateVersion,
-  });
+  // Try to atomically claim the delivery for processing
+  const claim = await claimEmailDelivery(deliveryId);
+  if (!claim.claimed || !claim.delivery) {
+    // Not eligible for retry (delivered, dead_letter, max attempts, not due, etc.)
+    return {
+      deliveryId,
+      status: "in_progress",
+    };
+  }
 
   const endTime = confirmedEndTime || calculateEndTime(confirmedStartTime);
 
@@ -176,8 +203,6 @@ export async function sendBookingConfirmation(
     replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
   };
 
-  await markEmailDeliveryProcessing(deliveryId);
-
   let result: SendEmailResult;
   try {
     result = await provider.sendBookingConfirmation(sendInput);
@@ -189,6 +214,7 @@ export async function sendBookingConfirmation(
     await markEmailDeliveryFailed({
       deliveryId,
       safeErrorCode: safeCode,
+      retryable,
     });
 
     return {

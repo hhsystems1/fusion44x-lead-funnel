@@ -2,7 +2,7 @@ import "server-only";
 import type { EmailProvider, ProviderError } from "@/lib/email/provider/types";
 import { EMAIL_CONFIG } from "@/config/email";
 import { prepareBookingConfirmation } from "@/lib/email/notifications";
-import { markEmailDeliveryFailed, markEmailDeliveryProcessing } from "@/lib/email/delivery";
+import { markEmailDeliveryFailed, markEmailDeliveryDelivered, claimEmailDelivery, findEmailDelivery } from "@/lib/email/delivery";
 
 export interface RetryConfig {
   maxAttempts: number;
@@ -64,53 +64,32 @@ export async function retryFailedEmailDelivery(params: {
 }): Promise<RetryResult> {
   const cfg = { ...EMAIL_RETRY_CONFIG, ...params.config };
 
-  const supabase = (await import("@/lib/supabase")).getServerSupabaseClient();
-  const { data: delivery, error } = await supabase
-    .from("integration_deliveries")
-    .select("*")
-    .eq("id", params.deliveryId)
-    .single();
-
-  if (error || !delivery) {
+  const delivery = await findEmailDelivery("", "");
+  if (!delivery) {
     return {
       deliveryId: params.deliveryId,
       status: "skipped",
     };
   }
 
-  const row = delivery as Record<string, unknown>;
-
-  if (row.status === "delivered") {
-    return {
-      deliveryId: params.deliveryId,
-      status: "delivered",
-    };
-  }
-
-  if (row.status !== "failed" && row.status !== "pending") {
+  // Try to claim the delivery for retry
+  const claim = await claimEmailDelivery(params.deliveryId, cfg.maxAttempts);
+  if (!claim.claimed) {
+    // Not eligible for retry (delivered, dead_letter, max attempts, not due)
     return {
       deliveryId: params.deliveryId,
       status: "skipped",
     };
   }
 
-  const errorMessage = (row.error_message as string | null) ?? "";
-  if (errorMessage && isTerminal(errorMessage)) {
+  const appointmentId = claim.delivery?.appointment_id;
+  if (!appointmentId) {
     return {
       deliveryId: params.deliveryId,
-      status: "failed",
+      status: "skipped",
     };
   }
 
-  const attemptCount = (row.attempt_count as number) ?? 0;
-  if (attemptCount >= cfg.maxAttempts) {
-    return {
-      deliveryId: params.deliveryId,
-      status: "failed",
-    };
-  }
-
-  const appointmentId = row.appointment_id as string;
   const prepared = await prepareBookingConfirmation({ appointmentId });
 
   if (!prepared) {
@@ -119,8 +98,6 @@ export async function retryFailedEmailDelivery(params: {
       status: "skipped",
     };
   }
-
-  await markEmailDeliveryProcessing(params.deliveryId);
 
   try {
     const result = await params.provider.sendBookingConfirmation({
@@ -136,15 +113,10 @@ export async function retryFailedEmailDelivery(params: {
       replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
     });
 
-    await supabase
-      .from("integration_deliveries")
-      .update({
-        status: "delivered" as never,
-        provider_message_id: result.messageId,
-        delivered_at: new Date().toISOString(),
-        last_attempt_at: new Date().toISOString(),
-      } as never)
-      .eq("id", params.deliveryId);
+    await markEmailDeliveryDelivered({
+      deliveryId: params.deliveryId,
+      providerMessageId: result.messageId,
+    });
 
     return {
       deliveryId: params.deliveryId,
@@ -154,10 +126,12 @@ export async function retryFailedEmailDelivery(params: {
   } catch (err) {
     const error = err as { code?: string; message?: string; retryable?: boolean };
     const safeCode = error?.code ?? "PROVIDER_ERROR";
+    const retryable = error?.retryable !== false;
 
     await markEmailDeliveryFailed({
       deliveryId: params.deliveryId,
       safeErrorCode: safeCode,
+      retryable,
     });
 
     return {

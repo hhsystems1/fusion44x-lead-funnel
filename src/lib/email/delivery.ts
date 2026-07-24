@@ -1,7 +1,7 @@
 import "server-only";
 import { getServerSupabaseClient } from "@/lib/supabase";
 
-type EmailDeliveryStatus = "pending" | "processing" | "delivered" | "failed";
+type EmailDeliveryStatus = "pending" | "processing" | "delivered" | "failed" | "dead_letter";
 
 export interface EmailDeliveryRecord {
   id: string;
@@ -14,6 +14,12 @@ export interface EmailDeliveryRecord {
   template_version: string;
   provider_message_id: string | null;
   error_message: string | null;
+  next_attempt_at: string | null;
+}
+
+interface ClaimResult {
+  claimed: boolean;
+  delivery?: EmailDeliveryRecord;
 }
 
 export async function findEmailDelivery(
@@ -64,42 +70,59 @@ export async function createPendingEmailDelivery(params: {
       template_version: params.templateVersion,
       provider_message_id: null,
       error_message: null,
+      next_attempt_at: null,
     } as never)
     .select("id")
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      // Unique violation - race condition, load existing
+      const existing = await findEmailDelivery(
+        params.appointmentId,
+        params.templateVersion,
+      );
+      if (existing) {
+        return existing.id;
+      }
+    }
     throw new Error(`Email delivery insert failed: ${error.code}`);
   }
 
   return (data as { id: string }).id;
 }
 
-export async function markEmailDeliveryProcessing(
+export async function claimEmailDelivery(
   deliveryId: string,
-): Promise<void> {
+  maxAttempts = 5,
+): Promise<ClaimResult> {
   const supabase = getServerSupabaseClient();
+  const { data, error } = await supabase.rpc("claim_email_delivery", {
+    p_delivery_id: deliveryId,
+    p_max_attempts: maxAttempts,
+  } as never);
 
-  const { data: current } = await supabase
+  if (error) {
+    throw new Error(`Claim email delivery failed: ${error.code}`);
+  }
+
+  const claimed = data as boolean;
+  if (!claimed) {
+    return { claimed: false };
+  }
+
+  // Fetch the updated delivery record
+  const { data: delivery, error: fetchError } = await supabase
     .from("integration_deliveries")
-    .select("attempt_count")
+    .select("*")
     .eq("id", deliveryId)
     .single();
 
-  const nextCount =
-    ((current as { attempt_count?: number } | null)?.attempt_count ?? 0) + 1;
-
-  const { error } = await supabase
-    .from("integration_deliveries")
-    .update({
-      status: "processing" as never,
-      attempt_count: nextCount,
-    } as never)
-    .eq("id", deliveryId);
-
-  if (error) {
-    throw new Error(`Failed to mark email delivery processing: ${error.code}`);
+  if (fetchError || !delivery) {
+    return { claimed: true };
   }
+
+  return { claimed: true, delivery: delivery as EmailDeliveryRecord };
 }
 
 export async function markEmailDeliveryDelivered(params: {
@@ -107,15 +130,10 @@ export async function markEmailDeliveryDelivered(params: {
   providerMessageId?: string;
 }): Promise<void> {
   const supabase = getServerSupabaseClient();
-  const { error } = await supabase
-    .from("integration_deliveries")
-    .update({
-      status: "delivered" as never,
-      provider_message_id: params.providerMessageId ?? null,
-      delivered_at: new Date().toISOString(),
-      last_attempt_at: new Date().toISOString(),
-    } as never)
-    .eq("id", params.deliveryId);
+  const { error } = await supabase.rpc("mark_email_delivery_delivered", {
+    p_delivery_id: params.deliveryId,
+    p_provider_message_id: params.providerMessageId ?? null,
+  } as never);
 
   if (error) {
     throw new Error(`Failed to mark email delivery delivered: ${error.code}`);
@@ -125,16 +143,14 @@ export async function markEmailDeliveryDelivered(params: {
 export async function markEmailDeliveryFailed(params: {
   deliveryId: string;
   safeErrorCode: string;
+  retryable: boolean;
 }): Promise<void> {
   const supabase = getServerSupabaseClient();
-  const { error } = await supabase
-    .from("integration_deliveries")
-    .update({
-      status: "failed" as never,
-      error_message: params.safeErrorCode,
-      last_attempt_at: new Date().toISOString(),
-    } as never)
-    .eq("id", params.deliveryId);
+  const { error } = await supabase.rpc("mark_email_delivery_failed", {
+    p_delivery_id: params.deliveryId,
+    p_safe_error_code: params.safeErrorCode,
+    p_retryable: params.retryable,
+  } as never);
 
   if (error) {
     throw new Error(`Failed to mark email delivery failed: ${error.code}`);
