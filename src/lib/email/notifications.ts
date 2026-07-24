@@ -1,11 +1,6 @@
 import "server-only";
 import { EMAIL_CONFIG } from "@/config/email";
-import {
-  generateGoogleCalendarUrl,
-  generateOutlookWebUrl,
-  generateIcsContent,
-} from "@/lib/booking/calendar-links";
-import type { SendEmailInput, EmailProvider, SendEmailResult, ProviderError } from "@/lib/email/provider/types";
+import type { EmailProvider, SendEmailResult, ProviderError } from "@/lib/email/provider/types";
 import {
   findEmailDelivery,
   createPendingEmailDelivery,
@@ -13,7 +8,7 @@ import {
   markEmailDeliveryDelivered,
   markEmailDeliveryFailed,
 } from "@/lib/email/delivery";
-import { calculateEndTime } from "@/lib/booking/slots";
+import { buildBookingConfirmationSendInput } from "./send-input";
 
 export interface PreparedConfirmation {
   appointmentId: string;
@@ -100,15 +95,7 @@ export async function sendBookingConfirmation(
   prepared: PreparedConfirmation,
   provider: EmailProvider,
 ): Promise<SendConfirmationResult | SendConfirmationError> {
-  const {
-    appointmentId,
-    recipientEmail,
-    recipientFirstName,
-    confirmedStartTime,
-    confirmedEndTime,
-    timezone,
-    bookingEventId,
-  } = prepared;
+  const { appointmentId, recipientEmail, bookingEventId } = prepared;
 
   if (!EMAIL_REGEX.test(recipientEmail)) {
     return {
@@ -217,39 +204,7 @@ export async function sendBookingConfirmation(
     return { deliveryId, status: "in_progress" };
   }
 
-  const endTime = confirmedEndTime || calculateEndTime(confirmedStartTime);
-
-  const googleCalendarLink = generateGoogleCalendarUrl({
-    startTime: confirmedStartTime,
-    endTime: endTime,
-    title: EMAIL_CONFIG.CONSULTATION_TITLE,
-  });
-
-  const outlookCalendarLink = generateOutlookWebUrl({
-    startTime: confirmedStartTime,
-    endTime: endTime,
-    title: EMAIL_CONFIG.CONSULTATION_TITLE,
-  });
-
-  const icsContent = generateIcsContent({
-    startTime: confirmedStartTime,
-    endTime: endTime,
-    title: EMAIL_CONFIG.CONSULTATION_TITLE,
-    organizer: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
-  });
-
-  const sendInput: SendEmailInput = {
-    recipientEmail,
-    recipientFirstName,
-    appointmentId,
-    confirmedStartTime,
-    confirmedEndTime: endTime,
-    timezone,
-    googleCalendarLink,
-    outlookCalendarLink,
-    icsContent,
-    replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
-  };
+  const sendInput = buildBookingConfirmationSendInput(prepared);
 
   let result: SendEmailResult;
   try {

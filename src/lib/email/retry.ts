@@ -1,8 +1,8 @@
 import "server-only";
 import type { EmailProvider, ProviderError } from "@/lib/email/provider/types";
-import { EMAIL_CONFIG } from "@/config/email";
 import { prepareBookingConfirmation } from "@/lib/email/notifications";
 import { findEmailDeliveryById, claimEmailDelivery, markEmailDeliveryDelivered, markEmailDeliveryFailed } from "@/lib/email/delivery";
+import { buildBookingConfirmationSendInput } from "@/lib/email/send-input";
 
 export interface RetryConfig {
   maxAttempts: number;
@@ -10,7 +10,7 @@ export interface RetryConfig {
   maxBackoffMs: number;
 }
 
-export const EMAIL_RETRY_CONFIG: RetryConfig = {
+const EMAIL_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 5,
   baseBackoffMs: 60_000,
   maxBackoffMs: 3_600_000,
@@ -171,18 +171,8 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   try {
-    const result = await params.provider.sendBookingConfirmation({
-      recipientEmail: prepared.recipientEmail,
-      recipientFirstName: prepared.recipientFirstName,
-      appointmentId: prepared.appointmentId,
-      confirmedStartTime: prepared.confirmedStartTime,
-      confirmedEndTime: prepared.confirmedEndTime,
-      timezone: prepared.timezone,
-      googleCalendarLink: "",
-      outlookCalendarLink: "",
-      icsContent: "",
-      replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
-    });
+    const sendInput = buildBookingConfirmationSendInput(prepared);
+    const result = await params.provider.sendBookingConfirmation(sendInput);
 
     await markEmailDeliveryDelivered({
       deliveryId: params.deliveryId,
