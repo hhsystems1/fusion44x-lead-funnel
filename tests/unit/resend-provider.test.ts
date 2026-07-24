@@ -17,6 +17,11 @@ vi.mock("@/lib/email/templates/booking-confirmation", () => ({
   renderBookingConfirmationText: vi.fn(() => "Test Text"),
 }));
 
+vi.mock("@/lib/email/templates/internal-booking-notification", () => ({
+  renderInternalBookingNotificationHtml: vi.fn(() => "<html>Internal HTML</html>"),
+  renderInternalBookingNotificationText: vi.fn(() => "Internal Text"),
+}));
+
 describe("ResendEmailProvider", () => {
   let provider: ReturnType<typeof import("@/lib/email/provider/resend-provider").createResendEmailProvider>;
 
@@ -299,6 +304,74 @@ describe("ResendEmailProvider", () => {
         expect.stringContaining("jane@example.com")
       );
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe("sendInternalBookingNotification success", () => {
+    it("returns normalized result with messageId and status delivered", async () => {
+      mockSend.mockResolvedValue({
+        data: { id: "resend_internal_789" },
+        error: null,
+      });
+
+      const result = await provider.sendInternalBookingNotification(validInput);
+
+      expect(result.status).toBe("delivered");
+      expect(result.messageId).toBe("resend_internal_789");
+    });
+
+    it("uses internal-booking-notification-{deliveryId} idempotency key", async () => {
+      mockSend.mockResolvedValue({ data: { id: "msg_1" }, error: null });
+
+      await provider.sendInternalBookingNotification(validInput);
+
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { "Idempotency-Key": "internal-booking-notification-delivery-456" },
+        })
+      );
+    });
+
+    it("customer and internal deliveries use different idempotency key prefixes", async () => {
+      mockSend.mockResolvedValue({ data: { id: "msg_1" }, error: null });
+
+      await provider.sendBookingConfirmation(validInput);
+      const customerCall = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+
+      mockSend.mockResolvedValue({ data: { id: "msg_2" }, error: null });
+
+      await provider.sendInternalBookingNotification(validInput);
+      const internalCall = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+
+      expect(customerCall.headers["Idempotency-Key"]).toMatch(/^booking-confirmation-/);
+      expect(internalCall.headers["Idempotency-Key"]).toMatch(/^internal-booking-notification-/);
+      expect(customerCall.headers["Idempotency-Key"]).not.toBe(
+        internalCall.headers["Idempotency-Key"]
+      );
+    });
+  });
+
+  describe("sendInternalBookingNotification error handling", () => {
+    it("normalizes 429 rate limit to RATE_LIMITED retryable error", async () => {
+      mockSend.mockResolvedValue({
+        data: null,
+        error: { message: "Rate limit exceeded", statusCode: 429 },
+      });
+
+      await expect(provider.sendInternalBookingNotification(validInput)).rejects.toEqual(
+        expect.objectContaining({ code: "RATE_LIMITED", retryable: true })
+      );
+    });
+
+    it("normalizes 5xx to PROVIDER_UNAVAILABLE retryable error", async () => {
+      mockSend.mockResolvedValue({
+        data: null,
+        error: { message: "Internal server error", statusCode: 500 },
+      });
+
+      await expect(provider.sendInternalBookingNotification(validInput)).rejects.toEqual(
+        expect.objectContaining({ code: "PROVIDER_UNAVAILABLE", retryable: true })
+      );
     });
   });
 });

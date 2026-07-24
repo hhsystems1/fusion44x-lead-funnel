@@ -1,10 +1,19 @@
 #!/usr/bin/env node
 /**
- * Manual test script for Resend email provider.
+ * Manual test / smoke-test script for Resend email provider.
+ *
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │ NOTICE: This is a transport / manual rendering smoke test only.    │
+ * │ Production templates remain the source of truth.                   │
+ * │ Do NOT use this script as the production rendering implementation. │
+ * │ This script duplicates template rendering logic for standalone     │
+ * │ testing and must be kept in sync manually.                         │
+ * └─────────────────────────────────────────────────────────────────────┘
  *
  * Usage:
  *   node --env-file=.env.local scripts/test-resend-email.mjs
  *   node --env-file=.env.local scripts/test-resend-email.mjs --internal
+ *   node scripts/test-resend-email.mjs --self-test
  *
  * Requirements:
  *   - TEST_EMAIL_TO environment variable must be set (recipient email for customer test)
@@ -30,10 +39,10 @@ const EMAIL_CONFIG = {
 
 function escapeHtml(str) {
   return str
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "\"")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -571,8 +580,73 @@ async function sendInternalTest() {
   }
 }
 
+function runSelfTest() {
+  let passed = 0;
+  let failed = 0;
+
+  function assert(condition, label) {
+    if (condition) {
+      console.log(`  PASS: ${label}`);
+      passed++;
+    } else {
+      console.error(`  FAIL: ${label}`);
+      failed++;
+    }
+  }
+
+  console.log("=== escapeHtml self-test ===\n");
+
+  // XSS vector
+  const xss = "<script>alert(1)</script>";
+  const xssEscaped = escapeHtml(xss);
+  assert(xssEscaped === "&lt;script&gt;alert(1)&lt;/script&gt;", "escapes <script> tags");
+  assert(!xssEscaped.includes("<script>"), "no raw <script> in output");
+
+  // Ampersand
+  const amp = "Tom & Jerry";
+  const ampEscaped = escapeHtml(amp);
+  assert(ampEscaped === "Tom &amp; Jerry", "escapes & to &amp;");
+  assert(!ampEscaped.includes("& Jerry"), "no raw & in output");
+
+  // Double quotes
+  const dq = '"quoted"';
+  const dqEscaped = escapeHtml(dq);
+  assert(dqEscaped === "&quot;quoted&quot;", "escapes double quotes");
+  assert(!dqEscaped.includes('"quoted"'), "no raw double quotes in output");
+
+  // Single quotes
+  const sq = "it's a test";
+  const sqEscaped = escapeHtml(sq);
+  assert(sqEscaped === "it&#039;s a test", "escapes single quote to &#039;");
+  assert(!sqEscaped.includes("'s a"), "no raw single quote in output");
+
+  // Combined
+  const combined = '<div class="x">Tom &amp; Jerry\'s "place"</div>';
+  const combinedEscaped = escapeHtml(combined);
+  assert(
+    combinedEscaped === "&lt;div class=&quot;x&quot;&gt;Tom &amp;amp; Jerry&#039;s &quot;place&quot;&lt;/div&gt;",
+    "escapes all special characters in combined input"
+  );
+
+  // No-op for safe strings
+  const safe = "Hello World 123";
+  assert(escapeHtml(safe) === safe, "leaves safe strings unchanged");
+
+  console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
+
+  if (failed > 0) {
+    process.exit(1);
+  }
+}
+
 async function main() {
   const isInternal = process.argv.includes("--internal");
+  const isSelfTest = process.argv.includes("--self-test");
+
+  if (isSelfTest) {
+    runSelfTest();
+    return;
+  }
 
   if (isInternal) {
     await sendInternalTest();
