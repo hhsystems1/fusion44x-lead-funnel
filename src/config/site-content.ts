@@ -90,4 +90,33 @@ export const siteContent = {
     message:
       "Booking will be available once a specialist confirms your recommendation.",
   },
+  booking: {
+    heading: "Schedule Your Consultation",
+    subheading: "Select a date and time for your Fusion 44X consultation.",
+    timezone_label: "All times are shown in",
+    select_date: "Select a date",
+    select_time: "Select a time",
+    no_slots: "No available times for this date.",
+    no_slots_sub: "Please select another date.",
+    loading_slots: "Loading available times...",
+    loading_error: "Could not load available times.",
+    try_again: "Try again",
+    review_heading: "Review your appointment",
+    review_date: "Date",
+    review_time: "Time",
+    confirm: "Confirm Booking",
+    confirming: "Confirming...",
+    conflict: "This time is no longer available. Please select another.",
+    success_heading: "Your consultation is scheduled!",
+    success_subheading:
+      "We look forward to speaking with you.",
+    success_message:
+      "You will receive a confirmation email with the details of your appointment.",
+    add_to_calendar: "Add to calendar",
+    google_calendar: "Google Calendar",
+    outlook: "Outlook Web",
+    apple_calendar: "Apple Calendar",
+    download_ics: "Download .ics file",
+    appointment_ref: "Appointment Reference",
+  },
 } as const;

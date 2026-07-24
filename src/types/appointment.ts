@@ -19,6 +19,7 @@ export interface Appointment {
   end_time: string;
   status: AppointmentStatus;
   provider: string;
+  booking_event_id?: string;
   created_at?: string;
 }
 

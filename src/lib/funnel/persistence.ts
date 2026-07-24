@@ -7,6 +7,9 @@ const CURRENT_INDEX_KEY = "fusion44x_diag_index";
 const STEP_KEY = "fusion44x_current_step";
 const LEAD_ID_KEY = "fusion44x_lead_id";
 const BOOKING_STEP_KEY = "fusion44x_booking_step";
+const SELECTED_DATE_KEY = "fusion44x_selected_date";
+const SELECTED_SLOT_START_KEY = "fusion44x_selected_slot_start";
+const SELECTED_SLOT_END_KEY = "fusion44x_selected_slot_end";
 
 type StorageArea = "local" | "session";
 
@@ -145,6 +148,50 @@ export function getBookingStep(): FunnelStepId | null {
 }
 
 // ---------------------------------------------------------------------------
+// Selected Date (sessionStorage)
+// ---------------------------------------------------------------------------
+
+export function saveSelectedDate(date: string | null): void {
+  if (date) {
+    setItem(SELECTED_DATE_KEY, date, "session");
+  } else {
+    removeItem(SELECTED_DATE_KEY, "session");
+  }
+}
+
+export function getSelectedDate(): string | null {
+  return getItem(SELECTED_DATE_KEY, "session");
+}
+
+// ---------------------------------------------------------------------------
+// Selected Slot (sessionStorage)
+// ---------------------------------------------------------------------------
+
+export function saveSelectedSlotStart(start: string | null): void {
+  if (start) {
+    setItem(SELECTED_SLOT_START_KEY, start, "session");
+  } else {
+    removeItem(SELECTED_SLOT_START_KEY, "session");
+  }
+}
+
+export function getSelectedSlotStart(): string | null {
+  return getItem(SELECTED_SLOT_START_KEY, "session");
+}
+
+export function saveSelectedSlotEnd(end: string | null): void {
+  if (end) {
+    setItem(SELECTED_SLOT_END_KEY, end, "session");
+  } else {
+    removeItem(SELECTED_SLOT_END_KEY, "session");
+  }
+}
+
+export function getSelectedSlotEnd(): string | null {
+  return getItem(SELECTED_SLOT_END_KEY, "session");
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -177,4 +224,7 @@ export function clearSessionData(): void {
   removeItem(STEP_KEY, "session");
   removeItem(LEAD_ID_KEY, "session");
   removeItem(BOOKING_STEP_KEY, "session");
+  removeItem(SELECTED_DATE_KEY, "session");
+  removeItem(SELECTED_SLOT_START_KEY, "session");
+  removeItem(SELECTED_SLOT_END_KEY, "session");
 }
