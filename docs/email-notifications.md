@@ -15,10 +15,15 @@ src/lib/email/
 │   ├── provider-factory.ts    # Factory: reads EMAIL_PROVIDER, returns provider
 │   └── index.ts               # Re-exports
 ├── templates/
-│   └── booking-confirmation.ts  # Pure-function HTML + plain-text renderers
-├── delivery.ts                # Integration_deliveries CRUD for email
-├── notifications.ts           # prepareBookingConfirmation / sendBookingConfirmation
-├── retry.ts                   # Retry-safe service with backoff + code classification
+│   ├── booking-confirmation.ts        # Pure-function HTML + plain-text renderers (customer)
+│   └── internal-booking-notification.ts  # Pure-function HTML + plain-text renderers (internal)
+├── delivery.ts                # Integration_deliveries CRUD for customer email
+├── notifications.ts           # prepareBookingConfirmation / sendBookingConfirmation (customer)
+├── internal-delivery.ts       # Integration_deliveries CRUD for internal notification
+├── internal-notifications.ts  # prepareInternalBookingNotification / sendInternalBookingNotification
+├── internal-send-input.ts     # Build SendEmailInput for internal notification
+├── internal-retry.ts          # Retry-safe service for internal notification
+├── retry.ts                   # Retry-safe service with backoff + code classification (customer)
 └── index.ts                   # Existing file (unchanged scaffolding)
 ```
 
@@ -29,6 +34,7 @@ src/lib/email/
 Defined in `src/lib/email/provider/types.ts`:
 
 - `sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>`
+- `sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>`
 - `readonly name: string` — provider identifier
 
 ### SendEmailInput
@@ -196,7 +202,94 @@ Backoff formula: `baseBackoffMs * 2^(attempt-1)`, capped at `maxBackoffMs`.
   - A Supabase Edge Function
   - A Vercel Cron job
 
-## Behavior While No Provider Is Configured
+## Internal Booking Notification
+
+Alongside the customer booking confirmation, an **internal notification** is sent
+to the team (configured via `INTERNAL_BOOKING_NOTIFICATION_TO`). This is a
+completely separate email — never CC/BCC on the customer confirmation.
+
+### Template
+
+File: `src/lib/email/templates/internal-booking-notification.ts`
+
+**Contents**:
+- Customer name, email address, and phone (if available)
+- Confirmed date, time range, and timezone
+- Appointment ID and Google Calendar event ID (if available)
+- Distinct subject line and design (orange header banner vs blue for customer)
+- No calendar links, no ICS attachment, no diagnostic answers
+
+**Design**:
+- HTML and plain-text renderers: `renderInternalBookingNotificationHtml(params)`
+  and `renderInternalBookingNotificationText(params)`
+- All user-controlled values HTML-escaped via `escapeHtml`
+- Customer phone and GCal event ID conditionally rendered
+
+### Delivery Lifecycle
+
+**Event type**: `internal_booking_notification`
+
+Uses `internal-delivery.ts` CRUD functions (parallel to `delivery.ts` for customer):
+- `findInternalEmailDelivery(appointmentId, templateVersion)`
+- `findInternalEmailDeliveryById(deliveryId)`
+- `createPendingInternalEmailDelivery(...)`
+- `claimInternalEmailDelivery(deliveryId)`
+- `markInternalEmailDeliveryDelivered(...)`
+- `markInternalEmailDeliveryFailed(...)`
+
+Same state machine: `pending → processing → delivered` or `→ failed → retry`.
+
+### Idempotency
+
+Independent from customer confirmation. Uses the delivery ID with prefix:
+```
+Idempotency-Key: internal-booking-notification-<deliveryId>
+```
+Same rules: duplicate calls return existing result, `delivered` is idempotent,
+`failed` records remain retryable.
+
+### Retry
+
+File: `src/lib/email/internal-retry.ts`
+
+`retryFailedInternalEmailDelivery({ deliveryId, provider, config? })`:
+- Same exponential backoff formula and code classification as customer retry
+- Terminal/retryable codes identical (see Retry Design above)
+- Independent max attempts tracking
+
+### Wiring in Booking Flow
+
+In `src/lib/booking/create-booking.ts` step 9, both sends are best-effort and
+independent:
+
+```
+// 1. Customer confirmation (existing)
+await sendBookingConfirmation(...)
+
+// 2. Internal notification (new, independent)
+const internalPrepared = await prepareInternalBookingNotification({ ... })
+if (internalPrepared) {
+  await sendInternalBookingNotification(internalPrepared, provider)
+}
+```
+
+**Key behaviors**:
+- `prepareInternalBookingNotification` returns `null` when
+  `INTERNAL_BOOKING_NOTIFICATION_TO` is unset, empty, or invalid — the internal
+  send is skipped entirely
+- If the internal notification fails, the customer email and booking API
+  result are unaffected
+- If the customer email fails, the internal notification still fires
+- Both failures are tracked independently in `integration_deliveries`
+- Neither failure affects the confirmed appointment or API 200 response
+
+### Environment Variable
+
+```bash
+INTERNAL_BOOKING_NOTIFICATION_TO=support@fusion44x.com
+```
+
+When unset or empty, no internal notification is sent (skipped gracefully).
 
 1. After booking confirmation, the system may create a **pending** email
    delivery record via `schedulePendingEmailDelivery()`
@@ -248,10 +341,11 @@ EMAIL_REPLY_TO=consultations@fusion44x.com  # Reply-to address (can differ from 
 
 The Resend provider uses the **delivery ID** as the Resend `Idempotency-Key` header:
 ```
-Idempotency-Key: booking-confirmation-<deliveryId>
+Idempotency-Key: booking-confirmation-<deliveryId>          # customer
+Idempotency-Key: internal-booking-notification-<deliveryId>  # internal
 ```
 
-This ensures the same logical delivery never produces duplicate sends during retries. Resend's idempotency keys are valid for 24 hours.
+This ensures the same logical delivery never produces duplicate sends during
 
 ### Email Payload Sent to Resend
 
@@ -280,17 +374,21 @@ This ensures the same logical delivery never produces duplicate sends during ret
 | Other 400 | PROVIDER_REJECTED | No |
 | Other | PROVIDER_ERROR | No |
 
-### Manual Test Command
+### Manual Test Commands
 
 ```bash
-# Set TEST_EMAIL_TO to your test recipient
+# Test customer confirmation email
 TEST_EMAIL_TO=test@example.com \
 node --env-file=.env.local scripts/test-resend-email.mjs
+
+# Test internal booking notification email
+node --env-file=.env.local scripts/test-resend-email.mjs --internal
+# Requires INTERNAL_BOOKING_NOTIFICATION_TO in .env.local
 ```
 
-Output:
+Customer output:
 ```
-=== Resend Test Email ===
+=== Resend Test Email (Customer) ===
 Provider: resend
 From: consultations@fusion44x.com
 Reply-To: consultations@fusion44x.com
@@ -303,9 +401,24 @@ Message ID: re_abc123...
 Status: delivered
 ```
 
+Internal output:
+```
+=== Resend Test Email (Internal) ===
+Provider: resend
+From: consultations@fusion44x.com
+To: support@fusion44x.com
+
+Sending test internal notification...
+
+=== SUCCESS ===
+Message ID: re_abc123...
+Status: delivered
+```
+
 The test script:
 - Does NOT read from or modify production appointment records
 - Uses a generated test appointment time (2 hours from now)
+- `--internal` flag sends internal booking notification to INTERNAL_BOOKING_NOTIFICATION_TO
 - Prints only safe status and message ID
 - Never prints API keys or full email content
 
@@ -319,14 +432,16 @@ Set in Vercel/Production:
 | `EMAIL_API_KEY` | Yes | Resend API key (`re_...`) |
 | `EMAIL_FROM` | Yes | Verified sender address |
 | `EMAIL_REPLY_TO` | No | Optional reply-to address |
+| `INTERNAL_BOOKING_NOTIFICATION_TO` | No | Internal notification recipient (e.g. support@...) |
 
 ### How to Disable Sending Safely
 
 To disable email sending without code changes:
 
-1. **Unset `EMAIL_PROVIDER`** — the factory returns `null`, no emails sent, pending deliveries created
-2. **Remove `EMAIL_API_KEY`** — provider initialization throws, caught in booking flow, falls back to pending
-3. **Set `EMAIL_PROVIDER=fake`** — not supported (throws "Unknown EMAIL_PROVIDER")
+1. **Unset `EMAIL_PROVIDER`** — factory returns `null`, no emails sent
+2. **Remove `EMAIL_API_KEY`** — provider init throws, caught in booking flow
+3. **Unset `INTERNAL_BOOKING_NOTIFICATION_TO`** — internal notification skipped
+4. **Set `EMAIL_PROVIDER=fake`** — not supported (throws "Unknown EMAIL_PROVIDER")
 
 The booking API remains fully functional regardless of email configuration.
 
@@ -337,6 +452,7 @@ EMAIL_PROVIDER=resend
 EMAIL_FROM=consultations@fusion44x.com
 EMAIL_REPLY_TO=consultations@fusion44x.com
 EMAIL_API_KEY=re_xxxxxxxxxxxx  # provider-specific
+INTERNAL_BOOKING_NOTIFICATION_TO=support@fusion44x.com
 ```
 
 ### Implementing a Provider

@@ -4,6 +4,10 @@ import {
   renderBookingConfirmationHtml,
   renderBookingConfirmationText,
 } from "@/lib/email/templates/booking-confirmation";
+import {
+  renderInternalBookingNotificationHtml,
+  renderInternalBookingNotificationText,
+} from "@/lib/email/templates/internal-booking-notification";
 import type { SendEmailInput, SendEmailResult, ProviderError } from "@/lib/email/provider/types";
 import { createFakeEmailProvider } from "@/lib/email/provider/fake-provider";
 import { EMAIL_CONFIG } from "@/config/email";
@@ -540,5 +544,261 @@ describe("Retry logic", () => {
     const result = await findEmailDeliveryById("test-id");
 
     expect(result).toBeNull();
+  });
+});
+
+describe("Internal notification HTML template rendering", () => {
+  const internalParams = {
+    customerFirstName: "Jane",
+    customerEmail: "jane@example.com",
+    customerPhone: "(555) 123-4567",
+    confirmedStartTime: "2026-07-28T14:00:00.000Z",
+    confirmedEndTime: "2026-07-28T14:30:00.000Z",
+    timezone: "America/New_York",
+    appointmentId: "appt-123",
+    googleCalendarEventId: "gcal-456",
+  };
+
+  it("renders customer name", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("Jane");
+  });
+
+  it("renders customer email", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("jane@example.com");
+  });
+
+  it("renders customer phone when provided", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("(555) 123-4567");
+  });
+
+  it("omits phone row when not provided", () => {
+    const html = renderInternalBookingNotificationHtml({
+      ...internalParams,
+      customerPhone: undefined,
+    });
+    expect(html).not.toContain("Phone");
+  });
+
+  it("renders appointment ID", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("appt-123");
+  });
+
+  it("renders GCal event ID when provided", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("gcal-456");
+  });
+
+  it("omits GCal event ID row when not provided", () => {
+    const html = renderInternalBookingNotificationHtml({
+      ...internalParams,
+      googleCalendarEventId: undefined,
+    });
+    expect(html).not.toContain("GCal Event ID");
+  });
+
+  it("renders confirmed date", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("Tuesday, July 28, 2026");
+  });
+
+  it("renders confirmed time range", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("10:00 AM");
+    expect(html).toContain("10:30 AM");
+  });
+
+  it("renders timezone", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("America/New_York");
+  });
+
+  it("contains no calendar links", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).not.toContain("calendar.google.com");
+    expect(html).not.toContain("outlook.live.com");
+  });
+
+  it("contains no ICS attachment", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).not.toContain("text/calendar");
+  });
+
+  it("contains no JavaScript", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("javascript:");
+  });
+
+  it("contains no tracking pixels", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).not.toContain("pixel");
+    expect(html).not.toContain("beacon");
+    expect(html).not.toContain("open-tracking");
+  });
+
+  it("contains no diagnostic answers", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).not.toContain("diagnostic");
+    expect(html).not.toContain("pool_size");
+  });
+
+  it("has internal notification title", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("New Booking");
+    expect(html).toContain("Internal Notification");
+  });
+
+  it("is valid HTML", () => {
+    const html = renderInternalBookingNotificationHtml(internalParams);
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html).toContain("<body");
+  });
+});
+
+describe("Internal notification plain-text template rendering", () => {
+  const internalParams = {
+    customerFirstName: "Jane",
+    customerEmail: "jane@example.com",
+    customerPhone: "(555) 123-4567",
+    confirmedStartTime: "2026-07-28T14:00:00.000Z",
+    confirmedEndTime: "2026-07-28T14:30:00.000Z",
+    timezone: "America/New_York",
+    appointmentId: "appt-123",
+    googleCalendarEventId: "gcal-456",
+  };
+
+  it("renders customer name", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("Jane");
+  });
+
+  it("renders customer email", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("jane@example.com");
+  });
+
+  it("renders phone when provided", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("(555) 123-4567");
+  });
+
+  it("omits phone line when not provided", () => {
+    const text = renderInternalBookingNotificationText({
+      ...internalParams,
+      customerPhone: undefined,
+    });
+    expect(text).not.toContain("Phone:");
+  });
+
+  it("renders GCal event ID when provided", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("gcal-456");
+  });
+
+  it("omits GCal event ID when not provided", () => {
+    const text = renderInternalBookingNotificationText({
+      ...internalParams,
+      googleCalendarEventId: undefined,
+    });
+    expect(text).not.toContain("GCal Event ID");
+  });
+
+  it("renders date and time", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("Tuesday, July 28, 2026");
+    expect(text).toContain("10:00 AM");
+  });
+
+  it("contains no calendar links", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).not.toContain("calendar.google.com");
+    expect(text).not.toContain("outlook.live.com");
+  });
+
+  it("contains internal notification disclaimer", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).toContain("This notification is for internal tracking only");
+  });
+});
+
+describe("Internal notification HTML escaping", () => {
+  it("escapes HTML in customer name", () => {
+    const html = renderInternalBookingNotificationHtml({
+      customerFirstName: '<script>alert("xss")</script>',
+      customerEmail: "jane@example.com",
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      appointmentId: "appt-123",
+    });
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("escapes HTML in customer email", () => {
+    const html = renderInternalBookingNotificationHtml({
+      customerFirstName: "Jane",
+      customerEmail: '<a href="evil">email</a>',
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      appointmentId: "appt-123",
+    });
+    expect(html).not.toContain("<a href");
+    expect(html).toContain("&lt;a href");
+  });
+
+  it("escapes HTML in phone number", () => {
+    const html = renderInternalBookingNotificationHtml({
+      customerFirstName: "Jane",
+      customerEmail: "jane@example.com",
+      customerPhone: '<script>alert("xss")</script>',
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      appointmentId: "appt-123",
+    });
+    expect(html).not.toContain("<script>");
+  });
+
+  it("escapes HTML in appointment ID", () => {
+    const html = renderInternalBookingNotificationHtml({
+      customerFirstName: "Jane",
+      customerEmail: "jane@example.com",
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      appointmentId: '<script>evil</script>',
+    });
+    expect(html).not.toContain("<script>");
+  });
+});
+
+describe("Internal notification FakeEmailProvider", () => {
+  it("returns a message ID on success", async () => {
+    const provider = createFakeEmailProvider();
+    const input: SendEmailInput = {
+      recipientEmail: "support@fusion44x.com",
+      recipientFirstName: "Test",
+      appointmentId: makeId(),
+      deliveryId: makeId(),
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      googleCalendarLink: "",
+      outlookCalendarLink: "",
+      icsContent: "",
+      html: "<html>test</html>",
+      text: "test",
+    };
+    const result = await provider.sendInternalBookingNotification(input);
+    expect(result.status).toBe("delivered");
+    expect(result.messageId).toBeTruthy();
+    expect(typeof result.messageId).toBe("string");
   });
 });

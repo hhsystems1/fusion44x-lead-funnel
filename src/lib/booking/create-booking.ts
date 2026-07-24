@@ -346,25 +346,34 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       // non-fatal — appointment is already confirmed
     }
 
-    // -------------------------------------------------------------------------
-    // 9. Best-effort email delivery
+// -------------------------------------------------------------------------
+    // 9. Best-effort email delivery (customer + internal)
     //    If a real provider is configured, attempt to send immediately.
-    //    If no provider is configured, fall back to scheduling a pending delivery.
+    //    If no provider is configured, fall back to scheduling pending deliveries.
     //    Email success/failure must not affect booking confirmation.
     // -------------------------------------------------------------------------
     try {
       const { getEmailProvider } = await import("@/lib/email/provider");
       const { sendBookingConfirmation, prepareBookingConfirmation } = await import("@/lib/email/notifications");
-
+      const { sendInternalBookingNotification, prepareInternalBookingNotification } = await import("@/lib/email/internal-notifications");
+      
       const providerResult = getEmailProvider();
-
+      
       if (providerResult.provider) {
+        // Customer confirmation
         const prepared = await prepareBookingConfirmation({ appointmentId: confirmedId });
         if (prepared) {
           await sendBookingConfirmation(prepared, providerResult.provider);
         }
+        
+        // Internal notification
+        const internalPrepared = await prepareInternalBookingNotification({ appointmentId: confirmedId });
+        if (internalPrepared) {
+          await sendInternalBookingNotification(internalPrepared, providerResult.provider);
+        }
       } else {
         await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+        // Internal notification not scheduled when no provider - disabled
       }
     } catch {
       // non-fatal — email preparation/send failure must not affect booking

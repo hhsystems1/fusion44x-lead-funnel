@@ -30,4 +30,5 @@ export interface ProviderError {
 export interface EmailProvider {
   readonly name: string;
   sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>;
+  sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>;
 }
