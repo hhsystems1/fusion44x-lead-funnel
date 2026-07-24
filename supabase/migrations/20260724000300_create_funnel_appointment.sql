@@ -2,24 +2,24 @@
 -- create_funnel_appointment
 -- =============================================================================
 -- Description: Atomically creates an appointment, updating related records:
---   1. Acquires a transaction-scoped advisory lock on the requested slot to
---      serialize concurrent bookings for the same time window.
---   2. Validates the lead exists
---   3. Validates the session exists and belongs to the lead
---   4. Rejects if the session or lead is already booked
---   5. Rejects ANY overlapping active appointment (global — not per-lead)
---   6. Creates the appointment with pending status
---   7. Updates lead status to 'scheduled'
---   8. Updates funnel session status to 'booked'
---   9. Inserts booking_completed funnel event
---  10. Returns the appointment ID
+--   1. Acquires a calendar-level transaction-scoped advisory lock to serialize
+--      all booking attempts regardless of start time.
+--   2. Validates configuration parameters (timezone, provider, duration).
+--   3. Checks for duplicate booking event_id for idempotency.
+--   4. Validates the lead exists
+--   5. Validates the session exists and belongs to the lead
+--   6. Rejects if the session or lead is already booked
+--   7. Rejects ANY overlapping active appointment (global — not per-lead)
+--   8. Creates the appointment with pending status
+--   9. Updates lead status to 'scheduled'
+--  10. Updates funnel session status to 'booked'
+--  11. Inserts booking_completed funnel event
+--  12. Returns the appointment ID
 --
 -- Concurrency:
---   A pg_try_advisory_xact_lock is acquired on a 64-bit key derived from
---   the slot start_time (epoch microseconds). If the lock cannot be acquired
---   immediately (another tx is booking the same slot), the function raises
---   a conflict error. This serializes booking on a single slot without
---   blocking other slots.
+--   A single calendar-level advisory lock serializes all booking attempts.
+--   This is acceptable for the funnel's booking volume and prevents
+--   overlapping buffered windows with different start times.
 --
 -- Active statuses that block a time slot:
 --   - pending
@@ -30,8 +30,13 @@
 --
 -- Buffer zones:
 --   start_time and end_time represent the consultation itself.
---   The overlap window is expanded by BUFFER_BEFORE and BUFFER_AFTER
---   (configured server-side) so no two appointments overlap including buffers.
+--   The overlap window is expanded by v_buffer_before and v_buffer_after
+--   so no two appointments overlap including buffers.
+--
+-- Idempotency:
+--   If a request with the same p_event_id has already been processed,
+--   the function returns the existing appointment ID instead of creating
+--   a duplicate.
 --
 -- Security:
 --   - SECURITY DEFINER ensures execution with owner privileges
@@ -42,13 +47,15 @@
 -- =============================================================================
 
 create or replace function public.create_funnel_appointment(
-  p_lead_id    uuid,
-  p_session_id uuid,
-  p_start_time timestamptz,
-  p_end_time   timestamptz,
-  p_timezone   text,
-  p_provider   text,
-  p_event_id   uuid
+  p_lead_id        uuid,
+  p_session_id     uuid,
+  p_start_time     timestamptz,
+  p_end_time       timestamptz,
+  p_timezone       text,
+  p_provider       text,
+  p_event_id       uuid,
+  p_buffer_before  interval default interval '0 minutes',
+  p_buffer_after   interval default interval '0 minutes'
 )
 returns uuid
 language plpgsql
@@ -63,20 +70,16 @@ declare
   v_page_version      text;
   v_appointment_id    uuid;
   v_overlap_count     integer;
-  v_buffer_before     interval := interval '0 minutes';
-  v_buffer_after      interval := interval '0 minutes';
   v_locked            boolean;
+  v_existing_id       uuid;
 begin
   -- ===========================================================================
-  -- Advisory lock: serialize on the slot start_time
+  -- Calendar-level advisory lock: serialize all booking attempts
   -- ===========================================================================
-  -- Derive a 64-bit key from the start_time epoch microseconds. This ensures
-  -- two simultaneous requests for the exact same slot are serialized.
-  -- pg_try_advisory_xact_lock returns false (no exception) if another session
-  -- holds the lock, so we bail immediately instead of blocking.
-  select pg_try_advisory_xact_lock(
-    (extract(epoch from p_start_time) * 1000000)::bigint
-  ) into v_locked;
+  -- Uses a deterministic 64-bit key for the entire booking calendar.
+  -- This prevents overlapping buffered windows with different start times
+  -- from being booked concurrently. Acquired BEFORE the global overlap query.
+  select pg_try_advisory_xact_lock(20260724) into v_locked;
 
   if not v_locked then
     raise exception 'Concurrent booking conflict' using errcode = 'P0011';
@@ -102,8 +105,41 @@ begin
     raise exception 'timezone is required' using errcode = 'P0015';
   end if;
 
+  if p_timezone <> 'America/New_York' then
+    raise exception 'timezone must be America/New_York' using errcode = 'P0017';
+  end if;
+
   if p_provider is null or p_provider = '' then
     raise exception 'provider is required' using errcode = 'P0016';
+  end if;
+
+  if p_provider <> 'google_calendar' then
+    raise exception 'provider must be google_calendar' using errcode = 'P0018';
+  end if;
+
+  if (p_end_time - p_start_time) <> interval '30 minutes' then
+    raise exception 'duration must be exactly 30 minutes' using errcode = 'P0019';
+  end if;
+
+  if p_buffer_before is null or p_buffer_before < interval '0' then
+    raise exception 'buffer_before must be >= 0' using errcode = 'P0012';
+  end if;
+
+  if p_buffer_after is null or p_buffer_after < interval '0' then
+    raise exception 'buffer_after must be >= 0' using errcode = 'P0012';
+  end if;
+
+  -- ===========================================================================
+  -- Idempotency: return existing appointment if event_id already used
+  -- ===========================================================================
+
+  select id into v_existing_id
+  from public.appointments
+  where booking_event_id = p_event_id
+  limit 1;
+
+  if v_existing_id is not null then
+    return v_existing_id;
   end if;
 
   -- ===========================================================================
@@ -157,8 +193,8 @@ begin
   into v_overlap_count
   from public.appointments
   where status in ('pending', 'confirmed')
-    and start_time < p_end_time + v_buffer_after
-    and end_time > p_start_time - v_buffer_before;
+    and start_time < p_end_time + p_buffer_after
+    and end_time > p_start_time - p_buffer_before;
 
   if v_overlap_count > 0 then
     raise exception 'Time slot conflicts with existing appointment' using errcode = 'P0010';
@@ -176,6 +212,7 @@ begin
     start_time,
     end_time,
     timezone,
+    booking_event_id,
     external_event_id
   ) values (
     p_lead_id,
@@ -185,6 +222,7 @@ begin
     p_start_time,
     p_end_time,
     p_timezone,
+    p_event_id,
     null
   )
   returning id into v_appointment_id;
@@ -241,12 +279,12 @@ $$;
 -- Revoke all execution from public / anon / authenticated
 -- =============================================================================
 revoke execute on function public.create_funnel_appointment(
-  uuid, uuid, timestamptz, timestamptz, text, text, uuid
+  uuid, uuid, timestamptz, timestamptz, text, text, uuid, interval, interval
 ) from public, anon, authenticated;
 
 -- =============================================================================
 -- Grant execution only to service_role
 -- =============================================================================
 grant execute on function public.create_funnel_appointment(
-  uuid, uuid, timestamptz, timestamptz, text, text, uuid
+  uuid, uuid, timestamptz, timestamptz, text, text, uuid, interval, interval
 ) to service_role;

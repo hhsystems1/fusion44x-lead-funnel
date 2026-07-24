@@ -19,6 +19,14 @@ export function mapBookingRpcError(
     case "P0015":
     case "P0016":
       return { status: 422, message: "Invalid booking request" };
+    case "P0017":
+      return { status: 422, message: "Invalid timezone" };
+    case "P0018":
+      return { status: 422, message: "Invalid provider" };
+    case "P0019":
+      return { status: 422, message: "Invalid duration" };
+    case "P0020":
+      return { status: 409, message: "Duplicate booking" };
     default:
       return null;
   }

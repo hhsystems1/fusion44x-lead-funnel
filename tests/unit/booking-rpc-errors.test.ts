@@ -46,6 +46,22 @@ describe("mapBookingRpcError", () => {
     expect(mapBookingRpcError("P0016")).toEqual({ status: 422, message: "Invalid booking request" });
   });
 
+  it("maps P0017 to 422 invalid timezone", () => {
+    expect(mapBookingRpcError("P0017")).toEqual({ status: 422, message: "Invalid timezone" });
+  });
+
+  it("maps P0018 to 422 invalid provider", () => {
+    expect(mapBookingRpcError("P0018")).toEqual({ status: 422, message: "Invalid provider" });
+  });
+
+  it("maps P0019 to 422 invalid duration", () => {
+    expect(mapBookingRpcError("P0019")).toEqual({ status: 422, message: "Invalid duration" });
+  });
+
+  it("maps P0020 to 409 duplicate booking", () => {
+    expect(mapBookingRpcError("P0020")).toEqual({ status: 409, message: "Duplicate booking" });
+  });
+
   it("returns null for unknown error codes", () => {
     expect(mapBookingRpcError("P9999")).toBeNull();
   });

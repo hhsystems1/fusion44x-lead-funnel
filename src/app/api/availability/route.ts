@@ -65,13 +65,24 @@ export async function GET(request: NextRequest) {
   const slots = generateTimeSlots(date, timezone);
   const supabase = getServerSupabaseClient();
 
-  // Query using overlap logic within the local-day UTC boundaries
-  const { data: blockingAppointments } = await supabase
+  const { data: blockingAppointments, error: availabilityError } = await supabase
     .from("appointments")
     .select("start_time, end_time")
     .in("status", ["pending", "confirmed"])
     .lt("start_time", boundaries.dayEndUtc)
     .gt("end_time", boundaries.dayStartUtc);
+
+  if (availabilityError) {
+    console.error(
+      "[availability] query failed requestId=%s code=%s",
+      requestId,
+      availabilityError.code,
+    );
+    return NextResponse.json(
+      createPublicError(500, "Internal server error"),
+      { status: 500, headers: { "x-request-id": requestId } },
+    );
+  }
 
   const blockedSlots = (blockingAppointments ?? []) as Array<{
     start_time: string;

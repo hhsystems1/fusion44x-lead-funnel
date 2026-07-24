@@ -50,9 +50,8 @@ describe("generateTimeSlots", () => {
 
   it("first slot starts at working start hour", () => {
     const slots = generateTimeSlots("2026-07-27", "America/New_York");
-    const firstSlot = slots[0];
-    // First slot should be 9:00 AM ET
-    const d = new Date(firstSlot.start);
+    expect(slots.length).toBeGreaterThan(0);
+    const d = new Date(slots[0].start);
     const hourEt = parseInt(
       d.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false }),
     );
@@ -115,7 +114,7 @@ describe("isWithinBookingWindow", () => {
     vi.useRealTimers();
   });
 
-  it("returns true for today", () => {
+  it("returns true for today in America/New_York", () => {
     expect(isWithinBookingWindow("2026-07-27")).toBe(true);
   });
 
@@ -135,6 +134,16 @@ describe("isWithinBookingWindow", () => {
 
   it("returns false for an invalid date string", () => {
     expect(isWithinBookingWindow("not-a-date")).toBe(false);
+  });
+
+  it("uses America/New_York date, not server timezone", () => {
+    // Server is UTC (epoch 0 = Jan 1 1970 00:00 UTC = Dec 31 1969 19:00 EST)
+    vi.setSystemTime(new Date(0));
+    // In America/New_York, epoch 0 is Dec 31 1969 at 7:00 PM (EST, UTC-5)
+    // The "today" in ET is 1969-12-31, not 1970-01-01
+    expect(isWithinBookingWindow("1969-12-31")).toBe(true);
+    // 1970-01-01 is the next day in ET (within 30-day window)
+    expect(isWithinBookingWindow("1970-01-01")).toBe(true);
   });
 });
 
@@ -191,46 +200,103 @@ describe("isExactSlot", () => {
   });
 });
 
-describe("DST spring-forward", () => {
-  it("generates correct number of slots on the Monday after spring-forward (Mar 9 2026)", () => {
-    // US DST springs forward Mar 8 2026 (Sunday) at 2am. Monday Mar 9 is a normal day.
-    const slots = generateTimeSlots("2026-03-09", "America/New_York");
-    expect(slots.length).toBe(16);
-    for (const slot of slots) {
-      expect(() => new Date(slot.start)).not.toThrow();
-      expect(() => new Date(slot.end)).not.toThrow();
-    }
+describe("DST spring-forward day boundaries", () => {
+  // US DST springs forward Mar 8 2026 (Sunday) at 2:00 AM EST → 3:00 AM EDT
+  // Midnight Mar 8 ET = 5:00 UTC (EST, UTC-5)
+  // Midnight Mar 9 ET = 4:00 UTC (EDT, UTC-4)
+  // Difference = 23 hours
+
+  it("spring-forward day is 23 hours", () => {
+    const bounds = getDayBoundariesUtc("2026-03-08", "America/New_York");
+    expect(bounds).not.toBeNull();
+    const startMs = new Date(bounds!.dayStartUtc).getTime();
+    const endMs = new Date(bounds!.dayEndUtc).getTime();
+    const diffHours = (endMs - startMs) / (1000 * 60 * 60);
+    expect(diffHours).toBe(23);
   });
 
-  it("spring-forward week slot start times are all valid and ordered", () => {
+  it("generates correct slots on the Monday after spring-forward", () => {
+    // Mar 9 2026 is Monday, EDT (UTC-4)
     const slots = generateTimeSlots("2026-03-09", "America/New_York");
-    for (let i = 1; i < slots.length; i++) {
-      expect(new Date(slots[i].start).getTime()).toBeGreaterThan(
-        new Date(slots[i - 1].start).getTime(),
-      );
+    expect(slots.length).toBe(16);
+    // 9:00 AM EDT = 13:00 UTC
+    expect(slots[0].start).toBe("2026-03-09T13:00:00.000Z");
+    for (const slot of slots) {
+      expect(() => new Date(slot.start)).not.toThrow();
     }
   });
 });
 
-describe("DST fall-back", () => {
-  it("generates correct number of slots on the Monday after fall-back (Nov 2 2026)", () => {
-    // US DST falls back Nov 1 2026 (Sunday) at 2am. Monday Nov 2 is a normal day.
-    const slots = generateTimeSlots("2026-11-02", "America/New_York");
-    expect(slots.length).toBe(16);
-    for (const slot of slots) {
-      expect(() => new Date(slot.start)).not.toThrow();
-      expect(() => new Date(slot.end)).not.toThrow();
-    }
+describe("DST fall-back day boundaries", () => {
+  // US DST falls back Nov 1 2026 (Sunday) at 2:00 AM EDT → 1:00 AM EST
+  // Midnight Nov 1 ET = 4:00 UTC (EDT, UTC-4)
+  // Midnight Nov 2 ET = 5:00 UTC (EST, UTC-5)
+  // Difference = 25 hours
+
+  it("fall-back day is 25 hours", () => {
+    const bounds = getDayBoundariesUtc("2026-11-01", "America/New_York");
+    expect(bounds).not.toBeNull();
+    const startMs = new Date(bounds!.dayStartUtc).getTime();
+    const endMs = new Date(bounds!.dayEndUtc).getTime();
+    const diffHours = (endMs - startMs) / (1000 * 60 * 60);
+    expect(diffHours).toBe(25);
   });
 
-  it("generates slots on the Friday before fall-back (Oct 30 2026)", () => {
-    // Oct 30 2026 is a Friday
+  it("generates correct slots on the Monday after fall-back", () => {
+    // Nov 2 2026 is Monday, EST (UTC-5)
+    const slots = generateTimeSlots("2026-11-02", "America/New_York");
+    expect(slots.length).toBe(16);
+    // 9:00 AM EST = 14:00 UTC
+    expect(slots[0].start).toBe("2026-11-02T14:00:00.000Z");
+  });
+
+  it("generates slots on the Friday before fall-back", () => {
+    // Oct 30 2026 is Friday, EDT (UTC-4)
     const slots = generateTimeSlots("2026-10-30", "America/New_York");
     expect(slots.length).toBe(16);
-    for (const slot of slots) {
-      expect(() => new Date(slot.start)).not.toThrow();
-      expect(() => new Date(slot.end)).not.toThrow();
-    }
+    // 9:00 AM EDT = 13:00 UTC
+    expect(slots[0].start).toBe("2026-10-30T13:00:00.000Z");
+  });
+});
+
+describe("normal day boundaries", () => {
+  it("normal day is 24 hours", () => {
+    const bounds = getDayBoundariesUtc("2026-07-27", "America/New_York");
+    expect(bounds).not.toBeNull();
+    const startMs = new Date(bounds!.dayStartUtc).getTime();
+    const endMs = new Date(bounds!.dayEndUtc).getTime();
+    const diffHours = (endMs - startMs) / (1000 * 60 * 60);
+    expect(diffHours).toBe(24);
+  });
+
+  it("returns boundary timestamps in valid ISO format", () => {
+    const bounds = getDayBoundariesUtc("2026-07-27", "America/New_York");
+    expect(bounds!.dayStartUtc).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(bounds!.dayEndUtc).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+describe("9:00 AM label across DST dates", () => {
+  it("shows 9:00 AM on spring-forward week", () => {
+    const slots = generateTimeSlots("2026-03-09", "America/New_York");
+    expect(slots[0].label).toBe("9:00 AM");
+  });
+
+  it("shows 9:00 AM on summer date (EDT)", () => {
+    const slots = generateTimeSlots("2026-07-27", "America/New_York");
+    expect(slots[0].label).toBe("9:00 AM");
+  });
+
+  it("shows 9:00 AM on fall-back week (EST)", () => {
+    const slots = generateTimeSlots("2026-11-02", "America/New_York");
+    expect(slots[0].label).toBe("9:00 AM");
+  });
+
+  it("shows 9:30 AM consistently across DST dates", () => {
+    const summerSlots = generateTimeSlots("2026-07-27", "America/New_York");
+    const fallSlots = generateTimeSlots("2026-11-02", "America/New_York");
+    expect(summerSlots[1].label).toBe("9:30 AM");
+    expect(fallSlots[1].label).toBe("9:30 AM");
   });
 });
 
@@ -248,35 +314,83 @@ describe("getLocalMidnightMs", () => {
   });
 });
 
-describe("getDayBoundariesUtc", () => {
-  it("returns boundaries that span exactly 24h", () => {
-    const bounds = getDayBoundariesUtc("2026-07-27", "America/New_York");
-    expect(bounds).not.toBeNull();
-    const startMs = new Date(bounds!.dayStartUtc).getTime();
-    const endMs = new Date(bounds!.dayEndUtc).getTime();
-    expect(endMs - startMs).toBe(24 * 60 * 60 * 1000);
+describe("server timezone independence", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
   });
 
-  it("returns boundary timestamps in valid ISO format", () => {
-    const bounds = getDayBoundariesUtc("2026-07-27", "America/New_York");
-    expect(bounds!.dayStartUtc).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(bounds!.dayEndUtc).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("getDayBoundariesUtc is independent of server timezone", () => {
+    // Set server time to different values
+    const testCases = [
+      "2026-07-27T00:00:00Z",
+      "2026-07-27T12:00:00Z",
+      "2026-07-27T23:00:00Z",
+    ];
+    for (const serverTime of testCases) {
+      vi.setSystemTime(new Date(serverTime));
+      const bounds = getDayBoundariesUtc("2026-07-27", "America/New_York");
+      expect(bounds).not.toBeNull();
+      expect(bounds!.dayStartUtc).toBe("2026-07-27T04:00:00.000Z");
+      expect(bounds!.dayEndUtc).toBe("2026-07-28T04:00:00.000Z");
+    }
+  });
+
+  it("generateTimeSlots is independent of server timezone", () => {
+    const testCases = [
+      "2026-07-27T00:00:00Z",
+      "2026-07-27T12:00:00Z",
+      "2026-07-27T23:00:00Z",
+    ];
+    for (const serverTime of testCases) {
+      vi.setSystemTime(new Date(serverTime));
+      const slots = generateTimeSlots("2026-07-27", "America/New_York");
+      expect(slots.length).toBe(16);
+      expect(slots[0].start).toBe("2026-07-27T13:00:00.000Z");
+    }
+  });
+
+  it("isWithinBookingWindow uses America/New_York date, not server timezone", () => {
+    // When server is UTC and it's Jan 1 1970 04:00 UTC = Dec 31 1969 23:00 EST
+    // So the "today" in ET is 1969-12-31
+    vi.setSystemTime(new Date("1970-01-01T04:00:00Z")); // Jan 1 1970 04:00 UTC
+    // In ET: Dec 31 1969 23:00 EST
+    expect(isWithinBookingWindow("1969-12-31")).toBe(true);
+    // 1970-01-01 is tomorrow in ET
+    expect(isWithinBookingWindow("1970-01-01")).toBe(true);
   });
 });
 
-describe("timezone handling", () => {
-  it("generates same slot count for NY and LA on same date", () => {
-    const nySlots = generateTimeSlots("2026-07-27", "America/New_York");
-    const laSlots = generateTimeSlots("2026-07-27", "America/Los_Angeles");
-    expect(nySlots.length).toBe(laSlots.length);
-  });
+describe("isSlotAvailable fails closed on DB errors", () => {
+  it("throws error when Supabase returns an error", async () => {
+    const mockSupabase = {
+      from: () => ({
+        select: () => ({
+          in: () => ({
+            lt: () => ({
+              gt: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: "PGRST116", message: "Database error", details: "", hint: "" },
+                  }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
 
-  it("generates more than 0 slots for a valid weekday", () => {
-    expect(generateTimeSlots("2026-07-28", "America/New_York").length).toBeGreaterThan(0);
-  });
-
-  it("first slot label is 9:00 AM for NY", () => {
-    const slots = generateTimeSlots("2026-07-27", "America/New_York");
-    expect(slots[0].label.toLowerCase()).toContain("9");
+    const { isSlotAvailable } = await import("@/lib/booking/slots");
+    await expect(
+      isSlotAvailable(
+        "2026-07-27T13:00:00.000Z",
+        "2026-07-27T13:30:00.000Z",
+        mockSupabase as never,
+      ),
+    ).rejects.toThrow("Availability check failed: PGRST116");
   });
 });

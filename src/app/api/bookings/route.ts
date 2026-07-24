@@ -132,11 +132,23 @@ export async function POST(request: NextRequest) {
 
   // 9. Re-query availability to check for conflicts before calling RPC
   const supabase = getServerSupabaseClient();
-  const available = await isSlotAvailable(start_time, end_time, supabase);
-  if (!available) {
+  try {
+    const available = await isSlotAvailable(start_time, end_time, supabase);
+    if (!available) {
+      return NextResponse.json(
+        createPublicError(409, "Time slot is no longer available"),
+        { status: 409, headers: { "x-request-id": requestId } },
+      );
+    }
+  } catch (err) {
+    console.error(
+      "[bookings] availability check failed requestId=%s msg=%s",
+      requestId,
+      err instanceof Error ? err.message : "unknown",
+    );
     return NextResponse.json(
-      createPublicError(409, "Time slot is no longer available"),
-      { status: 409, headers: { "x-request-id": requestId } },
+      createPublicError(500, "Internal server error"),
+      { status: 500, headers: { "x-request-id": requestId } },
     );
   }
 
