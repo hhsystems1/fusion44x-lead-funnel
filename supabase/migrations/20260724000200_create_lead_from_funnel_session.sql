@@ -50,7 +50,7 @@ create or replace function public.create_lead_from_funnel_session(
 returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_lead_id      uuid;

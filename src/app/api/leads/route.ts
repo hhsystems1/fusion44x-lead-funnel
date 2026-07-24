@@ -10,6 +10,7 @@ import {
   BodyTooLargeError,
   JsonParseError,
 } from "@/lib/server/request-protection";
+import { mapLeadRpcError } from "@/lib/server/lead-rpc-errors";
 
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
@@ -82,10 +83,22 @@ export async function POST(request: NextRequest) {
   );
 
   if (rpcError) {
+    const mapped = rpcError.code ? mapLeadRpcError(rpcError.code) : null;
+    if (mapped) {
+      console.warn(
+        "[leads] rpc error requestId=%s code=%s",
+        requestId,
+        rpcError.code,
+      );
+      return NextResponse.json(
+        createPublicError(mapped.status, mapped.message),
+        { status: mapped.status, headers: { "x-request-id": requestId } },
+      );
+    }
     console.error(
-      "[leads] rpc error requestId=%s message=%s",
+      "[leads] unexpected rpc error requestId=%s code=%s",
       requestId,
-      rpcError.message,
+      rpcError.code ?? "unknown",
     );
     return NextResponse.json(
       createPublicError(500, "Internal server error"),

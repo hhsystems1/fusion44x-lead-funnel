@@ -11,6 +11,7 @@ import {
   checkRateLimit,
   createPublicError,
 } from "@/lib/server/request-protection";
+import { mapLeadRpcError } from "@/lib/server/lead-rpc-errors";
 
 // =============================================================================
 // Session validation
@@ -662,6 +663,48 @@ describe("lead conflict detection (schema level)", () => {
   it("does not reject already-linked sessions at schema level", () => {
     const result = leadCreateSchema.safeParse(base);
     expect(result.success).toBe(true);
+  });
+});
+
+// =============================================================================
+// RPC error mapping
+// =============================================================================
+
+describe("mapLeadRpcError", () => {
+  it("maps P0002 to 404 with session not found message", () => {
+    const result = mapLeadRpcError("P0002");
+    expect(result).toEqual({ status: 404, message: "Session not found" });
+  });
+
+  it("maps P0003 to 409 with session already linked message", () => {
+    const result = mapLeadRpcError("P0003");
+    expect(result).toEqual({ status: 409, message: "Session already linked to a lead" });
+  });
+
+  it("maps P0004 to 422 with consent required message", () => {
+    const result = mapLeadRpcError("P0004");
+    expect(result).toEqual({ status: 422, message: "Consent to contact is required" });
+  });
+
+  it("maps P0005 to 422 with validation failed message", () => {
+    const result = mapLeadRpcError("P0005");
+    expect(result).toEqual({ status: 422, message: "Validation failed" });
+  });
+
+  it("maps P0006 to 422 with validation failed message", () => {
+    const result = mapLeadRpcError("P0006");
+    expect(result).toEqual({ status: 422, message: "Validation failed" });
+  });
+
+  it("maps P0007 to 422 with validation failed message", () => {
+    const result = mapLeadRpcError("P0007");
+    expect(result).toEqual({ status: 422, message: "Validation failed" });
+  });
+
+  it("returns null for unknown error codes", () => {
+    expect(mapLeadRpcError("UNKNOWN")).toBeNull();
+    expect(mapLeadRpcError("P0001")).toBeNull();
+    expect(mapLeadRpcError("23505")).toBeNull();
   });
 });
 
