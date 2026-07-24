@@ -166,4 +166,5 @@ export interface FunnelState {
   submission_state: SubmissionState;
   validation_errors: Record<string, string>;
   diag_current_index: number;
+  hydration_ready: boolean;
 }

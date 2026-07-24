@@ -11,6 +11,7 @@ export type FunnelAction =
   | { type: "GO_TO_STEP"; step: FunnelStepId }
   | { type: "SET_SESSION"; session_id: string }
   | { type: "SET_LEAD_ID"; lead_id: string }
+  | { type: "HYDRATE"; payload: Partial<FunnelState> }
   | { type: "ANSWER_SINGLE"; question_id: DiagnosticQuestionId; code: string }
   | { type: "ANSWER_MULTI_TOGGLE"; question_id: DiagnosticQuestionId; code: string }
   | { type: "DIAG_NEXT" }
@@ -35,6 +36,7 @@ export function createInitialState(): FunnelState {
     submission_state: "idle",
     validation_errors: {},
     diag_current_index: 0,
+    hydration_ready: false,
   };
 }
 
@@ -84,6 +86,9 @@ export function funnelReducer(
 
     case "SET_LEAD_ID":
       return { ...state, lead_id: action.lead_id };
+
+    case "HYDRATE":
+      return { ...state, ...action.payload, hydration_ready: true };
 
     case "ANSWER_SINGLE": {
       const answers = setAnswer(

@@ -7,6 +7,55 @@ export interface SessionResult {
   is_new: boolean;
 }
 
+function getParam(name: string): string | undefined {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getCookie(name: string): string | undefined {
+  try {
+    const match = document.cookie.match(
+      new RegExp(`(?:^|;\\s*)${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=(.*?)(?:;|$)`),
+    );
+    return match ? decodeURIComponent(match[1]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getDeviceCategory(): string {
+  try {
+    const ua = navigator.userAgent.toLowerCase();
+    const isMobile = /mobile|android|iphone|ipad|ipod/i.test(ua);
+    const isTablet = /tablet|ipad/i.test(ua) && !isMobile;
+    if (isTablet) return "tablet";
+    if (isMobile) return "mobile";
+    return "desktop";
+  } catch {
+    return "desktop";
+  }
+}
+
+function getAttributionPayload(): Record<string, string | undefined> {
+  return {
+    utm_source: getParam("utm_source"),
+    utm_medium: getParam("utm_medium"),
+    utm_campaign: getParam("utm_campaign"),
+    utm_content: getParam("utm_content"),
+    utm_term: getParam("utm_term"),
+    fbclid: getParam("fbclid"),
+    fbc: getCookie("_fbc"),
+    fbp: getCookie("_fbp"),
+    landing_url: getLandingUrl(),
+    referrer: getReferrer(),
+    device_category: getDeviceCategory(),
+  };
+}
+
 function getLandingUrl(): string | undefined {
   try {
     if (typeof window !== "undefined" && window.location) {
@@ -36,6 +85,7 @@ export async function initializeSession(): Promise<SessionResult | null> {
   }
 
   const anonymous_id = generateAnonymousId();
+  const attribution = getAttributionPayload();
 
   try {
     const response = await fetch("/api/funnel-sessions", {
@@ -44,8 +94,7 @@ export async function initializeSession(): Promise<SessionResult | null> {
       body: JSON.stringify({
         anonymous_id,
         page_version: PAGE_VERSION,
-        landing_url: getLandingUrl(),
-        referrer: getReferrer(),
+        ...attribution,
       }),
     });
 

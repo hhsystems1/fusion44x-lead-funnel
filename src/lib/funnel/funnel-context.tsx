@@ -15,12 +15,17 @@ import { FUNNEL_STEPS } from "@/types/funnel";
 import { InternalEvents } from "@/config/tracking-events";
 import { funnelReducer, createInitialState, type FunnelAction } from "./funnel-reducer";
 import {
-  saveDiagnosticAnswers,
-  saveDiagIndex,
   getDiagnosticAnswers,
   getDiagIndex,
   getSessionId,
+  getCurrentStep,
+  getLeadId,
+  saveDiagnosticAnswers,
+  saveDiagIndex,
+  saveCurrentStep,
+  saveLeadId,
   getPersistedQuestionAnswer,
+  clearSessionDataExceptLead,
 } from "./persistence";
 import { initializeSession } from "./session";
 import { createTracker, type Tracker } from "@/lib/analytics/tracker";
@@ -45,27 +50,37 @@ interface FunnelContextValue {
 
 const FunnelContext = createContext<FunnelContextValue | null>(null);
 
-function loadPersistedState(): Partial<FunnelState> {
-  const answers = getDiagnosticAnswers();
-  const index = getDiagIndex();
-  const sessionId = getSessionId();
-  return {
-    diagnostic_answers: answers ?? {},
-    diag_current_index: index,
-    session_id: sessionId,
-  };
-}
-
 export function FunnelProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(
-    funnelReducer,
-    { ...createInitialState(), ...loadPersistedState() },
-    (s) => s,
-  );
+  const [state, dispatch] = useReducer(funnelReducer, undefined, createInitialState);
 
   const [tracker, setTracker] = useState<Tracker | null>(null);
   const sessionInitRef = useRef(false);
+  const hasTrackedPageView = useRef(false);
+  const hasTrackedDiagStart = useRef(false);
+  const hasTrackedContactView = useRef(false);
+  const hasTrackedDiagComplete = useRef(false);
+  const prevQuestionRef = useRef<string | null>(null);
 
+  // Hydrate persisted state after mount
+  useEffect(() => {
+    const answers = getDiagnosticAnswers();
+    const index = getDiagIndex();
+    const sessionId = getSessionId();
+    const step = getCurrentStep();
+    const leadId = getLeadId();
+    dispatch({
+      type: "HYDRATE",
+      payload: {
+        ...(answers ? { diagnostic_answers: answers } : {}),
+        ...(typeof index === "number" ? { diag_current_index: index } : {}),
+        ...(sessionId ? { session_id: sessionId } : {}),
+        ...(step ? { current_step: step } : {}),
+        ...(leadId ? { lead_id: leadId } : {}),
+      },
+    });
+  }, []);
+
+  // Session initialization
   useEffect(() => {
     if (sessionInitRef.current) return;
     sessionInitRef.current = true;
@@ -75,20 +90,97 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "SET_SESSION", session_id: result.session_id });
         const t = createTracker({ session_id: result.session_id });
         setTracker(t);
-        t.track(InternalEvents.PAGE_VIEWED, {
-          step_id: state.current_step,
-        });
       }
     });
-  }, [state.current_step]);
+  }, []);
 
+  // Track page_viewed after tracker is ready
+  useEffect(() => {
+    if (tracker && !hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
+      tracker.track(InternalEvents.PAGE_VIEWED, {
+        step_id: state.current_step,
+      });
+    }
+  }, [tracker, state.current_step]);
+
+  // Persist diagnostic answers
   useEffect(() => {
     saveDiagnosticAnswers(state.diagnostic_answers);
   }, [state.diagnostic_answers]);
 
+  // Persist diagnostic index
   useEffect(() => {
     saveDiagIndex(state.diag_current_index);
   }, [state.diag_current_index]);
+
+  // Persist current step
+  useEffect(() => {
+    saveCurrentStep(state.current_step);
+  }, [state.current_step]);
+
+  // Persist lead ID
+  useEffect(() => {
+    if (state.lead_id) {
+      saveLeadId(state.lead_id);
+    }
+  }, [state.lead_id]);
+
+  // Track diagnostic_started
+  useEffect(() => {
+    if (
+      tracker &&
+      !hasTrackedDiagStart.current &&
+      state.current_step === FUNNEL_STEPS.POOL_DIAGNOSTIC
+    ) {
+      hasTrackedDiagStart.current = true;
+      tracker.track(InternalEvents.DIAGNOSTIC_STARTED, {
+        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+      });
+    }
+  }, [tracker, state.current_step]);
+
+  // Track question_viewed on change
+  useEffect(() => {
+    if (!tracker) return;
+    const q = diagnosticQuestions[state.diag_current_index];
+    if (!q) return;
+    if (prevQuestionRef.current !== q.id) {
+      prevQuestionRef.current = q.id;
+      tracker.track(InternalEvents.QUESTION_VIEWED, {
+        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+        question_id: q.id,
+      });
+    }
+  }, [tracker, state.diag_current_index]);
+
+  // Track contact_step_viewed
+  useEffect(() => {
+    if (
+      tracker &&
+      !hasTrackedContactView.current &&
+      state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION
+    ) {
+      hasTrackedContactView.current = true;
+      tracker.track(InternalEvents.CONTACT_STEP_VIEWED, {
+        step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
+      });
+    }
+  }, [tracker, state.current_step]);
+
+  // Track diagnostic_completed
+  useEffect(() => {
+    if (
+      tracker &&
+      !hasTrackedDiagComplete.current &&
+      state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION
+    ) {
+      hasTrackedDiagComplete.current = true;
+      tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
+        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+      });
+    }
+  }, [tracker, state.current_step]);
 
   const goToStep = useCallback(
     (step: FunnelStepId) => {
@@ -121,16 +213,26 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
   const answerMultiToggle = useCallback(
     (question_id: DiagnosticQuestionId, code: string) => {
+      const prev = state.diagnostic_answers.current_issues ?? [];
+      const wasSelected = prev.includes(code as never);
       dispatch({ type: "ANSWER_MULTI_TOGGLE", question_id, code });
       if (tracker) {
-        tracker.track(InternalEvents.QUESTION_ANSWERED, {
-          step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-          question_id,
-          answer_code: code,
-        });
+        if (wasSelected) {
+          tracker.track(InternalEvents.QUESTION_CHANGED, {
+            step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+            question_id,
+            answer_code: code,
+          });
+        } else {
+          tracker.track(InternalEvents.QUESTION_ANSWERED, {
+            step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+            question_id,
+            answer_code: code,
+          });
+        }
       }
     },
-    [tracker],
+    [state.diagnostic_answers, tracker],
   );
 
   const diagNext = useCallback(() => {
@@ -221,6 +323,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
             step: FUNNEL_STEPS.CONTACT_INFORMATION,
           });
           dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.BOOKING });
+          clearSessionDataExceptLead();
         } else {
           dispatch({ type: "CONTACT_SUBMIT_ERROR" });
         }

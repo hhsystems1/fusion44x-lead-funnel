@@ -1,35 +1,44 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const storage = new Map<string, string>();
+const localStore = new Map<string, string>();
+const sessionStore = new Map<string, string>();
 
 const mockLocalStorage = {
-  getItem: vi.fn((key: string) => storage.get(key) ?? null),
-  setItem: vi.fn((key: string, value: string) => {
-    storage.set(key, value);
-  }),
-  removeItem: vi.fn((key: string) => storage.delete(key)),
-  clear: vi.fn(() => storage.clear()),
-  get length() {
-    return storage.size;
-  },
-  key: vi.fn((index: number) => Array.from(storage.keys())[index] ?? null),
+  getItem: vi.fn((key: string) => localStore.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => { localStore.set(key, value); }),
+  removeItem: vi.fn((key: string) => { localStore.delete(key); }),
+  clear: vi.fn(() => localStore.clear()),
+  get length() { return localStore.size; },
+  key: vi.fn((index: number) => Array.from(localStore.keys())[index] ?? null),
+};
+
+const mockSessionStorage = {
+  getItem: vi.fn((key: string) => sessionStore.get(key) ?? null),
+  setItem: vi.fn((key: string, value: string) => { sessionStore.set(key, value); }),
+  removeItem: vi.fn((key: string) => { sessionStore.delete(key); }),
+  clear: vi.fn(() => sessionStore.clear()),
+  get length() { return sessionStore.size; },
+  key: vi.fn((index: number) => Array.from(sessionStore.keys())[index] ?? null),
 };
 
 beforeEach(() => {
-  storage.clear();
+  localStore.clear();
+  sessionStore.clear();
   vi.clearAllMocks();
 
   vi.stubGlobal("localStorage", mockLocalStorage as unknown as Storage);
+  vi.stubGlobal("sessionStorage", mockSessionStorage as unknown as Storage);
   vi.stubGlobal("window", { location: { href: "http://localhost:3000" } });
   vi.stubGlobal("document", { referrer: "http://google.com" });
   vi.stubGlobal("fetch", vi.fn());
+  vi.stubGlobal("crypto", { randomUUID: vi.fn(() => "crypto-uuid-123") });
 });
 
 import { initializeSession } from "@/lib/funnel/session";
 
 describe("initializeSession", () => {
   it("returns existing session_id from storage without calling API", async () => {
-    storage.set("fusion44x_session_id", "existing-session-uuid");
+    sessionStore.set("fusion44x_session_id", "existing-session-uuid");
 
     const result = await initializeSession();
     expect(result).toEqual({
@@ -50,7 +59,7 @@ describe("initializeSession", () => {
       session_id: "new-session-uuid",
       is_new: true,
     });
-    expect(storage.get("fusion44x_session_id")).toBe("new-session-uuid");
+    expect(sessionStore.get("fusion44x_session_id")).toBe("new-session-uuid");
   });
 
   it("returns null on network failure", async () => {

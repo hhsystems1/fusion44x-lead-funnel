@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { siteContent } from "@/config/site-content";
 import { diagnosticQuestions } from "@/config/funnel-questions";
 import { InternalEvents } from "@/config/tracking-events";
@@ -25,31 +24,6 @@ export function PoolDiagnosticSection() {
     diagProgress,
     tracker,
   } = useFunnel();
-
-  const hasTrackedStart = useRef(false);
-  const hasTrackedView = useRef(false);
-
-  useEffect(() => {
-    if (!hasTrackedStart.current) {
-      tracker?.track(InternalEvents.DIAGNOSTIC_STARTED, {
-        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-      });
-      hasTrackedStart.current = true;
-    }
-  }, [tracker]);
-
-  useEffect(() => {
-    if (!hasTrackedView.current) {
-      const q = diagnosticQuestions[state.diag_current_index];
-      if (q) {
-        tracker?.track(InternalEvents.QUESTION_VIEWED, {
-          step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
-          question_id: q.id,
-        });
-        hasTrackedView.current = true;
-      }
-    }
-  }, [state.diag_current_index, tracker]);
 
   const currentQuestion = diagnosticQuestions[state.diag_current_index];
   if (!currentQuestion) return null;

@@ -1,88 +1,139 @@
-import type { DiagnosticAnswers, DiagnosticQuestionId } from "@/types/funnel";
+import type { DiagnosticAnswers, DiagnosticQuestionId, FunnelStepId } from "@/types/funnel";
 
 const ANONYMOUS_ID_KEY = "fusion44x_anonymous_id";
 const SESSION_ID_KEY = "fusion44x_session_id";
 const ANSWERS_KEY = "fusion44x_diagnostic_answers";
 const CURRENT_INDEX_KEY = "fusion44x_diag_index";
+const STEP_KEY = "fusion44x_current_step";
+const LEAD_ID_KEY = "fusion44x_lead_id";
+
+type StorageArea = "local" | "session";
 
 function isBrowser(): boolean {
-  return typeof window !== "undefined" && typeof localStorage !== "undefined";
+  return typeof window !== "undefined";
 }
+
+function storage(area: StorageArea): Storage | null {
+  if (!isBrowser()) return null;
+  try {
+    return area === "local" ? localStorage : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function getItem(key: string, area: StorageArea): string | null {
+  try {
+    return storage(area)?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function setItem(key: string, value: string, area: StorageArea): void {
+  try {
+    storage(area)?.setItem(key, value);
+  } catch {
+    /* silent */
+  }
+}
+
+function removeItem(key: string, area: StorageArea): void {
+  try {
+    storage(area)?.removeItem(key);
+  } catch {
+    /* silent */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Anonymous ID (localStorage — persists across sessions for attribution)
+// ---------------------------------------------------------------------------
 
 export function generateAnonymousId(): string {
   const existing = getAnonymousId();
   if (existing) return existing;
-  const id = `anon_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  try {
-    if (isBrowser()) localStorage.setItem(ANONYMOUS_ID_KEY, id);
-  } catch {
-    /* storage unavailable — proceed without persistence */
-  }
+  const id = crypto.randomUUID
+    ? `anon_${crypto.randomUUID()}`
+    : `anon_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  setItem(ANONYMOUS_ID_KEY, id, "local");
   return id;
 }
 
 export function getAnonymousId(): string | null {
-  try {
-    return isBrowser() ? localStorage.getItem(ANONYMOUS_ID_KEY) : null;
-  } catch {
-    return null;
-  }
+  return getItem(ANONYMOUS_ID_KEY, "local");
 }
 
+// ---------------------------------------------------------------------------
+// Session ID (sessionStorage — scoped to browser session)
+// ---------------------------------------------------------------------------
+
 export function saveSessionId(id: string): void {
-  try {
-    if (isBrowser()) localStorage.setItem(SESSION_ID_KEY, id);
-  } catch {
-    /* silent */
-  }
+  setItem(SESSION_ID_KEY, id, "session");
 }
 
 export function getSessionId(): string | null {
-  try {
-    return isBrowser() ? localStorage.getItem(SESSION_ID_KEY) : null;
-  } catch {
-    return null;
-  }
+  return getItem(SESSION_ID_KEY, "session");
 }
 
+// ---------------------------------------------------------------------------
+// Diagnostic Answers (sessionStorage)
+// ---------------------------------------------------------------------------
+
 export function saveDiagnosticAnswers(answers: DiagnosticAnswers): void {
-  try {
-    if (isBrowser()) {
-      localStorage.setItem(ANSWERS_KEY, JSON.stringify(answers));
-    }
-  } catch {
-    /* silent */
-  }
+  setItem(ANSWERS_KEY, JSON.stringify(answers), "session");
 }
 
 export function getDiagnosticAnswers(): DiagnosticAnswers | null {
+  const raw = getItem(ANSWERS_KEY, "session");
+  if (!raw) return null;
   try {
-    if (!isBrowser()) return null;
-    const raw = localStorage.getItem(ANSWERS_KEY);
-    if (!raw) return null;
     return JSON.parse(raw) as DiagnosticAnswers;
   } catch {
     return null;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Diagnostic Index (sessionStorage)
+// ---------------------------------------------------------------------------
+
 export function saveDiagIndex(index: number): void {
-  try {
-    if (isBrowser()) localStorage.setItem(CURRENT_INDEX_KEY, String(index));
-  } catch {
-    /* silent */
-  }
+  setItem(CURRENT_INDEX_KEY, String(index), "session");
 }
 
 export function getDiagIndex(): number {
-  try {
-    if (!isBrowser()) return 0;
-    const raw = localStorage.getItem(CURRENT_INDEX_KEY);
-    return raw ? Number(raw) : 0;
-  } catch {
-    return 0;
-  }
+  const raw = getItem(CURRENT_INDEX_KEY, "session");
+  return raw ? Number(raw) : 0;
 }
+
+// ---------------------------------------------------------------------------
+// Current Funnel Step (sessionStorage)
+// ---------------------------------------------------------------------------
+
+export function saveCurrentStep(step: FunnelStepId): void {
+  setItem(STEP_KEY, step, "session");
+}
+
+export function getCurrentStep(): FunnelStepId | null {
+  return getItem(STEP_KEY, "session") as FunnelStepId | null;
+}
+
+// ---------------------------------------------------------------------------
+// Lead ID (sessionStorage)
+// ---------------------------------------------------------------------------
+
+export function saveLeadId(id: string): void {
+  setItem(LEAD_ID_KEY, id, "session");
+}
+
+export function getLeadId(): string | null {
+  return getItem(LEAD_ID_KEY, "session");
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 export function getPersistedQuestionAnswer(
   questionId: DiagnosticQuestionId,
@@ -106,14 +157,17 @@ export function getPersistedQuestionAnswer(
   }
 }
 
-export function clearAllPersistedData(): void {
-  try {
-    if (!isBrowser()) return;
-    localStorage.removeItem(ANONYMOUS_ID_KEY);
-    localStorage.removeItem(SESSION_ID_KEY);
-    localStorage.removeItem(ANSWERS_KEY);
-    localStorage.removeItem(CURRENT_INDEX_KEY);
-  } catch {
-    /* silent */
-  }
+export function clearSessionDataExceptLead(): void {
+  removeItem(SESSION_ID_KEY, "session");
+  removeItem(ANSWERS_KEY, "session");
+  removeItem(CURRENT_INDEX_KEY, "session");
+  removeItem(STEP_KEY, "session");
+}
+
+export function clearSessionData(): void {
+  removeItem(SESSION_ID_KEY, "session");
+  removeItem(ANSWERS_KEY, "session");
+  removeItem(CURRENT_INDEX_KEY, "session");
+  removeItem(STEP_KEY, "session");
+  removeItem(LEAD_ID_KEY, "session");
 }
