@@ -1,11 +1,27 @@
 -- =============================================================================
+-- Add booking_event_id column (must exist before the function references it)
+-- =============================================================================
+
+alter table public.appointments
+  add column if not exists booking_event_id uuid;
+
+create unique index if not exists idx_appointments_booking_event_id
+  on public.appointments (booking_event_id)
+  where booking_event_id is not null;
+
+comment on column public.appointments.booking_event_id is
+  'Client-generated event UUID for deduplication. Set at booking creation time and used to make repeated requests with the same event_id idempotent.';
+
+-- =============================================================================
 -- create_funnel_appointment
 -- =============================================================================
 -- Description: Atomically creates an appointment, updating related records:
 --   1. Acquires a calendar-level transaction-scoped advisory lock to serialize
 --      all booking attempts regardless of start time.
 --   2. Validates configuration parameters (timezone, provider, duration).
---   3. Checks for duplicate booking event_id for idempotency.
+--   3. Checks for duplicate booking event_id with full-field verification
+--      for idempotency. Same event_id + identical booking data returns the
+--      existing appointment ID. Same event_id + mismatched data is rejected.
 --   4. Validates the lead exists
 --   5. Validates the session exists and belongs to the lead
 --   6. Rejects if the session or lead is already booked
@@ -30,13 +46,15 @@
 --
 -- Buffer zones:
 --   start_time and end_time represent the consultation itself.
---   The overlap window is expanded by v_buffer_before and v_buffer_after
+--   The overlap window is expanded by p_buffer_before and p_buffer_after
 --   so no two appointments overlap including buffers.
 --
 -- Idempotency:
---   If a request with the same p_event_id has already been processed,
---   the function returns the existing appointment ID instead of creating
---   a duplicate.
+--   When the same p_event_id already exists, the function loads every
+--   booking identity field (lead_id, session_id, start_time, end_time,
+--   timezone, provider). Only if all match the supplied parameters is the
+--   existing appointment ID returned. Any mismatch raises P0020 to prevent
+--   information leakage or accidental reuse.
 --
 -- Security:
 --   - SECURITY DEFINER ensures execution with owner privileges
@@ -72,6 +90,12 @@ declare
   v_overlap_count     integer;
   v_locked            boolean;
   v_existing_id       uuid;
+  v_existing_lead_id       uuid;
+  v_existing_session_id    uuid;
+  v_existing_start_time    timestamptz;
+  v_existing_end_time      timestamptz;
+  v_existing_timezone      text;
+  v_existing_provider      text;
 begin
   -- ===========================================================================
   -- Calendar-level advisory lock: serialize all booking attempts
@@ -130,15 +154,41 @@ begin
   end if;
 
   -- ===========================================================================
-  -- Idempotency: return existing appointment if event_id already used
+  -- Idempotency: verify every booking identity field matches
   -- ===========================================================================
+  -- Return the existing appointment ID only when *all* booking identity fields
+  -- match. If the same p_event_id is reused with different data, raise P0020
+  -- to prevent information leakage (never reveal an unrelated appointment ID).
 
-  select id into v_existing_id
+  select
+    id,
+    lead_id,
+    session_id,
+    start_time,
+    end_time,
+    timezone,
+    provider
+  into
+    v_existing_id,
+    v_existing_lead_id,
+    v_existing_session_id,
+    v_existing_start_time,
+    v_existing_end_time,
+    v_existing_timezone,
+    v_existing_provider
   from public.appointments
-  where booking_event_id = p_event_id
-  limit 1;
+  where booking_event_id = p_event_id;
 
   if v_existing_id is not null then
+    if v_existing_lead_id   is distinct from p_lead_id
+    or v_existing_session_id is distinct from p_session_id
+    or v_existing_start_time is distinct from p_start_time
+    or v_existing_end_time   is distinct from p_end_time
+    or v_existing_timezone   is distinct from p_timezone
+    or v_existing_provider   is distinct from p_provider
+    then
+      raise exception 'Event ID already used with different booking data' using errcode = 'P0020';
+    end if;
     return v_existing_id;
   end if;
 

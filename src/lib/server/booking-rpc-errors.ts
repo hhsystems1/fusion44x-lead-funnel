@@ -26,7 +26,7 @@ export function mapBookingRpcError(
     case "P0019":
       return { status: 422, message: "Invalid duration" };
     case "P0020":
-      return { status: 409, message: "Duplicate booking" };
+      return { status: 409, message: "Duplicate booking request" };
     default:
       return null;
   }

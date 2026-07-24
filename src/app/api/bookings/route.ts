@@ -166,6 +166,8 @@ export async function POST(request: NextRequest) {
       p_timezone: timezone,
       p_provider: "google_calendar",
       p_event_id: event_id,
+      p_buffer_before: `${BOOKING.BUFFER_BEFORE_MINUTES} minutes`,
+      p_buffer_after: `${BOOKING.BUFFER_AFTER_MINUTES} minutes`,
     } as never,
   );
 

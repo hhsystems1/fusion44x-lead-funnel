@@ -59,7 +59,7 @@ describe("mapBookingRpcError", () => {
   });
 
   it("maps P0020 to 409 duplicate booking", () => {
-    expect(mapBookingRpcError("P0020")).toEqual({ status: 409, message: "Duplicate booking" });
+    expect(mapBookingRpcError("P0020")).toEqual({ status: 409, message: "Duplicate booking request" });
   });
 
   it("returns null for unknown error codes", () => {
