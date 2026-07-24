@@ -4,11 +4,20 @@ import {
   createInitialState,
   type FunnelAction,
 } from "@/lib/funnel/funnel-reducer";
-import { FUNNEL_STEPS, type FunnelState, type DiagnosticAnswers, type DiagnosticQuestionId } from "@/types/funnel";
+import { FUNNEL_STEPS, type FunnelState, type DiagnosticAnswers, type DiagnosticQuestionId, type WaterFeatureCode, type InstallationTypeCode, type PoolSizeCode, type CurrentTreatmentCode, type CurrentIssueCode, type PrimaryGoalCode } from "@/types/funnel";
 
 function fresh(): FunnelState {
   return { ...createInitialState() };
 }
+
+const validAnswers: DiagnosticAnswers = {
+  water_feature: "pool" as WaterFeatureCode,
+  installation_type: "in_ground" as InstallationTypeCode,
+  pool_size: "under_10000" as PoolSizeCode,
+  current_treatment: "chlorine" as CurrentTreatmentCode,
+  current_issues: ["algae"] as CurrentIssueCode[],
+  primary_goal: "clearer_water" as PrimaryGoalCode,
+};
 
 describe("funnelReducer", () => {
   describe("initial state", () => {
@@ -273,6 +282,76 @@ describe("funnelReducer", () => {
       expect(state.session_id).toBeNull();
       expect(state.lead_id).toBeNull();
       expect(state.current_step).toBe(FUNNEL_STEPS.HERO);
+    });
+  });
+
+  describe("COMPLETE_DIAGNOSTIC", () => {
+    it("adds pool-diagnostic to completed_steps and sets current_step to contact-information", () => {
+      const state = funnelReducer(
+        {
+          ...fresh(),
+          current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+          diagnostic_answers: validAnswers,
+        },
+        { type: "COMPLETE_DIAGNOSTIC" },
+      );
+      expect(state.completed_steps).toContain(FUNNEL_STEPS.POOL_DIAGNOSTIC);
+      expect(state.current_step).toBe(FUNNEL_STEPS.CONTACT_INFORMATION);
+    });
+
+    it("preserves diagnostic_answers and session_id", () => {
+      const state = funnelReducer(
+        {
+          ...fresh(),
+          current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+          session_id: "session-123",
+          diagnostic_answers: validAnswers,
+        },
+        { type: "COMPLETE_DIAGNOSTIC" },
+      );
+      expect(state.diagnostic_answers).toEqual(validAnswers);
+      expect(state.session_id).toBe("session-123");
+    });
+
+    it("does not duplicate completed_steps on repeated action", () => {
+      const s1 = funnelReducer(
+        {
+          ...fresh(),
+          current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+          diagnostic_answers: validAnswers,
+        },
+        { type: "COMPLETE_DIAGNOSTIC" },
+      );
+      const s2 = funnelReducer(s1, { type: "COMPLETE_DIAGNOSTIC" });
+      expect(s2.completed_steps.length).toBe(1);
+      expect(s2.completed_steps).toContain(FUNNEL_STEPS.POOL_DIAGNOSTIC);
+    });
+
+    it("does nothing if current_step is not pool-diagnostic", () => {
+      const state = funnelReducer(
+        {
+          ...fresh(),
+          current_step: FUNNEL_STEPS.CONTACT_INFORMATION,
+          diagnostic_answers: validAnswers,
+        },
+        { type: "COMPLETE_DIAGNOSTIC" },
+      );
+      expect(state.current_step).toBe(FUNNEL_STEPS.CONTACT_INFORMATION);
+      expect(state.completed_steps).toEqual([]);
+    });
+
+    it("does nothing if pool-diagnostic already completed", () => {
+      const state = funnelReducer(
+        {
+          ...fresh(),
+          current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+          completed_steps: [FUNNEL_STEPS.POOL_DIAGNOSTIC],
+          diagnostic_answers: validAnswers,
+        },
+        { type: "COMPLETE_DIAGNOSTIC" },
+      );
+      expect(state.current_step).toBe(FUNNEL_STEPS.POOL_DIAGNOSTIC);
+      expect(state.completed_steps.length).toBe(1);
     });
   });
 });

@@ -59,7 +59,9 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   const hasTrackedPageView = useRef(false);
   const hasTrackedDiagStart = useRef(false);
   const hasTrackedContactView = useRef(false);
+  const hasCompletedDiagnosticRef = useRef(false);
   const prevQuestionRef = useRef<string | null>(null);
+  const prevStepRef = useRef<FunnelStepId | null>(null);
 
   // Hydrate persisted state after mount
   useEffect(() => {
@@ -174,6 +176,20 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
       });
     }
 }, [tracker, state.current_step]);
+
+  // Scroll to contact-information after diagnostic completion
+  useEffect(() => {
+    if (
+      state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION &&
+      prevStepRef.current === FUNNEL_STEPS.POOL_DIAGNOSTIC
+    ) {
+      const contactEl = document.getElementById("contact-information");
+      if (contactEl) {
+        contactEl.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+    prevStepRef.current = state.current_step;
+  }, [state.current_step]);
 
 
   const goToStep = useCallback(
@@ -330,8 +346,11 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
   const completeDiagnostic = useCallback(() => {
     if (!isDiagValid()) return;
+    if (state.current_step !== FUNNEL_STEPS.POOL_DIAGNOSTIC) return;
+    if (state.completed_steps.includes(FUNNEL_STEPS.POOL_DIAGNOSTIC)) return;
+    if (hasCompletedDiagnosticRef.current) return;
 
-    dispatch({ type: "COMPLETE_DIAGNOSTIC" });
+    hasCompletedDiagnosticRef.current = true;
 
     if (tracker) {
       tracker.track(InternalEvents.DIAGNOSTIC_COMPLETED, {
@@ -348,13 +367,8 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    const contactEl = document.getElementById("contact-information");
-    if (contactEl) {
-      contactEl.scrollIntoView({ behavior: "smooth" });
-    }
-
-    dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.CONTACT_INFORMATION });
-  }, [state.diagnostic_answers, tracker, isDiagValid]);
+    dispatch({ type: "COMPLETE_DIAGNOSTIC" });
+  }, [state.current_step, state.completed_steps, state.diagnostic_answers, tracker, isDiagValid]);
 
   const value: FunnelContextValue = {
     state,

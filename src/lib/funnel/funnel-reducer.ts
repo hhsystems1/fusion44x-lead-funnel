@@ -162,8 +162,19 @@ export function funnelReducer(
     case "RESET":
       return createInitialState();
 
-    case "COMPLETE_DIAGNOSTIC":
-      return state;
+    case "COMPLETE_DIAGNOSTIC": {
+      if (state.completed_steps.includes(FUNNEL_STEPS.POOL_DIAGNOSTIC)) {
+        return state;
+      }
+      if (state.current_step !== FUNNEL_STEPS.POOL_DIAGNOSTIC) {
+        return state;
+      }
+      return {
+        ...state,
+        completed_steps: [...state.completed_steps, FUNNEL_STEPS.POOL_DIAGNOSTIC],
+        current_step: FUNNEL_STEPS.CONTACT_INFORMATION,
+      };
+    }
 
     default:
       return state;
