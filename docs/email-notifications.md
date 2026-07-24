@@ -9,15 +9,17 @@ the existing `CalendarProvider` design at `src/lib/booking/providers/`.
 ```
 src/lib/email/
 ├── provider/
-│   ├── types.ts          # EmailProvider interface + send input/output types
-│   ├── fake-provider.ts  # Test-only fake (never sends real email)
-│   └── index.ts          # Re-exports
+│   ├── types.ts               # EmailProvider interface + send input/output types
+│   ├── fake-provider.ts       # Test-only fake (never sends real email)
+│   ├── resend-provider.ts     # Resend provider implementation
+│   ├── provider-factory.ts    # Factory: reads EMAIL_PROVIDER, returns provider
+│   └── index.ts               # Re-exports
 ├── templates/
 │   └── booking-confirmation.ts  # Pure-function HTML + plain-text renderers
-├── delivery.ts           # Integration_deliveries CRUD for email
-├── notifications.ts      # prepareBookingConfirmation / sendBookingConfirmation
-├── retry.ts              # Retry-safe service with backoff + code classification
-└── index.ts              # Existing file (unchanged scaffolding)
+├── delivery.ts                # Integration_deliveries CRUD for email
+├── notifications.ts           # prepareBookingConfirmation / sendBookingConfirmation
+├── retry.ts                   # Retry-safe service with backoff + code classification
+└── index.ts                   # Existing file (unchanged scaffolding)
 ```
 
 ## Provider-Neutral Design
@@ -36,12 +38,15 @@ Defined in `src/lib/email/provider/types.ts`:
 | recipientEmail       | string   | Lead email address                   |
 | recipientFirstName   | string   | Lead first name                      |
 | appointmentId        | string   | UUID of the appointment              |
+| deliveryId           | string   | UUID of the delivery record          |
 | confirmedStartTime   | string   | ISO 8601 appointment start           |
 | confirmedEndTime     | string   | ISO 8601 appointment end             |
 | timezone             | string   | IANA timezone string                 |
 | googleCalendarLink   | string   | Pre-generated Google Calendar URL    |
 | outlookCalendarLink  | string   | Pre-generated Outlook web URL        |
 | icsContent           | string   | Raw ICS file content                 |
+| html                 | string   | Rendered HTML email body             |
+| text                 | string   | Rendered plain-text email body       |
 | replyTo              | string?  | Optional reply-to address            |
 
 The interface never exposes raw vendor objects, API keys, or internal
@@ -204,12 +209,131 @@ The `schedulePendingEmailDelivery()` function is called best-effort from
 `create-booking.ts` step 9, wrapped in a try/catch that never affects the
 booking result.
 
-## Future Provider Setup
+## Resend Provider Setup
+
+### Installation
+
+```bash
+npm install resend
+```
+
+### Required DNS Verification
+
+Before sending emails with Resend, you must verify your sending domain:
+
+1. In Resend dashboard, add your domain (e.g., `fusion44x.com`)
+2. Add the DNS records Resend provides (SPF, DKIM, DMARC)
+3. Wait for verification to complete (can take up to 48 hours)
+4. The `EMAIL_FROM` address must use a verified domain
 
 ### Environment Variables
 
 ```bash
-EMAIL_PROVIDER=resend          # or: postmark, sendgrid, ses, etc.
+# Required
+EMAIL_PROVIDER=resend
+EMAIL_FROM=consultations@fusion44x.com      # Must be from verified domain
+EMAIL_API_KEY=re_xxxxxxxxxxxx               # Resend API key from dashboard
+
+# Optional
+EMAIL_REPLY_TO=consultations@fusion44x.com  # Reply-to address (can differ from EMAIL_FROM)
+```
+
+### Sender and Reply-To Behavior
+
+- `EMAIL_FROM`: The "From" address in the email. Must be a verified domain in Resend.
+- `EMAIL_REPLY_TO`: Optional. If set, used as the "Reply-To" header. If not set, the `replyTo` from `SendEmailInput` is used (defaults to `EMAIL_CONFIG.REPLY_TO_PLACEHOLDER`).
+- The provider validates both `EMAIL_API_KEY` and `EMAIL_FROM` on initialization.
+
+### Idempotency
+
+The Resend provider uses the **delivery ID** as the Resend `Idempotency-Key` header:
+```
+Idempotency-Key: booking-confirmation-<deliveryId>
+```
+
+This ensures the same logical delivery never produces duplicate sends during retries. Resend's idempotency keys are valid for 24 hours.
+
+### Email Payload Sent to Resend
+
+| Resend Field | Value |
+|--------------|-------|
+| `from` | `EMAIL_FROM` |
+| `to` | Recipient email from `SendEmailInput` |
+| `replyTo` | `EMAIL_REPLY_TO` (env) or `input.replyTo` |
+| `subject` | `Booking Confirmed: {firstName}'s Fusion 44X Pool Consultation` |
+| `html` | `renderBookingConfirmationHtml(...)` |
+| `text` | `renderBookingConfirmationText(...)` |
+| `attachments` | ICS file: `fusion-44x-consultation.ics` (text/calendar) |
+| `headers.Idempotency-Key` | `booking-confirmation-{deliveryId}` |
+
+**Tracking**: No tracking pixels added. Click/open tracking is controlled at the Resend account/domain level — disable in Resend dashboard if not desired.
+
+### Error Code Mapping
+
+| Resend Status | Mapped Code | Retryable |
+|---------------|-------------|-----------|
+| 429 | RATE_LIMITED | Yes |
+| 5xx, network error | PROVIDER_UNAVAILABLE | Yes |
+| 400 (invalid email) | INVALID_RECIPIENT | No |
+| 400 (unverified domain) | PROVIDER_REJECTED | No |
+| 401, 403 | INVALID_CONFIG | No |
+| Other 400 | PROVIDER_REJECTED | No |
+| Other | PROVIDER_ERROR | No |
+
+### Manual Test Command
+
+```bash
+# Set TEST_EMAIL_TO to your test recipient
+TEST_EMAIL_TO=test@example.com \
+node --env-file=.env.local scripts/test-resend-email.mjs
+```
+
+Output:
+```
+=== Resend Test Email ===
+Provider: resend
+From: consultations@fusion44x.com
+Reply-To: consultations@fusion44x.com
+To: test@example.com
+
+Sending test email...
+
+=== SUCCESS ===
+Message ID: re_abc123...
+Status: delivered
+```
+
+The test script:
+- Does NOT read from or modify production appointment records
+- Uses a generated test appointment time (2 hours from now)
+- Prints only safe status and message ID
+- Never prints API keys or full email content
+
+### Deployment Variables
+
+Set in Vercel/Production:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `EMAIL_PROVIDER` | Yes | Must be `resend` |
+| `EMAIL_API_KEY` | Yes | Resend API key (`re_...`) |
+| `EMAIL_FROM` | Yes | Verified sender address |
+| `EMAIL_REPLY_TO` | No | Optional reply-to address |
+
+### How to Disable Sending Safely
+
+To disable email sending without code changes:
+
+1. **Unset `EMAIL_PROVIDER`** — the factory returns `null`, no emails sent, pending deliveries created
+2. **Remove `EMAIL_API_KEY`** — provider initialization throws, caught in booking flow, falls back to pending
+3. **Set `EMAIL_PROVIDER=fake`** — not supported (throws "Unknown EMAIL_PROVIDER")
+
+The booking API remains fully functional regardless of email configuration.
+
+### Environment Variables
+
+```bash
+EMAIL_PROVIDER=resend
 EMAIL_FROM=consultations@fusion44x.com
 EMAIL_REPLY_TO=consultations@fusion44x.com
 EMAIL_API_KEY=re_xxxxxxxxxxxx  # provider-specific

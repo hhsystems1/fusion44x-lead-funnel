@@ -171,7 +171,7 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   try {
-    const sendInput = buildBookingConfirmationSendInput(prepared);
+    const sendInput = buildBookingConfirmationSendInput(prepared, params.deliveryId);
     const result = await params.provider.sendBookingConfirmation(sendInput);
 
     await markEmailDeliveryDelivered({

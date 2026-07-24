@@ -347,16 +347,27 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
     }
 
     // -------------------------------------------------------------------------
-    // 9. Best-effort pending email delivery preparation
-    //    Future: once an EmailProvider is configured, replace with
-    //    sendBookingConfirmation(prepared, provider) from
-    //    src/lib/email/notifications. See docs/email-notifications.md.
-    //    Booking API success must not depend on email.
+    // 9. Best-effort email delivery
+    //    If a real provider is configured, attempt to send immediately.
+    //    If no provider is configured, fall back to scheduling a pending delivery.
+    //    Email success/failure must not affect booking confirmation.
     // -------------------------------------------------------------------------
     try {
-      await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+      const { getEmailProvider } = await import("@/lib/email/provider");
+      const { sendBookingConfirmation, prepareBookingConfirmation } = await import("@/lib/email/notifications");
+
+      const providerResult = getEmailProvider();
+
+      if (providerResult.provider) {
+        const prepared = await prepareBookingConfirmation({ appointmentId: confirmedId });
+        if (prepared) {
+          await sendBookingConfirmation(prepared, providerResult.provider);
+        }
+      } else {
+        await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+      }
     } catch {
-      // non-fatal — email preparation failure must not affect booking
+      // non-fatal — email preparation/send failure must not affect booking
     }
 
     return {

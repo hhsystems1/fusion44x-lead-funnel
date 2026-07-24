@@ -5,11 +5,13 @@ import {
   generateOutlookWebUrl,
   generateIcsContent,
 } from "@/lib/booking/calendar-links";
+import { renderBookingConfirmationHtml, renderBookingConfirmationText } from "@/lib/email/templates/booking-confirmation";
 import type { PreparedConfirmation } from "./notifications";
 import type { SendEmailInput } from "./provider/types";
 
 export function buildBookingConfirmationSendInput(
   prepared: PreparedConfirmation,
+  deliveryId: string,
 ): SendEmailInput {
   const endTime = prepared.confirmedEndTime;
 
@@ -32,16 +34,39 @@ export function buildBookingConfirmationSendInput(
     organizer: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
   });
 
-  return {
-    recipientEmail: prepared.recipientEmail,
+  const html = renderBookingConfirmationHtml({
     recipientFirstName: prepared.recipientFirstName,
-    appointmentId: prepared.appointmentId,
     confirmedStartTime: prepared.confirmedStartTime,
     confirmedEndTime: endTime,
     timezone: prepared.timezone,
     googleCalendarLink,
     outlookCalendarLink,
     icsContent,
+  });
+
+  const text = renderBookingConfirmationText({
+    recipientFirstName: prepared.recipientFirstName,
+    confirmedStartTime: prepared.confirmedStartTime,
+    confirmedEndTime: endTime,
+    timezone: prepared.timezone,
+    googleCalendarLink,
+    outlookCalendarLink,
+    icsContent,
+  });
+
+  return {
+    recipientEmail: prepared.recipientEmail,
+    recipientFirstName: prepared.recipientFirstName,
+    appointmentId: prepared.appointmentId,
+    deliveryId,
+    confirmedStartTime: prepared.confirmedStartTime,
+    confirmedEndTime: endTime,
+    timezone: prepared.timezone,
+    googleCalendarLink,
+    outlookCalendarLink,
+    icsContent,
+    html,
+    text,
     replyTo: EMAIL_CONFIG.REPLY_TO_PLACEHOLDER,
   };
 }

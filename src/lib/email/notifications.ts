@@ -204,7 +204,7 @@ export async function sendBookingConfirmation(
     return { deliveryId, status: "in_progress" };
   }
 
-  const sendInput = buildBookingConfirmationSendInput(prepared);
+  const sendInput = buildBookingConfirmationSendInput(prepared, deliveryId);
 
   let result: SendEmailResult;
   try {

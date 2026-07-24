@@ -211,12 +211,15 @@ describe("FakeEmailProvider", () => {
       recipientEmail: "jane@example.com",
       recipientFirstName: "Jane",
       appointmentId: makeId(),
+      deliveryId: makeId(),
       confirmedStartTime: "2026-07-28T14:00:00.000Z",
       confirmedEndTime: "2026-07-28T14:30:00.000Z",
       timezone: "America/New_York",
       googleCalendarLink: "https://calendar.google.com/",
       outlookCalendarLink: "https://outlook.live.com/",
       icsContent: "BEGIN:VCALENDAR\r\nEND:VCALENDAR",
+      html: "<html>test</html>",
+      text: "test",
     };
     const result = await provider.sendBookingConfirmation(input);
     expect(result.status).toBe("delivered");
@@ -340,12 +343,15 @@ describe("No credentials or raw provider payloads returned", () => {
       recipientEmail: "jane@example.com",
       recipientFirstName: "Jane",
       appointmentId: makeId(),
+      deliveryId: makeId(),
       confirmedStartTime: "2026-07-28T14:00:00.000Z",
       confirmedEndTime: "2026-07-28T14:30:00.000Z",
       timezone: "America/New_York",
       googleCalendarLink: "https://calendar.google.com/",
       outlookCalendarLink: "https://outlook.live.com/",
       icsContent: "BEGIN:VCALENDAR\r\nEND:VCALENDAR",
+      html: "<html>test</html>",
+      text: "test",
     };
     const keys = Object.keys(input);
     expect(keys).not.toContain("apiKey");
@@ -372,12 +378,15 @@ describe("SendEmailInput type validation", () => {
       recipientEmail: "jane@example.com",
       recipientFirstName: "Jane",
       appointmentId: makeId(),
+      deliveryId: makeId(),
       confirmedStartTime: "2026-07-28T14:00:00.000Z",
       confirmedEndTime: "2026-07-28T14:30:00.000Z",
       timezone: "America/New_York",
       googleCalendarLink: "https://calendar.google.com/",
       outlookCalendarLink: "https://outlook.live.com/",
       icsContent: "BEGIN:VCALENDAR\r\nEND:VCALENDAR",
+      html: "<html>test</html>",
+      text: "test",
     };
     expect(input.recipientEmail).toBeTruthy();
     expect(input.appointmentId).toBeTruthy();
@@ -388,12 +397,15 @@ describe("SendEmailInput type validation", () => {
       recipientEmail: "jane@example.com",
       recipientFirstName: "Jane",
       appointmentId: makeId(),
+      deliveryId: makeId(),
       confirmedStartTime: "2026-07-28T14:00:00.000Z",
       confirmedEndTime: "2026-07-28T14:30:00.000Z",
       timezone: "America/New_York",
       googleCalendarLink: "https://calendar.google.com/",
       outlookCalendarLink: "https://outlook.live.com/",
       icsContent: "BEGIN:VCALENDAR\r\nEND:VCALENDAR",
+      html: "<html>test</html>",
+      text: "test",
       replyTo: "consultations@fusion44x.com",
     };
     expect(input.replyTo).toBe("consultations@fusion44x.com");
