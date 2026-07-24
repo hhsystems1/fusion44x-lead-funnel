@@ -6,8 +6,12 @@
 --   diagnostic answers, internal analytics events, appointments, and
 --   integration delivery tracking.
 --
--- All browser writes flow through server-side API routes using the
--- service_role key. Direct anonymous table access is restricted.
+-- Architecture:
+--   Browsers never talk to Supabase directly. All requests go to
+--   Next.js server API routes, which validate input, apply rate limits,
+--   and perform database operations using the service_role key.
+--   Direct anonymous or authenticated table access is denied on all
+--   tables via Row Level Security.
 -- =============================================================================
 
 -- =============================================================================
@@ -177,9 +181,9 @@ comment on column public.lead_answers.answer_order is
 -- =============================================================================
 -- Append-only internal analytics timeline.
 --
--- Once written, rows must never be updated or deleted by application code
--- (anonymous or authenticated). The service_role may perform maintenance
--- operations (e.g. purging old records if required by data policy).
+-- Rows must never be updated or deleted by application code. The
+-- service_role may perform maintenance operations (e.g. purging old
+-- records if required by data policy).
 --
 -- Question answers must never be forwarded to Meta. event_name values are
 -- restricted to the canonical set defined in src/config/tracking-events.ts.
@@ -327,8 +331,7 @@ comment on column public.integration_deliveries.attempt_count is
 -- =============================================================================
 
 -- funnel_sessions
-create index idx_funnel_sessions_anonymous_id
-  on public.funnel_sessions (anonymous_id);
+-- anonymous_id has a UNIQUE constraint — that already creates a unique index.
 create index idx_funnel_sessions_status_last_seen
   on public.funnel_sessions (status, last_seen_at);
 
@@ -394,63 +397,24 @@ create trigger set_integration_deliveries_updated_at
 -- =============================================================================
 --
 -- Security model:
---   - All browser writes flow through server-side API routes using the
---     service_role key, which bypasses RLS entirely.
---   - Direct anonymous access to leads, appointments, and
---     integration_deliveries is completely blocked.
---   - funnel_events allows anonymous INSERT only (append-only).
---     UPDATE and DELETE are blocked for both anonymous and authenticated
---     non-service-role users.
---   - funnel_sessions allows anonymous INSERT and SELECT (reading own
---     session is required for session continuity). UPDATE/DELETE blocked.
---   - Authenticated admin policies can be added later when a role model
---     is established in the repository.
---   - No permissive anonymous policies exist to simplify development.
+--   - No direct browser database access. Browsers send requests exclusively
+--     to Next.js server-side API routes, which validate and rate-limit
+--     every request before touching the database.
+--   - All trusted database operations use the service_role key, which
+--     bypasses RLS entirely.
+--   - Anonymous and authenticated (non-service-role) users have zero
+--     direct table access — no INSERT, SELECT, UPDATE, or DELETE.
+--   - RLS is enabled on every table as a defense-in-depth layer. Even if
+--     a misconfiguration were to expose the anon key, all operations
+--     would still be denied.
+--   - Admin read policies may be added later once an authenticated role
+--     model is established in the repository.
 --   - The service_role retains full access for maintenance operations
 --     (e.g. purging stale funnel_events, bulk status updates).
 
--- funnel_sessions
 alter table public.funnel_sessions enable row level security;
-
-create policy "anon can insert funnel_sessions"
-  on public.funnel_sessions
-  for insert
-  to anon
-  with check (true);
-
-create policy "anon can select funnel_sessions"
-  on public.funnel_sessions
-  for select
-  to anon
-  using (true);
-
--- leads
 alter table public.leads enable row level security;
-
--- No anon policies — server-only via service_role.
-
--- lead_answers
 alter table public.lead_answers enable row level security;
-
--- No anon policies — server-only via service_role.
-
--- funnel_events
 alter table public.funnel_events enable row level security;
-
-create policy "anon can insert funnel_events"
-  on public.funnel_events
-  for insert
-  to anon
-  with check (true);
-
--- No update or delete policies — funnel_events is append-only.
-
--- appointments
 alter table public.appointments enable row level security;
-
--- No anon policies — server-only via service_role.
-
--- integration_deliveries
 alter table public.integration_deliveries enable row level security;
-
--- No anon policies — server-only via service_role.

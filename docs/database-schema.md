@@ -6,6 +6,16 @@
 |------|-----------|
 | `supabase/migrations/20260724_001_initial_funnel_schema.sql` | 2026-07-24 |
 
+## Access Architecture
+
+Browsers never talk to Supabase directly. All requests go to Next.js server-side API routes, which:
+
+1. Validate and sanitize every input.
+2. Apply rate limits and security checks.
+3. Perform database operations using the Supabase `service_role` key.
+
+The `service_role` bypasses Row Level Security entirely. RLS is still enabled on every table as a defense-in-depth layer — it denies all direct access from anonymous or authenticated non-service-role users.
+
 ## Tables
 
 | # | Table | Purpose |
@@ -36,8 +46,9 @@ Tracks a single anonymous funnel visit from landing through lead identification 
 
 ### Indexes
 
-- `anonymous_id` — fast session lookup
 - `(status, last_seen_at)` — session cleanup / abandonment detection
+
+> The `anonymous_id` UNIQUE constraint creates its own unique index implicitly — no redundant index is needed.
 
 ---
 
@@ -117,8 +128,8 @@ Append-only analytics timeline. Every user action in the funnel produces one or 
 
 ### Append-only behavior
 
-- Rows must never be **updated** or **deleted** by application code (anonymous or authenticated).
-- INSERT is permitted for anonymous users (via RLS).
+- Rows must never be **updated** or **deleted** by application code.
+- All INSERT operations go through server-side API routes using the `service_role` key.
 - The `service_role` may perform maintenance operations (e.g. purging old records if required by data policy).
 - No `updated_at` trigger — the table is intentionally immutable.
 
@@ -225,19 +236,21 @@ Tracks outbound delivery attempts to external services with retry support.
 
 ## RLS Security Model
 
-| Table | Anonymous INSERT | Anonymous SELECT | Anonymous UPDATE | Anonymous DELETE | Notes |
-|-------|-----------------|-----------------|-----------------|-----------------|-------|
-| `funnel_sessions` | ✅ | ✅ | ❌ | ❌ | Session creation and read-back allowed |
-| `leads` | ❌ | ❌ | ❌ | ❌ | Server-only via `service_role` |
-| `lead_answers` | ❌ | ❌ | ❌ | ❌ | Server-only via `service_role` |
-| `funnel_events` | ✅ | ❌ | ❌ | ❌ | Append-only (INSERT only) |
-| `appointments` | ❌ | ❌ | ❌ | ❌ | Server-only via `service_role` |
-| `integration_deliveries` | ❌ | ❌ | ❌ | ❌ | Server-only via `service_role` |
+- **No direct browser database access.** Browsers send requests exclusively to Next.js server-side API routes, which validate and rate-limit every request before touching the database.
+- **All trusted database operations use the `service_role` key**, which bypasses RLS entirely.
+- **Anonymous and authenticated (non-service-role) users have zero direct table access** — no INSERT, SELECT, UPDATE, or DELETE on any of the six tables.
+- **RLS is enabled on every table as a defense-in-depth layer.** Even if a misconfiguration were to expose the Supabase anon key, all direct operations would be denied.
+- **Admin read policies may be added later** once an authenticated role model is established in the repository.
+- The `service_role` retains full access for maintenance operations (e.g. purging stale `funnel_events`, bulk status updates).
 
-- **The `service_role` bypasses RLS entirely** and is used by server-side API routes.
-- **No permissive anonymous policies** exist to simplify development.
-- **No authenticated admin policies** exist yet — they should be added once a role model is established.
-- **Browser writes flow through server-side API routes**, never directly to the database from client-side code.
+| Table | RLS Enabled | Anon Access | Auth Access | Service Role |
+|-------|-------------|-------------|-------------|--------------|
+| `funnel_sessions` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
+| `leads` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
+| `lead_answers` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
+| `funnel_events` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
+| `appointments` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
+| `integration_deliveries` | ✅ | ❌ All denied | ❌ All denied | ✅ Full access |
 
 ### Deletion behaviors
 
