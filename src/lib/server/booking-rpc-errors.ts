@@ -11,6 +11,14 @@ export function mapBookingRpcError(
       return { status: 409, message: "Already booked" };
     case "P0010":
       return { status: 409, message: "Time slot is no longer available" };
+    case "P0011":
+      return { status: 409, message: "Concurrent booking conflict" };
+    case "P0012":
+    case "P0013":
+    case "P0014":
+    case "P0015":
+    case "P0016":
+      return { status: 422, message: "Invalid booking request" };
     default:
       return null;
   }

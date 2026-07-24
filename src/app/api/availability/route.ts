@@ -5,6 +5,7 @@ import {
   generateTimeSlots,
   isSlotInPast,
   isWithinBookingWindow,
+  getDayBoundariesUtc,
   BOOKING,
 } from "@/lib/booking/slots";
 import {
@@ -53,34 +54,43 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const boundaries = getDayBoundariesUtc(date, timezone);
+  if (!boundaries) {
+    return NextResponse.json(
+      createPublicError(422, "Invalid date or timezone"),
+      { status: 422, headers: { "x-request-id": requestId } },
+    );
+  }
+
   const slots = generateTimeSlots(date, timezone);
   const supabase = getServerSupabaseClient();
 
-  const dayStart = `${date}T00:00:00Z`;
-  const dayEnd = `${date}T23:59:59Z`;
-
+  // Query using overlap logic within the local-day UTC boundaries
   const { data: blockingAppointments } = await supabase
     .from("appointments")
     .select("start_time, end_time")
     .in("status", ["pending", "confirmed"])
-    .gte("start_time", dayStart)
-    .lte("start_time", dayEnd);
+    .lt("start_time", boundaries.dayEndUtc)
+    .gt("end_time", boundaries.dayStartUtc);
 
   const blockedSlots = (blockingAppointments ?? []) as Array<{
     start_time: string;
     end_time: string;
   }>;
 
+  const bufBeforeMs = BOOKING.BUFFER_BEFORE_MINUTES * 60 * 1000;
+  const bufAfterMs = BOOKING.BUFFER_AFTER_MINUTES * 60 * 1000;
+
   const availableSlots = slots.filter((slot) => {
     if (isSlotInPast(slot.start, BOOKING.MINIMUM_NOTICE_HOURS)) return false;
 
-    const slotStart = new Date(slot.start).getTime();
-    const slotEnd = new Date(slot.end).getTime();
+    const windowStart = new Date(slot.start).getTime() - bufBeforeMs;
+    const windowEnd = new Date(slot.end).getTime() + bufAfterMs;
 
     for (const blocked of blockedSlots) {
       const blockedStart = new Date(blocked.start_time).getTime();
       const blockedEnd = new Date(blocked.end_time).getTime();
-      if (slotStart < blockedEnd && slotEnd > blockedStart) return false;
+      if (windowStart < blockedEnd && windowEnd > blockedStart) return false;
     }
 
     return true;

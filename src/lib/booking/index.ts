@@ -1,41 +1,10 @@
-import type {
-  TimeSlot,
-  AppointmentRequest,
-  Appointment,
-  BookingProvider,
-} from "@/types/appointment";
-import { requireGoogleCalendarEnv, getBookingTimezone } from "@/lib/env";
-
-export interface BookingAdapter {
-  getProviderName(): BookingProvider;
-  getAvailableSlots(date: string): Promise<TimeSlot[]>;
-  createAppointment(request: AppointmentRequest): Promise<Appointment>;
-  cancelAppointment(appointmentId: string): Promise<void>;
-}
-
-let activeAdapter: BookingAdapter | null = null;
-
-export function registerBookingAdapter(adapter: BookingAdapter): void {
-  activeAdapter = adapter;
-}
-
-export function getBookingAdapter(): BookingAdapter {
-  if (!activeAdapter) {
-    throw new Error(
-      "No booking adapter registered. Call registerBookingAdapter first.",
-    );
-  }
-  return activeAdapter;
-}
-
-/** Create a Google Calendar booking adapter. Validates env on first call. */
-export function createGoogleCalendarAdapter(): BookingAdapter {
-  requireGoogleCalendarEnv();
-  const timezone = getBookingTimezone();
-
-  throw new Error(
-    `Google Calendar adapter not implemented. ` +
-      `Calendar ID detected, timezone: ${timezone}. ` +
-      `Implement the adapter in src/lib/booking/index.ts.`,
-  );
-}
+/**
+ * Booking integration scaffolding.
+ *
+ * Provider is stored as an enum/text value on appointments for future
+ * calendar provider integration. The Google Calendar adapter will be
+ * implemented in a separate branch.
+ *
+ * See docs/custom-booking.md for the integration plan.
+ */
+export type { BookingProvider } from "@/types/appointment";

@@ -3,37 +3,54 @@ import { mapBookingRpcError } from "@/lib/server/booking-rpc-errors";
 
 describe("mapBookingRpcError", () => {
   it("maps P0002 to 404", () => {
-    const result = mapBookingRpcError("P0002");
-    expect(result).toEqual({ status: 404, message: "Lead or session not found" });
+    expect(mapBookingRpcError("P0002")).toEqual({ status: 404, message: "Lead or session not found" });
   });
 
   it("maps P0003 to 403", () => {
-    const result = mapBookingRpcError("P0003");
-    expect(result).toEqual({ status: 403, message: "Session does not match lead" });
+    expect(mapBookingRpcError("P0003")).toEqual({ status: 403, message: "Session does not match lead" });
   });
 
-  it("maps P0008 to 409", () => {
-    const result = mapBookingRpcError("P0008");
-    expect(result).toEqual({ status: 409, message: "Already booked" });
+  it("maps P0008 to 409 already booked", () => {
+    expect(mapBookingRpcError("P0008")).toEqual({ status: 409, message: "Already booked" });
   });
 
-  it("maps P0009 to 409", () => {
-    const result = mapBookingRpcError("P0009");
-    expect(result).toEqual({ status: 409, message: "Already booked" });
+  it("maps P0009 to 409 already booked", () => {
+    expect(mapBookingRpcError("P0009")).toEqual({ status: 409, message: "Already booked" });
   });
 
-  it("maps P0010 to 409", () => {
-    const result = mapBookingRpcError("P0010");
-    expect(result).toEqual({ status: 409, message: "Time slot is no longer available" });
+  it("maps P0010 to 409 slot conflict", () => {
+    expect(mapBookingRpcError("P0010")).toEqual({ status: 409, message: "Time slot is no longer available" });
+  });
+
+  it("maps P0011 to 409 concurrent conflict", () => {
+    expect(mapBookingRpcError("P0011")).toEqual({ status: 409, message: "Concurrent booking conflict" });
+  });
+
+  it("maps P0012 to 422", () => {
+    expect(mapBookingRpcError("P0012")).toEqual({ status: 422, message: "Invalid booking request" });
+  });
+
+  it("maps P0013 to 422", () => {
+    expect(mapBookingRpcError("P0013")).toEqual({ status: 422, message: "Invalid booking request" });
+  });
+
+  it("maps P0014 to 422", () => {
+    expect(mapBookingRpcError("P0014")).toEqual({ status: 422, message: "Invalid booking request" });
+  });
+
+  it("maps P0015 to 422", () => {
+    expect(mapBookingRpcError("P0015")).toEqual({ status: 422, message: "Invalid booking request" });
+  });
+
+  it("maps P0016 to 422", () => {
+    expect(mapBookingRpcError("P0016")).toEqual({ status: 422, message: "Invalid booking request" });
   });
 
   it("returns null for unknown error codes", () => {
-    const result = mapBookingRpcError("P9999");
-    expect(result).toBeNull();
+    expect(mapBookingRpcError("P9999")).toBeNull();
   });
 
   it("returns null for undefined code", () => {
-    const result = mapBookingRpcError(undefined as unknown as string);
-    expect(result).toBeNull();
+    expect(mapBookingRpcError(undefined as unknown as string)).toBeNull();
   });
 });
