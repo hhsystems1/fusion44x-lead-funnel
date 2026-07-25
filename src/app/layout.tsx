@@ -41,10 +41,10 @@ export default function RootLayout({
     >
       <body>
         <a
-          href="#main-content"
+          href="#funnel-viewport"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-aqua focus:text-white focus:rounded"
         >
-          Skip to main content
+          Skip to assessment
         </a>
         <div id="main-content" role="main">
           {children}

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useEffect, useState, type FormEvent } from "react";
 import { siteContent } from "@/config/site-content";
 import { useFunnel } from "@/lib/funnel/funnel-context";
-import { SectionContainer } from "@/components/ui/section-container";
 import { TextInput } from "@/components/ui/text-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CtaButton } from "@/components/ui/cta-button";
@@ -31,14 +30,16 @@ const initialForm: FormState = {
   marketing_consent: false,
 };
 
-export function ContactSection() {
-  const { state, submitContact, isDiagValid } = useFunnel();
+export function ContactStage() {
+  const { state, submitContact } = useFunnel();
   const [form, setForm] = useState<FormState>(initialForm);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const firstErrorRef = useRef<HTMLInputElement | null>(null);
 
-  if (!isDiagValid()) {
-    return null;
-  }
+  useEffect(() => {
+    setTimeout(() => headingRef.current?.focus(), 100);
+  }, []);
 
   if (state.submission_state === "success") {
     return null;
@@ -63,6 +64,10 @@ export function ContactSection() {
       consent_to_contact: form.consent_to_contact as true,
       marketing_consent: form.marketing_consent,
     });
+
+    setTimeout(() => {
+      firstErrorRef.current?.focus();
+    }, 100);
   }
 
   const errors = state.validation_errors;
@@ -70,44 +75,42 @@ export function ContactSection() {
 
   if (state.submission_state === "duplicate") {
     return (
-      <SectionContainer id="contact-information" background="white">
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-6 py-8 text-center">
-          <h2 className="text-xl font-semibold text-amber-800">
-            Already Submitted
-          </h2>
-          <p className="mt-2 text-amber-700">
-            Your session has already been submitted. A specialist will
-            contact you shortly.
-          </p>
-        </div>
-      </SectionContainer>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-8 text-center">
+        <h3 className="text-xl font-semibold text-amber-800">
+          Already Submitted
+        </h3>
+        <p className="mt-2 text-sm text-amber-700">
+          Your session has already been submitted. A specialist will
+          contact you shortly.
+        </p>
+      </div>
     );
   }
 
   if (state.submission_state === "error") {
     return (
-      <SectionContainer id="contact-information" background="white">
-        <ErrorMessage message="Something went wrong. Please try again later." />
-      </SectionContainer>
+      <ErrorMessage message="Something went wrong. Please try again later." />
     );
   }
 
   return (
-    <SectionContainer id="contact-information" background="light">
+    <div>
       <div className="text-center">
-        <h2
-          id="contact-heading"
-          className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
+        <h3
+          ref={headingRef}
+          id="contact-stage-heading"
+          tabIndex={-1}
+          className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl focus:outline-none"
         >
           {siteContent.contact.heading}
-        </h2>
-        <p className="mt-3 text-neutral-600">
+        </h3>
+        <p className="mt-2 text-sm text-neutral-600">
           {siteContent.contact.subheading}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-        <div className="grid gap-5 sm:grid-cols-2">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
           <TextInput
             label={siteContent.contact.first_name}
             value={form.first_name}
@@ -115,6 +118,7 @@ export function ContactSection() {
             error={showErrors ? errors.first_name : undefined}
             required
             autoComplete="given-name"
+            ref={showErrors && errors.first_name ? firstErrorRef : undefined}
           />
           <TextInput
             label={siteContent.contact.last_name}
@@ -221,6 +225,6 @@ export function ContactSection() {
           </CtaButton>
         </div>
       </form>
-    </SectionContainer>
+    </div>
   );
 }

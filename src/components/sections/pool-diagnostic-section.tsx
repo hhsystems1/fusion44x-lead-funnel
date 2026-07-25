@@ -4,13 +4,12 @@ import { siteContent } from "@/config/site-content";
 import { diagnosticQuestions } from "@/config/funnel-questions";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { getPersistedQuestionAnswer } from "@/lib/funnel/persistence";
-import { SectionContainer } from "@/components/ui/section-container";
 import { QuestionCard } from "@/components/ui/question-card";
 import { AnswerOption } from "@/components/ui/answer-option";
 import { CtaButton } from "@/components/ui/cta-button";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 
-export function PoolDiagnosticSection() {
+export function PoolDiagnosticStage() {
   const {
     state,
     answerSingle,
@@ -58,20 +57,20 @@ export function PoolDiagnosticSection() {
   );
 
   return (
-    <SectionContainer id="pool-diagnostic" background="white">
+    <div>
       <div className="text-center">
-        <h2
-          id="diagnostic-heading"
+        <h3
+          id="diagnostic-stage-heading"
           className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
         >
           {siteContent.diagnostic.heading}
-        </h2>
-        <p className="mt-3 text-neutral-600">
+        </h3>
+        <p className="mt-2 text-sm text-neutral-600">
           {siteContent.diagnostic.subheading}
         </p>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6">
         <ProgressIndicator
           current={diagProgress.current}
           total={diagProgress.total}
@@ -79,7 +78,7 @@ export function PoolDiagnosticSection() {
         />
       </div>
 
-      <div className="mt-6" onKeyDown={handleKeyDown}>
+      <div className="mt-5" onKeyDown={handleKeyDown}>
         <QuestionCard
           title={currentQuestion.title}
           subtitle={currentQuestion.subtitle}
@@ -87,7 +86,7 @@ export function PoolDiagnosticSection() {
           totalQuestions={diagProgress.total}
         >
           <div
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2.5"
             role={currentQuestion.type === "single-select" ? "radiogroup" : "group"}
             aria-label={currentQuestion.title}
           >
@@ -112,10 +111,10 @@ export function PoolDiagnosticSection() {
         </QuestionCard>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-5 flex items-center justify-between gap-3">
         <div>
           {!isFirst && (
-            <CtaButton variant="ghost" onClick={diagBack}>
+            <CtaButton variant="ghost" size="sm" onClick={diagBack}>
               {siteContent.diagnostic.back}
             </CtaButton>
           )}
@@ -140,6 +139,6 @@ export function PoolDiagnosticSection() {
           )}
         </div>
       </div>
-    </SectionContainer>
+    </div>
   );
 }

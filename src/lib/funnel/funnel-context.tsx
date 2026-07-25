@@ -236,17 +236,19 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
       });
     }
-}, [tracker, state.current_step]);
+  }, [tracker, state.current_step]);
 
-  // Scroll to contact-information after diagnostic completion
+  // Scroll to funnel viewport on step transitions
   useEffect(() => {
     if (
-      state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION &&
-      prevStepRef.current === FUNNEL_STEPS.POOL_DIAGNOSTIC
+      (state.current_step === FUNNEL_STEPS.CONTACT_INFORMATION ||
+        state.current_step === FUNNEL_STEPS.BOOKING ||
+        state.current_step === FUNNEL_STEPS.CONFIRMATION) &&
+      prevStepRef.current !== state.current_step
     ) {
-      const contactEl = document.getElementById("contact-information");
-      if (contactEl) {
-        contactEl.scrollIntoView({ behavior: "smooth" });
+      const el = document.getElementById("funnel-viewport");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
     prevStepRef.current = state.current_step;
@@ -388,6 +390,8 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
           dispatch({
             type: "CONTACT_SUBMIT_SUCCESS",
             lead_id: result.lead_id,
+            first_name: data.first_name,
+            email: data.email,
           });
           dispatch({
             type: "COMPLETE_STEP",

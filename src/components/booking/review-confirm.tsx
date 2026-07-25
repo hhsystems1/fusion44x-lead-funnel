@@ -9,6 +9,8 @@ interface ReviewConfirmProps {
   selectedDate: string;
   startTime: string;
   endTime: string;
+  firstName: string | null;
+  email: string | null;
   submissionState: SubmissionState;
   error: string | null;
   onConfirm: () => void;
@@ -28,6 +30,8 @@ export function ReviewConfirm({
   selectedDate,
   startTime,
   endTime,
+  firstName,
+  email,
   submissionState,
   error,
   onConfirm,
@@ -41,6 +45,18 @@ export function ReviewConfirm({
       </h3>
 
       <dl className="mt-4 space-y-3">
+        {firstName && (
+          <div className="flex justify-between">
+            <dt className="text-neutral-500">{siteContent.booking.review_name}</dt>
+            <dd className="font-medium text-brand-navy">{firstName}</dd>
+          </div>
+        )}
+        {email && (
+          <div className="flex justify-between">
+            <dt className="text-neutral-500">{siteContent.booking.review_email}</dt>
+            <dd className="font-medium text-brand-navy">{email}</dd>
+          </div>
+        )}
         <div className="flex justify-between">
           <dt className="text-neutral-500">{siteContent.booking.review_date}</dt>
           <dd className="font-medium text-brand-navy">
@@ -56,7 +72,7 @@ export function ReviewConfirm({
       </dl>
 
       <p className="mt-2 text-xs text-neutral-400">
-        {siteContent.booking.timezone_label} {BOOKING.TIMEZONE}
+        {siteContent.booking.timezone_label} {siteContent.booking.timezone_display}
       </p>
 
       {error === "conflict" && (
@@ -74,7 +90,7 @@ export function ReviewConfirm({
       <button
         onClick={onConfirm}
         disabled={isSubmitting}
-        className="mt-6 w-full rounded-lg bg-brand-aqua px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light disabled:cursor-not-allowed disabled:opacity-50 shadow-sm shadow-brand-aqua/20"
+        className="mt-5 w-full rounded-lg bg-brand-aqua px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light disabled:cursor-not-allowed disabled:opacity-50 shadow-sm shadow-brand-aqua/20"
       >
         {isSubmitting ? siteContent.booking.confirming : siteContent.booking.confirm}
       </button>

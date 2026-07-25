@@ -1,76 +1,91 @@
 export const siteContent = {
   company: {
     name: "Fusion 44X",
-    tagline: "Experience Water Like Never Before",
-    description: "Intelligent water care for pools and spas.",
+    slogan: "Water Made Perfect",
+    description: "A probe-based water treatment system for pools and spas.",
   },
   seo: {
-    title: "Fusion 44X — Intelligent Water Care for Pools & Spas",
+    title: "Fusion 44X — Water Made Perfect",
     description:
-      "Fusion 44X delivers intelligent, automated water care for pools and spas. Take our quick diagnostic to get a personalized recommendation from a specialist.",
-    og_title: "Fusion 44X — Intelligent Water Care",
+      "Fusion 44X is a probe-based water treatment system for pools and spas. Take our free pool assessment to find the right solution for your setup.",
+    og_title: "Fusion 44X — Water Made Perfect",
     og_description:
-      "Automated pool and spa water care that keeps your water crystal clear. Get your free diagnostic today.",
+      "A different approach to pool and spa water treatment. Take the free assessment.",
   },
   hero: {
-    heading: "Crystal Clear Water, Zero Guesswork",
+    heading: "Water Made Perfect",
     subheading:
-      "Fusion 44X uses intelligent automation to keep your pool or spa water perfectly balanced — so you can skip the testing, skip the chemicals, and just enjoy.",
-    cta: "Get Your Free Diagnostic",
-    trust_line: "Trusted by pool and spa owners across the country",
+      "Fusion 44X is a probe-based treatment system that retrofits onto your existing pool or spa equipment. Take our free assessment to find the right solution for your setup.",
+    cta_primary: "Get Your Free Pool Assessment",
+    cta_secondary: "How It Works",
   },
-  video_testimonials: {
-    heading: "What Pool Owners Are Saying",
-    subheading: "Hear directly from customers who transformed their water care with Fusion 44X.",
-    testimonials: [
+  education: {
+    heading: "Pool Care Shouldn't Be This Hard",
+    subheading: "If any of this sounds familiar, you are not alone.",
+    problems: [
       {
-        quote: "We went from testing water every day to barely thinking about it. The clarity is incredible.",
-        name: "Sarah M.",
-        detail: "Pool Owner",
+        heading: "Recurring Algae Problems",
+        text: "You treat the water, the algae comes back. It is frustrating and it wastes your time and money.",
       },
       {
-        quote: "Our kids used to get rashes after swimming. Since installing Fusion 44X, that problem completely disappeared.",
-        name: "David R.",
-        detail: "Pool & Spa Owner",
+        heading: "Constant Chemical Maintenance",
+        text: "Testing, adjusting, re-testing. The cycle never ends and it is hard to keep up.",
       },
       {
-        quote: "I was spending over $200 a month on chemicals. Fusion 44X cut that down dramatically.",
-        name: "Michael T.",
-        detail: "Spa Owner",
+        heading: "Uncomfortable Water",
+        text: "Dry skin, irritated eyes, and a strong chemical smell make swimming less enjoyable for you and your family.",
+      },
+      {
+        heading: "Ongoing Pool-Care Frustration",
+        text: "You have tried different products and methods. Nothing seems to solve the problem for good.",
+      },
+    ],
+    cta: "Take the Free Assessment",
+  },
+  how_fusion_works: {
+    heading: "How Fusion 44X Works",
+    subheading: "A different approach to water treatment.",
+    features: [
+      {
+        heading: "Retrofits to Your Existing Equipment",
+        text: "Fusion 44X connects to your current pool or spa equipment. No full system replacement needed.",
+      },
+      {
+        heading: "Probe-Based Monitoring",
+        text: "A sensor probe continuously reads your water conditions and responds in real time.",
+      },
+      {
+        heading: "Professional or DIY Installation",
+        text: "Install it yourself or have your local pool technician set it up. Both options are supported.",
+      },
+      {
+        heading: "Direct Manufacturer Support",
+        text: "Questions about setup or operation? You get direct support from the Fusion 44X team.",
       },
     ],
   },
-  how_it_works: {
+  how_it_works_modal: {
     heading: "How It Works",
-    subheading: "Three simple steps to better water.",
-    steps: [
-      {
-        heading: "Tell Us About Your Pool",
-        text: "Answer a few quick questions about your setup and what matters most to you.",
-      },
-      {
-        heading: "Get Your Recommendation",
-        text: "We analyze your needs and match you with the right Fusion 44X solution.",
-      },
-      {
-        heading: "Enjoy Worry-Free Water",
-        text: "Let automation handle the chemistry while you enjoy crystal clear water.",
-      },
-    ],
+    video_label: "How It Works Video Coming Soon",
+  },
+  testimonials: {
+    heading: "Customer Stories",
+    subheading: "Real pool and spa owners share their experience with Fusion 44X.",
   },
   diagnostic: {
-    heading: "Pool Diagnostic",
-    subheading: "Help us understand your pool or spa so we can recommend the right solution.",
-    next: "Next",
+    heading: "Pool Assessment",
+    subheading: "Tell us about your pool or spa so we can recommend the right solution.",
+    complete_label: "Assessment complete \u2014 enter your details to see your recommendation and available consultation times.",
+    next: "Continue",
     back: "Back",
-    complete: "See My Results",
+    complete: "Complete Assessment",
     progress_label: "Question",
     of: "of",
   },
   contact: {
     heading: "Your Information",
     subheading:
-      "We'll send your personalized recommendation and a specialist will follow up.",
+      "Enter your details so we can send your recommendation and connect you with a specialist.",
     first_name: "First Name",
     last_name: "Last Name",
     email: "Email Address",
@@ -85,35 +100,18 @@ export const siteContent = {
       "I agree to be contacted about my inquiry. (Required)",
     marketing_consent:
       "I would like to receive tips, promotions, and product updates.",
-    submit: "Get My Recommendation",
+    submit: "Submit Information",
     submitting: "Submitting...",
     error_required: "This field is required",
     error_invalid_email: "Please enter a valid email address",
     error_invalid_phone: "Please enter a valid phone number",
     error_consent_required: "You must agree to be contacted to proceed",
   },
-  confirmation: {
-    heading: "Thank You!",
-    subheading:
-      "A confirmation email has been sent to your inbox with all the details of your inquiry.",
-    what_happens_next: "What happens next?",
-    steps: [
-      "Review your personalized recommendation in the email we just sent.",
-      "A Fusion 44X specialist will reach out to answer any questions.",
-      "Schedule your installation at a time that works for you.",
-    ],
-    support_note: "Need help? Contact us at support@fusion44x.com or call (800) 555-0199.",
-  },
-  booking_placeholder: {
-    heading: "Schedule Your Consultation",
-    subheading: "Choose a time that works best for you.",
-    message:
-      "Booking will be available once a specialist confirms your recommendation.",
-  },
   booking: {
     heading: "Schedule Your Consultation",
     subheading: "Select a date and time for your Fusion 44X consultation.",
-    timezone_label: "All times are shown in",
+    timezone_label: "All times shown in",
+    timezone_display: "Eastern Time",
     select_date: "Select a date",
     select_time: "Select a time",
     no_slots: "No available times for this date.",
@@ -121,29 +119,34 @@ export const siteContent = {
     loading_slots: "Loading available times...",
     loading_error: "Could not load available times.",
     try_again: "Try again",
-    review_heading: "Review your appointment",
+    review_heading: "Review Your Appointment",
     review_date: "Date",
     review_time: "Time",
-    confirm: "Confirm Booking",
+    review_name: "Name",
+    review_email: "Email",
+    confirm: "Confirm Appointment",
     confirming: "Confirming...",
     conflict: "This time is no longer available. Please select another.",
-    success_heading: "Your consultation is scheduled!",
-    success_subheading:
-      "We look forward to speaking with you.",
-    success_message:
-      "A confirmation email has been sent with the details of your appointment. Please check your inbox.",
-    add_to_calendar: "Add to calendar",
+  },
+  confirmation: {
+    heading: "Your Consultation Is Confirmed",
+    subheading: "A confirmation email has been sent.",
+    details_heading: "Appointment Details",
+    date_label: "Date",
+    time_label: "Time",
+    timezone_label: "Timezone",
+    add_to_calendar: "Add to Calendar",
     google_calendar: "Google Calendar",
     outlook: "Outlook Web",
-    apple_calendar: "Apple Calendar",
     download_ics: "Download .ics file",
-    appointment_ref: "Appointment Reference",
+    appointment_ref: "Reference",
+    support_line: "Questions? Contact us at",
+    support_phone: "775-600-5305",
   },
   footer: {
-    tagline: "Intelligent water care for pools and spas.",
+    tagline: "Water Made Perfect",
     support_email: "support@fusion44x.com",
-    support_phone: "(800) 555-0199",
-    privacy_label: "Privacy Policy",
+    support_phone: "775-600-5305",
     copyright: `\u00a9 ${new Date().getFullYear()} Fusion 44X. All rights reserved.`,
   },
 } as const;

@@ -81,8 +81,7 @@ export const CURRENT_TREATMENT_CODES = [
   "not_sure",
 ] as const;
 
-export type CurrentTreatmentCode =
-  (typeof CURRENT_TREATMENT_CODES)[number];
+export type CurrentTreatmentCode = (typeof CURRENT_TREATMENT_CODES)[number];
 
 export const CURRENT_ISSUES_CODES = [
   "chemical_smell",
@@ -161,6 +160,8 @@ export interface FunnelState {
   current_step: FunnelStepId;
   session_id: string | null;
   lead_id: string | null;
+  first_name: string | null;
+  email: string | null;
   diagnostic_answers: DiagnosticAnswers;
   completed_steps: FunnelStepId[];
   submission_state: SubmissionState;

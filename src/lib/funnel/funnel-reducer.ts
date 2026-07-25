@@ -18,7 +18,7 @@ export type FunnelAction =
   | { type: "DIAG_BACK" }
   | { type: "DIAG_SET_INDEX"; index: number }
   | { type: "CONTACT_SUBMIT_START" }
-  | { type: "CONTACT_SUBMIT_SUCCESS"; lead_id: string }
+  | { type: "CONTACT_SUBMIT_SUCCESS"; lead_id: string; first_name: string; email: string }
   | { type: "CONTACT_SUBMIT_DUPLICATE" }
   | { type: "CONTACT_SUBMIT_ERROR" }
   | { type: "SET_VALIDATION_ERRORS"; errors: Record<string, string> }
@@ -37,9 +37,11 @@ export type FunnelAction =
 
 export function createInitialState(): FunnelState {
   return {
-    current_step: FUNNEL_STEPS.HERO,
+    current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
     session_id: null,
     lead_id: null,
+    first_name: null,
+    email: null,
     diagnostic_answers: {},
     completed_steps: [],
     submission_state: "idle",
@@ -146,6 +148,8 @@ export function funnelReducer(
         ...state,
         submission_state: "success" as SubmissionState,
         lead_id: action.lead_id,
+        first_name: action.first_name,
+        email: action.email,
       };
 
     case "CONTACT_SUBMIT_DUPLICATE":
