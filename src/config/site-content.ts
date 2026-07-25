@@ -19,6 +19,15 @@ export const siteContent = {
     cta_primary: "Get Your Free Pool Assessment",
     cta_secondary: "How It Works",
   },
+  proof_bar: {
+    enabled: true,
+    claim: "Approved customer-count proof goes here",
+    supporting_items: [
+      "Free pool assessment",
+      "No-obligation consultation",
+      "Direct manufacturer support",
+    ],
+  },
   education: {
     heading: "Pool Care Shouldn't Be This Hard",
     subheading: "If any of this sounds familiar, you are not alone.",
@@ -126,7 +135,15 @@ export const siteContent = {
     review_email: "Email",
     confirm: "Confirm Appointment",
     confirming: "Confirming...",
-    conflict: "This time is no longer available. Please select another.",
+    conflict: "That time was just taken. Please choose another available time.",
+    error_missing_fields:
+      "We\u2019re missing part of your booking information. Please go back and select your date and time again.",
+    error_server_error:
+      "We couldn\u2019t confirm your appointment right now. Please try again.",
+    error_network_error:
+      "We lost the connection while confirming your appointment. Please check your connection and try again.",
+    error_unknown_error:
+      "Something went wrong. Please try again.",
   },
   confirmation: {
     heading: "Your Consultation Is Confirmed",

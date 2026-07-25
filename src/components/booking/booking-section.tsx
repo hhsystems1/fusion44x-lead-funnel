@@ -181,7 +181,7 @@ export function BookingStage() {
               firstName={state.first_name}
               email={state.email}
               submissionState={state.booking_submission_state}
-              error={state.booking_error}
+              errorCode={state.booking_error_code}
               onConfirm={handleConfirm}
             />
           </div>

@@ -156,6 +156,21 @@ export type SubmissionState =
   | "duplicate"
   | "error";
 
+// =============================================================================
+// Booking Error Codes (safe, machine-readable — never expose raw server data)
+// =============================================================================
+
+export const BOOKING_ERROR_CODES = {
+  MISSING_FIELDS: "missing_fields",
+  CONFLICT: "conflict",
+  SERVER_ERROR: "server_error",
+  NETWORK_ERROR: "network_error",
+  UNKNOWN_ERROR: "unknown_error",
+} as const;
+
+export type BookingErrorCode =
+  (typeof BOOKING_ERROR_CODES)[keyof typeof BOOKING_ERROR_CODES];
+
 export interface FunnelState {
   current_step: FunnelStepId;
   session_id: string | null;
@@ -175,4 +190,5 @@ export interface FunnelState {
   appointment_id: string | null;
   booking_submission_state: SubmissionState;
   booking_error: string | null;
+  booking_error_code: BookingErrorCode | null;
 }

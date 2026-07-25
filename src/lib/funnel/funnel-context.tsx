@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { FunnelState, FunnelStepId, DiagnosticQuestionId } from "@/types/funnel";
+import type { FunnelState, FunnelStepId, DiagnosticQuestionId, BookingErrorCode } from "@/types/funnel";
 import { FUNNEL_STEPS } from "@/types/funnel";
 import { InternalEvents } from "@/config/tracking-events";
 import { funnelReducer, createInitialState, type FunnelAction } from "./funnel-reducer";
@@ -32,6 +32,7 @@ import {
   saveSelectedSlotStart,
   getPersistedQuestionAnswer,
   saveBookingStep,
+  clearSessionData,
 } from "./persistence";
 import { initializeSession } from "./session";
 import { createTracker, type Tracker } from "@/lib/analytics/tracker";
@@ -56,6 +57,7 @@ interface FunnelContextValue {
   diagProgress: { current: number; total: number };
   selectSlot: (start: string, end: string) => void;
   submitBooking: (event_id: string) => Promise<void>;
+  resetFunnel: () => void;
 }
 
 const FunnelContext = createContext<FunnelContextValue | null>(null);
@@ -75,7 +77,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
   const hasTrackedConfirmationView = useRef(false);
   const bookingCompletedRef = useRef(false);
 
-  // Hydrate persisted state after mount
+  // Hydrate persisted state after mount with validation
   useEffect(() => {
     const answers = getDiagnosticAnswers();
     const index = getDiagIndex();
@@ -85,17 +87,43 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     const selectedDate = getSelectedDate();
     const selectedSlotStart = getSelectedSlotStart();
     const selectedSlotEnd = getSelectedSlotEnd();
+
+    let validStep = step;
+
+    // Validate: if step requires lead_id but it's missing, reset to diagnostic
+    if (
+      (step === FUNNEL_STEPS.BOOKING || step === FUNNEL_STEPS.CONFIRMATION) &&
+      !leadId
+    ) {
+      validStep = FUNNEL_STEPS.POOL_DIAGNOSTIC;
+    }
+
+    // Validate: if step is confirmation but no appointment data, reset to booking or diagnostic
+    if (step === FUNNEL_STEPS.CONFIRMATION && !leadId) {
+      validStep = FUNNEL_STEPS.POOL_DIAGNOSTIC;
+    }
+
+    // Validate: if step is booking but no session_id, reset to diagnostic
+    if (step === FUNNEL_STEPS.BOOKING && !sessionId) {
+      validStep = FUNNEL_STEPS.POOL_DIAGNOSTIC;
+    }
+
+    // If resetting, clear the invalid persisted data
+    if (validStep !== step) {
+      clearSessionData();
+    }
+
     dispatch({
       type: "HYDRATE",
       payload: {
         ...(answers ? { diagnostic_answers: answers } : {}),
         ...(typeof index === "number" ? { diag_current_index: index } : {}),
         ...(sessionId ? { session_id: sessionId } : {}),
-        ...(step ? { current_step: step } : {}),
+        ...(validStep ? { current_step: validStep } : {}),
         ...(leadId ? { lead_id: leadId } : {}),
-        ...(selectedDate ? { selected_date: selectedDate } : {}),
-        ...(selectedSlotStart ? { selected_slot_start: selectedSlotStart } : {}),
-        ...(selectedSlotEnd ? { selected_slot_end: selectedSlotEnd } : {}),
+        ...(validStep === FUNNEL_STEPS.BOOKING && selectedDate ? { selected_date: selectedDate } : {}),
+        ...(validStep === FUNNEL_STEPS.BOOKING && selectedSlotStart ? { selected_slot_start: selectedSlotStart } : {}),
+        ...(validStep === FUNNEL_STEPS.BOOKING && selectedSlotEnd ? { selected_slot_end: selectedSlotEnd } : {}),
       },
     });
   }, []);
@@ -448,10 +476,24 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     [tracker],
   );
 
+  const mapApiErrorToCode = useCallback(
+    (apiCode: string | undefined, httpStatus: number): BookingErrorCode => {
+      if (!apiCode) {
+        if (httpStatus === 0) return "network_error";
+        return "server_error";
+      }
+      if (apiCode.includes("CONFLICT") || apiCode.includes("UNAVAILABLE") || httpStatus === 409) return "conflict";
+      if (apiCode.includes("INPUT") || httpStatus === 422) return "missing_fields";
+      if (apiCode === "NETWORK_ERROR" || httpStatus === 0) return "network_error";
+      return "server_error";
+    },
+    [],
+  );
+
   const submitBooking = useCallback(
     async (event_id: string) => {
       if (!state.lead_id || !state.session_id || !state.selected_slot_start) {
-        dispatch({ type: "BOOKING_FAIL", error: "missing_fields" });
+        dispatch({ type: "BOOKING_FAIL", error_code: "missing_fields" });
         return;
       }
 
@@ -477,25 +519,24 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         });
 
         if (result.error) {
-          if (result.error.status === 409) {
+          const httpStatus = result.error.status;
+          const apiCode = result.error.code;
+          const frontendCode = mapApiErrorToCode(apiCode, httpStatus);
+
+          if (frontendCode === "conflict") {
             dispatch({ type: "BOOKING_CONFLICT" });
-            bookingCompletedRef.current = false;
-            if (tracker) {
-              tracker.track(InternalEvents.BOOKING_FAILED, {
-                step_id: FUNNEL_STEPS.BOOKING,
-                lead_id: state.lead_id,
-                metadata: { reason: "conflict" },
-              });
-            }
-            return;
+          } else {
+            dispatch({ type: "BOOKING_FAIL", error_code: frontendCode });
           }
-          dispatch({ type: "BOOKING_FAIL", error: "server_error" });
+
+          // Allow retry after failure
           bookingCompletedRef.current = false;
+
           if (tracker) {
             tracker.track(InternalEvents.BOOKING_FAILED, {
               step_id: FUNNEL_STEPS.BOOKING,
               lead_id: state.lead_id,
-              metadata: { reason: "server_error" },
+              metadata: { reason: frontendCode },
             });
           }
           return;
@@ -507,6 +548,8 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
           start_time: result.start_time!,
           end_time: result.end_time!,
         });
+
+        // bookingCompletedRef stays true permanently — no retry after success
 
         if (tracker) {
           tracker.track(InternalEvents.BOOKING_COMPLETED, {
@@ -520,7 +563,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.CONFIRMATION });
         saveBookingStep(FUNNEL_STEPS.CONFIRMATION);
       } catch {
-        dispatch({ type: "BOOKING_FAIL", error: "network_error" });
+        dispatch({ type: "BOOKING_FAIL", error_code: "network_error" });
         bookingCompletedRef.current = false;
         if (tracker) {
           tracker.track(InternalEvents.BOOKING_FAILED, {
@@ -531,8 +574,19 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [state.lead_id, state.session_id, state.selected_slot_start, tracker],
+    [state.lead_id, state.session_id, state.selected_slot_start, tracker, mapApiErrorToCode],
   );
+
+  const resetFunnel = useCallback(() => {
+    bookingCompletedRef.current = false;
+    clearSessionData();
+    dispatch({ type: "RESET" });
+    if (tracker) {
+      tracker.track(InternalEvents.PAGE_VIEWED, {
+        step_id: FUNNEL_STEPS.POOL_DIAGNOSTIC,
+      });
+    }
+  }, [tracker]);
 
   const value: FunnelContextValue = {
     state,
@@ -550,6 +604,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
     diagProgress,
     selectSlot,
     submitBooking,
+    resetFunnel,
   };
 
   return (

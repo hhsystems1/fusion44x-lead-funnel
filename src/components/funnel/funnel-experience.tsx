@@ -9,7 +9,7 @@ import { BookingStage } from "@/components/booking/booking-section";
 import { ConfirmationStage } from "@/components/sections/confirmation-stage";
 
 export function FunnelExperience() {
-  const { state } = useFunnel();
+  const { state, resetFunnel } = useFunnel();
   const viewportRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -31,6 +31,10 @@ export function FunnelExperience() {
       }, 350);
     }
   }, [step]);
+
+  const showStartOver =
+    step === FUNNEL_STEPS.BOOKING ||
+    step === FUNNEL_STEPS.CONFIRMATION;
 
   return (
     <section
@@ -55,6 +59,17 @@ export function FunnelExperience() {
         {step === FUNNEL_STEPS.CONTACT_INFORMATION && <ContactStage />}
         {step === FUNNEL_STEPS.BOOKING && <BookingStage />}
         {step === FUNNEL_STEPS.CONFIRMATION && <ConfirmationStage />}
+
+        {showStartOver && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={resetFunnel}
+              className="text-sm text-neutral-400 underline decoration-neutral-300 underline-offset-2 transition-colors hover:text-neutral-600"
+            >
+              Start Over
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

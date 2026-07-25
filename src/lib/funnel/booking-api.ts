@@ -4,7 +4,7 @@ export interface BookingApiResponse {
   end_time?: string;
   timezone?: string;
   status?: string;
-  error?: { status: number; message: string };
+  error?: { status: number; message: string; code?: string };
 }
 
 export async function createBookingRequest(params: {
@@ -24,12 +24,12 @@ export async function createBookingRequest(params: {
     const data = await response.json() as BookingApiResponse;
 
     if (!response.ok) {
-      return { error: data.error ?? { status: response.status, message: "Booking failed" } };
+      return { error: data.error ?? { status: response.status, message: "Booking failed", code: "BOOKING_UNKNOWN" } };
     }
 
     return data;
   } catch {
-    return { error: { status: 0, message: "Network error" } };
+    return { error: { status: 0, message: "Network error", code: "NETWORK_ERROR" } };
   }
 }
 
