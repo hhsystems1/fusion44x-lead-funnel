@@ -122,11 +122,11 @@ export function requireGoogleCalendarEnv(): GoogleCalendarEnv {
 export function requireEmailEnv(): EmailEnv {
   return {
     apiKey: requireVar(
-      "EMAIL_PROVIDER_API_KEY",
+      "EMAIL_API_KEY",
       "sending email notifications",
     ),
     fromAddress: requireVar(
-      "EMAIL_FROM_ADDRESS",
+      "EMAIL_FROM",
       "sending email notifications",
     ),
   };

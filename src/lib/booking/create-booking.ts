@@ -346,17 +346,37 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       // non-fatal — appointment is already confirmed
     }
 
-    // -------------------------------------------------------------------------
-    // 9. Best-effort pending email delivery preparation
-    //    Future: once an EmailProvider is configured, replace with
-    //    sendBookingConfirmation(prepared, provider) from
-    //    src/lib/email/notifications. See docs/email-notifications.md.
-    //    Booking API success must not depend on email.
+// -------------------------------------------------------------------------
+    // 9. Best-effort email delivery (customer + internal)
+    //    If a real provider is configured, attempt to send immediately.
+    //    If no provider is configured, fall back to scheduling pending deliveries.
+    //    Email success/failure must not affect booking confirmation.
     // -------------------------------------------------------------------------
     try {
-      await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+      const { getEmailProvider } = await import("@/lib/email/provider");
+      const { sendBookingConfirmation, prepareBookingConfirmation } = await import("@/lib/email/notifications");
+      const { sendInternalBookingNotification, prepareInternalBookingNotification } = await import("@/lib/email/internal-notifications");
+      
+      const providerResult = getEmailProvider();
+      
+      if (providerResult.provider) {
+        // Customer confirmation
+        const prepared = await prepareBookingConfirmation({ appointmentId: confirmedId });
+        if (prepared) {
+          await sendBookingConfirmation(prepared, providerResult.provider);
+        }
+        
+        // Internal notification
+        const internalPrepared = await prepareInternalBookingNotification({ appointmentId: confirmedId });
+        if (internalPrepared) {
+          await sendInternalBookingNotification(internalPrepared, providerResult.provider);
+        }
+      } else {
+        await schedulePendingEmailDelivery({ appointmentId: confirmedId });
+        // Internal notification not scheduled when no provider - disabled
+      }
     } catch {
-      // non-fatal — email preparation failure must not affect booking
+      // non-fatal — email preparation/send failure must not affect booking
     }
 
     return {

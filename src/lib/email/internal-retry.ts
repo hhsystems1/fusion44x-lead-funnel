@@ -1,8 +1,8 @@
 import "server-only";
 import type { EmailProvider, ProviderError } from "@/lib/email/provider/types";
-import { prepareBookingConfirmation } from "@/lib/email/notifications";
-import { findEmailDeliveryById, claimEmailDelivery, markEmailDeliveryDelivered, markEmailDeliveryFailed } from "@/lib/email/delivery";
-import { buildBookingConfirmationSendInput } from "@/lib/email/send-input";
+import { prepareInternalBookingNotification } from "@/lib/email/internal-notifications";
+import { findInternalEmailDeliveryById, claimInternalEmailDelivery, markInternalEmailDeliveryDelivered, markInternalEmailDeliveryFailed } from "@/lib/email/internal-delivery";
+import { buildInternalBookingNotificationSendInput } from "@/lib/email/internal-send-input";
 
 export interface RetryConfig {
   maxAttempts: number;
@@ -10,45 +10,11 @@ export interface RetryConfig {
   maxBackoffMs: number;
 }
 
-const EMAIL_RETRY_CONFIG: RetryConfig = {
+const INTERNAL_EMAIL_RETRY_CONFIG: RetryConfig = {
   maxAttempts: 5,
   baseBackoffMs: 60_000,
   maxBackoffMs: 3_600_000,
 };
-
-export const RETRYABLE_CODES: readonly string[] = [
-  "PROVIDER_UNAVAILABLE",
-  "RATE_LIMITED",
-  "TIMEOUT",
-  "NETWORK_ERROR",
-  "PROVIDER_ERROR",
-] as const;
-
-export const TERMINAL_CODES: readonly string[] = [
-  "INVALID_RECIPIENT",
-  "INVALID_TEMPLATE",
-  "PROVIDER_REJECTED",
-  "INVALID_CONFIG",
-] as const;
-
-export function isRetryable(code: string): boolean {
-  return RETRYABLE_CODES.includes(code as typeof RETRYABLE_CODES[number]);
-}
-
-export function isTerminal(code: string): boolean {
-  return TERMINAL_CODES.includes(code as typeof TERMINAL_CODES[number]);
-}
-
-export function getBackoffMs(attempt: number, config?: Partial<RetryConfig>): number {
-  const cfg = { ...EMAIL_RETRY_CONFIG, ...config };
-  const delay = cfg.baseBackoffMs * Math.pow(2, attempt - 1);
-  return Math.min(delay, cfg.maxBackoffMs);
-}
-
-export function getNextAttemptTimestamp(attempt: number, config?: Partial<RetryConfig>): string {
-  const delayMs = getBackoffMs(attempt, config);
-  return new Date(Date.now() + delayMs).toISOString();
-}
 
 export interface RetryResult {
   deliveryId: string;
@@ -57,15 +23,15 @@ export interface RetryResult {
   error?: ProviderError;
 }
 
-export async function retryFailedEmailDelivery(params: {
+export async function retryFailedInternalEmailDelivery(params: {
   deliveryId: string;
   provider: EmailProvider;
   config?: Partial<RetryConfig>;
 }): Promise<RetryResult> {
-  const cfg = { ...EMAIL_RETRY_CONFIG, ...params.config };
+  const cfg = { ...INTERNAL_EMAIL_RETRY_CONFIG, ...params.config };
 
   // Load the exact delivery by ID
-  const delivery = await findEmailDeliveryById(params.deliveryId);
+  const delivery = await findInternalEmailDeliveryById(params.deliveryId);
   if (!delivery) {
     return {
       deliveryId: params.deliveryId,
@@ -114,7 +80,7 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   // Terminal error code recorded - skip
-  if (delivery.error_message && isTerminal(delivery.error_message)) {
+  if (delivery.error_message && (delivery.error_message === "INVALID_RECIPIENT" || delivery.error_message === "INVALID_TEMPLATE" || delivery.error_message === "PROVIDER_REJECTED" || delivery.error_message === "INVALID_CONFIG")) {
     return {
       deliveryId: params.deliveryId,
       status: "skipped",
@@ -130,7 +96,7 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   // Try to atomically claim for retry
-  const claim = await claimEmailDelivery(params.deliveryId, cfg.maxAttempts);
+  const claim = await claimInternalEmailDelivery(params.deliveryId, cfg.maxAttempts);
   if (!claim.claimed || !claim.delivery) {
     // Could not claim - another process got it, or not eligible
     return {
@@ -140,11 +106,11 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   const appointmentId = claim.delivery.appointment_id;
-  const prepared = await prepareBookingConfirmation({ appointmentId });
+  const prepared = await prepareInternalBookingNotification({ appointmentId });
 
   // Appointment no longer confirmed or preparation failed
   if (!prepared) {
-    await markEmailDeliveryFailed({
+    await markInternalEmailDeliveryFailed({
       deliveryId: params.deliveryId,
       safeErrorCode: "APPOINTMENT_NOT_CONFIRMED",
       retryable: false,
@@ -158,7 +124,7 @@ export async function retryFailedEmailDelivery(params: {
 
   // Validate recipient
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prepared.recipientEmail)) {
-    await markEmailDeliveryFailed({
+    await markInternalEmailDeliveryFailed({
       deliveryId: params.deliveryId,
       safeErrorCode: "INVALID_RECIPIENT",
       retryable: false,
@@ -171,10 +137,10 @@ export async function retryFailedEmailDelivery(params: {
   }
 
   try {
-    const sendInput = buildBookingConfirmationSendInput(prepared, params.deliveryId);
-    const result = await params.provider.sendBookingConfirmation(sendInput);
+    const sendInput = buildInternalBookingNotificationSendInput(prepared, params.deliveryId);
+    const result = await params.provider.sendInternalBookingNotification(sendInput);
 
-    await markEmailDeliveryDelivered({
+    await markInternalEmailDeliveryDelivered({
       deliveryId: params.deliveryId,
       providerMessageId: result.messageId,
     });
@@ -189,7 +155,7 @@ export async function retryFailedEmailDelivery(params: {
     const safeCode = error?.code ?? "PROVIDER_ERROR";
     const retryable = error?.retryable !== false;
 
-    await markEmailDeliveryFailed({
+    await markInternalEmailDeliveryFailed({
       deliveryId: params.deliveryId,
       safeErrorCode: safeCode,
       retryable,
@@ -201,7 +167,7 @@ export async function retryFailedEmailDelivery(params: {
       error: {
         code: safeCode,
         message: error?.message ?? "Email provider error",
-        retryable: isRetryable(safeCode),
+        retryable,
       },
     };
   }

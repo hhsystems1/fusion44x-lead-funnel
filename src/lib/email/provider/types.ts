@@ -4,12 +4,15 @@ export interface SendEmailInput {
   recipientEmail: string;
   recipientFirstName: string;
   appointmentId: string;
+  deliveryId: string;
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
   googleCalendarLink: string;
   outlookCalendarLink: string;
   icsContent: string;
+  html: string;
+  text: string;
   replyTo?: string;
 }
 
@@ -27,4 +30,5 @@ export interface ProviderError {
 export interface EmailProvider {
   readonly name: string;
   sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>;
+  sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>;
 }

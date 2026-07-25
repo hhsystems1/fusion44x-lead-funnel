@@ -2,51 +2,55 @@ import "server-only";
 import { EMAIL_CONFIG } from "@/config/email";
 import type { EmailProvider, SendEmailResult, ProviderError } from "@/lib/email/provider/types";
 import {
-  findEmailDelivery,
-  createPendingEmailDelivery,
-  claimEmailDelivery,
-  markEmailDeliveryDelivered,
-  markEmailDeliveryFailed,
-} from "@/lib/email/delivery";
-import { buildBookingConfirmationSendInput } from "./send-input";
+  findInternalEmailDelivery,
+  createPendingInternalEmailDelivery,
+  claimInternalEmailDelivery,
+  markInternalEmailDeliveryDelivered,
+  markInternalEmailDeliveryFailed,
+} from "@/lib/email/internal-delivery";
+import { buildInternalBookingNotificationSendInput } from "./internal-send-input";
 
-export interface PreparedConfirmation {
+export interface PreparedInternalNotification {
   appointmentId: string;
   leadId: string;
   recipientEmail: string;
-  recipientFirstName: string;
+  customerFirstName: string;
+  customerEmail: string;
+  customerPhone: string | null;
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
   bookingEventId: string | null;
+  googleCalendarEventId: string | null;
 }
 
-export type SendConfirmationStatus =
+export type SendInternalNotificationStatus =
   | "delivered"
   | "in_progress"
   | "not_due"
   | "max_attempts"
   | "dead_letter"
-  | "prepared";
+  | "prepared"
+  | "disabled";
 
-export interface SendConfirmationResult {
+export interface SendInternalNotificationResult {
   deliveryId: string;
-  status: SendConfirmationStatus;
+  status: SendInternalNotificationStatus;
   messageId?: string;
 }
 
-export type SendConfirmationError = ProviderError;
+export type SendInternalNotificationError = ProviderError;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function prepareBookingConfirmation(params: {
+export async function prepareInternalBookingNotification(params: {
   appointmentId: string;
-}): Promise<PreparedConfirmation | null> {
+}): Promise<PreparedInternalNotification | null> {
   const supabase = (await import("@/lib/supabase")).getServerSupabaseClient();
 
   const { data: appointment, error: appError } = await supabase
     .from("appointments")
-    .select("id, lead_id, status, start_time, end_time, timezone, booking_event_id")
+    .select("id, lead_id, status, start_time, end_time, timezone, booking_event_id, external_event_id")
     .eq("id", params.appointmentId)
     .single();
 
@@ -63,7 +67,7 @@ export async function prepareBookingConfirmation(params: {
   const leadId = row.lead_id as string;
   const { data: lead, error: leadError } = await supabase
     .from("leads")
-    .select("first_name, email")
+    .select("first_name, email, phone")
     .eq("id", leadId)
     .single();
 
@@ -72,42 +76,52 @@ export async function prepareBookingConfirmation(params: {
   }
 
   const leadRow = lead as Record<string, unknown>;
-  const email = (leadRow.email as string) ?? "";
-  const firstName = ((leadRow.first_name as string) ?? "").trim();
+  const customerEmail = (leadRow.email as string) ?? "";
+  const customerFirstName = ((leadRow.first_name as string) ?? "").trim();
+  const customerPhone = (leadRow.phone as string)?.trim() ?? null;
 
-  if (!EMAIL_REGEX.test(email)) {
+  if (!EMAIL_REGEX.test(customerEmail)) {
+    return null;
+  }
+
+  // Get internal notification recipient
+  const internalRecipient = process.env.INTERNAL_BOOKING_NOTIFICATION_TO?.trim();
+  if (!internalRecipient || !EMAIL_REGEX.test(internalRecipient)) {
     return null;
   }
 
   return {
     appointmentId: row.id as string,
     leadId,
-    recipientEmail: email,
-    recipientFirstName: firstName,
+    recipientEmail: internalRecipient,
+    customerFirstName,
+    customerEmail,
+    customerPhone,
     confirmedStartTime: row.start_time as string,
     confirmedEndTime: row.end_time as string,
     timezone: (row.timezone as string) || EMAIL_CONFIG.TIMEZONE,
     bookingEventId: (row.booking_event_id as string) ?? null,
+    googleCalendarEventId: (row.external_event_id as string) ?? null,
   };
 }
 
-export async function sendBookingConfirmation(
-  prepared: PreparedConfirmation,
+export async function sendInternalBookingNotification(
+  prepared: PreparedInternalNotification,
   provider: EmailProvider,
-): Promise<SendConfirmationResult | SendConfirmationError> {
+): Promise<SendInternalNotificationResult | SendInternalNotificationError> {
   const { appointmentId, recipientEmail, bookingEventId } = prepared;
 
   if (!EMAIL_REGEX.test(recipientEmail)) {
     return {
       code: "INVALID_RECIPIENT",
-      message: "Invalid recipient email address",
+      message: "Invalid internal notification recipient email address",
       retryable: false,
     };
   }
 
-  const templateVersion = EMAIL_CONFIG.TEMPLATE_VERSION;
+  const templateVersion = "1.0.0";
 
-  const existingDelivery = await findEmailDelivery(appointmentId, templateVersion);
+  const existingDelivery = await findInternalEmailDelivery(appointmentId, templateVersion);
 
   // Already delivered - idempotent success
   if (existingDelivery?.status === "delivered") {
@@ -158,20 +172,20 @@ export async function sendBookingConfirmation(
   } else {
     // Create new pending delivery
     try {
-      deliveryId = await createPendingEmailDelivery({
+      deliveryId = await createPendingInternalEmailDelivery({
         appointmentId,
         bookingEventId,
         templateVersion,
       });
     } catch {
       // Race condition: another request created it
-      const retryDelivery = await findEmailDelivery(appointmentId, templateVersion);
+      const retryDelivery = await findInternalEmailDelivery(appointmentId, templateVersion);
       if (retryDelivery) {
         deliveryId = retryDelivery.id;
       } else {
         return {
           code: "DELIVERY_CREATE_FAILED",
-          message: "Failed to create delivery record",
+          message: "Failed to create internal delivery record",
           retryable: false,
         };
       }
@@ -179,10 +193,10 @@ export async function sendBookingConfirmation(
   }
 
   // Try to atomically claim the delivery for processing
-  const claim = await claimEmailDelivery(deliveryId);
+  const claim = await claimInternalEmailDelivery(deliveryId);
   if (!claim.claimed || !claim.delivery) {
     // Not eligible: check specific reason
-    const fresh = await findEmailDelivery(appointmentId, templateVersion);
+    const fresh = await findInternalEmailDelivery(appointmentId, templateVersion);
     if (!fresh) {
       return { deliveryId, status: "in_progress" };
     }
@@ -204,17 +218,17 @@ export async function sendBookingConfirmation(
     return { deliveryId, status: "in_progress" };
   }
 
-  const sendInput = buildBookingConfirmationSendInput(prepared, deliveryId);
+  const sendInput = buildInternalBookingNotificationSendInput(prepared, deliveryId);
 
   let result: SendEmailResult;
   try {
-    result = await provider.sendBookingConfirmation(sendInput);
+    result = await provider.sendInternalBookingNotification(sendInput);
   } catch (err) {
     const error = err as { code?: string; message?: string; retryable?: boolean };
     const safeCode = error?.code ?? "PROVIDER_ERROR";
     const retryable = error?.retryable !== false;
 
-    await markEmailDeliveryFailed({
+    await markInternalEmailDeliveryFailed({
       deliveryId,
       safeErrorCode: safeCode,
       retryable,
@@ -227,7 +241,7 @@ export async function sendBookingConfirmation(
     };
   }
 
-  await markEmailDeliveryDelivered({
+  await markInternalEmailDeliveryDelivered({
     deliveryId,
     providerMessageId: result.messageId,
   });
@@ -239,16 +253,16 @@ export async function sendBookingConfirmation(
   };
 }
 
-export async function schedulePendingEmailDelivery(params: {
+export async function schedulePendingInternalEmailDelivery(params: {
   appointmentId: string;
 }): Promise<string | null> {
-  const prepared = await prepareBookingConfirmation(params);
+  const prepared = await prepareInternalBookingNotification(params);
   if (!prepared) {
     return null;
   }
 
-  const templateVersion = EMAIL_CONFIG.TEMPLATE_VERSION;
-  const existingDelivery = await findEmailDelivery(
+  const templateVersion = "1.0.0";
+  const existingDelivery = await findInternalEmailDelivery(
     params.appointmentId,
     templateVersion,
   );
@@ -257,7 +271,7 @@ export async function schedulePendingEmailDelivery(params: {
   }
 
   try {
-    const deliveryId = await createPendingEmailDelivery({
+    const deliveryId = await createPendingInternalEmailDelivery({
       appointmentId: params.appointmentId,
       bookingEventId: prepared.bookingEventId,
       templateVersion,
