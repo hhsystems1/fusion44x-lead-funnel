@@ -14,13 +14,14 @@
 
 -- 1. Ensure event_type allows 'internal_booking_notification'
 
-do $$
+do $migration$
 declare
   v_has_constraint boolean;
   v_has_internal   boolean;
   v_old_values     text[];
   v_new_values     text[];
   v_sql            text;
+  v_def            text;
 begin
   -- Check whether any CHECK constraint on event_type exists
   select exists(
@@ -58,21 +59,31 @@ begin
 
   -- Case 2: Constraint exists but does not permit internal_booking_notification — replace it
   elsif not v_has_internal then
-    -- Extract existing allowed string literals from the first event_type CHECK constraint
-    select array_agg(m[1])
+    -- Collect all CHECK constraint definitions that reference event_type,
+    -- then extract allowed string literals from every one of them.
+    select string_agg(pg_get_constraintdef(c.oid), ' ')
+    into v_def
+    from pg_constraint c
+    join pg_class t on c.conrelid = t.oid
+    join pg_namespace n on t.relnamespace = n.oid
+    where n.nspname = 'public'
+      and t.relname = 'integration_deliveries'
+      and c.contype = 'c'
+      and pg_get_constraintdef(c.oid) like '%event_type%';
+
+    select array_agg(distinct m[1] order by m[1])
     into v_old_values
-    from (
-      select pg_get_constraintdef(c.oid) as def
-      from pg_constraint c
-      join pg_class t on c.conrelid = t.oid
-      join pg_namespace n on t.relnamespace = n.oid
-      where n.nspname = 'public'
-        and t.relname = 'integration_deliveries'
-        and c.contype = 'c'
-        and pg_get_constraintdef(c.oid) like '%event_type%'
-      limit 1
-    ) sub,
-    lateral regexp_matches(sub.def, $$'([^']+)':?text?$$, 'g') as m;
+    from regexp_matches(v_def, $regex$'([^']+)'(?:::text)?$regex$, 'g') as m;
+
+    -- Safety: extraction must have produced at least one value
+    if v_old_values is null or array_length(v_old_values, 1) = 0 then
+      raise exception 'could not extract existing event_type values from CHECK constraints — aborting to prevent data loss';
+    end if;
+
+    -- Safety: booking_confirmation must be among the preserved values
+    if not ('booking_confirmation' = any(v_old_values)) then
+      raise exception 'booking_confirmation is not present in extracted event_type values — aborting to prevent data loss';
+    end if;
 
     -- Drop all existing event_type CHECK constraints (they are incompatible)
     for v_sql in
@@ -112,7 +123,7 @@ begin
   -- Case 3: Constraint exists and already permits internal_booking_notification — no-op
   end if;
 end
-$$;
+$migration$;
 
 -- 2. Unique partial index for internal booking notification deliveries
 --
@@ -130,7 +141,7 @@ create unique index if not exists idx_integration_deliveries_internal_booking_un
 -- These assertions fail the migration if the constraint is missing or incomplete.
 -- They are safe to run after the constraint is in place.
 
-do $$
+do $verify$
 begin
   if not exists (
     select 1
@@ -158,4 +169,4 @@ begin
     raise exception 'internal_booking_notification must be allowed by event_type check constraint';
   end if;
 end
-$$;
+$verify$;
