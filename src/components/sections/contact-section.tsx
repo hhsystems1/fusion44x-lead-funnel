@@ -93,11 +93,11 @@ export function ContactSection() {
   }
 
   return (
-    <SectionContainer id="contact-information" background="white">
+    <SectionContainer id="contact-information" background="light">
       <div className="text-center">
         <h2
           id="contact-heading"
-          className="text-2xl font-bold tracking-tight sm:text-3xl"
+          className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
         >
           {siteContent.contact.heading}
         </h2>
@@ -159,7 +159,7 @@ export function ContactSection() {
         <div className="w-full">
           <label
             htmlFor="preferred-contact"
-            className="mb-1 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-brand-navy"
           >
             {siteContent.contact.preferred_contact}
           </label>
@@ -172,7 +172,7 @@ export function ContactSection() {
                 e.target.value as FormState["preferred_contact_method"],
               )
             }
-            className="w-full rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
+            className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm transition-colors hover:border-neutral-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua"
           >
             <option value="">
               {siteContent.contact.preferred_contact_placeholder}

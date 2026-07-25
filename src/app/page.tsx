@@ -6,6 +6,7 @@ import { PoolDiagnosticSection } from "@/components/sections/pool-diagnostic-sec
 import { ContactSection } from "@/components/sections/contact-section";
 import { BookingSection } from "@/components/booking/booking-section";
 import { ConfirmationPlaceholder } from "@/components/sections/confirmation-placeholder";
+import { Footer } from "@/components/sections/footer";
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
       <ContactSection />
       <BookingSection />
       <ConfirmationPlaceholder />
+      <Footer />
     </FunnelProvider>
   );
 }

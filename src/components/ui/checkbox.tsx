@@ -23,10 +23,10 @@ export function Checkbox({
           type="checkbox"
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
-          className={`mt-1 h-4 w-4 rounded border-neutral-300 text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 ${className}`}
+          className={`mt-1 h-4 w-4 rounded border-neutral-300 text-brand-aqua focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua ${className}`}
           {...props}
         />
-        <label htmlFor={inputId} className="text-sm text-neutral-700">
+        <label htmlFor={inputId} className="text-sm text-brand-navy/80">
           {label}
         </label>
       </div>

@@ -19,7 +19,7 @@ export function TextInput({
     <div className="w-full">
       <label
         htmlFor={inputId}
-        className="mb-1 block text-sm font-medium text-neutral-700"
+        className="mb-1.5 block text-sm font-medium text-brand-navy"
       >
         {label}
         {props.required && (
@@ -32,10 +32,10 @@ export function TextInput({
         id={inputId}
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 motion-reduce:transition-none ${
+        className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua motion-reduce:transition-none ${
           error
             ? "border-red-500 focus-visible:outline-red-500"
-            : "border-neutral-300"
+            : "border-neutral-200 hover:border-neutral-300"
         } ${className}`}
         {...props}
       />

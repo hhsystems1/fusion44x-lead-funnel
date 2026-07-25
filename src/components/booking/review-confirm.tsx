@@ -35,21 +35,21 @@ export function ReviewConfirm({
   const isSubmitting = submissionState === "submitting";
 
   return (
-    <div className="rounded-xl border border-neutral-300 bg-white p-6">
-      <h3 className="text-lg font-semibold text-neutral-900">
+    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-brand-navy">
         {siteContent.booking.review_heading}
       </h3>
 
       <dl className="mt-4 space-y-3">
         <div className="flex justify-between">
           <dt className="text-neutral-500">{siteContent.booking.review_date}</dt>
-          <dd className="font-medium text-neutral-900">
+          <dd className="font-medium text-brand-navy">
             {formatDateLabel(selectedDate)}
           </dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-neutral-500">{siteContent.booking.review_time}</dt>
-          <dd className="font-medium text-neutral-900">
+          <dd className="font-medium text-brand-navy">
             {formatTime(startTime)} &ndash; {formatTime(endTime)}
           </dd>
         </div>
@@ -74,7 +74,7 @@ export function ReviewConfirm({
       <button
         onClick={onConfirm}
         disabled={isSubmitting}
-        className="mt-6 w-full rounded-lg bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-6 w-full rounded-lg bg-brand-aqua px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light disabled:cursor-not-allowed disabled:opacity-50 shadow-sm shadow-brand-aqua/20"
       >
         {isSubmitting ? siteContent.booking.confirming : siteContent.booking.confirm}
       </button>

@@ -67,9 +67,9 @@ export function BookingSuccess({
 
   return (
     <div className="text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-aqua/10">
         <svg
-          className="h-8 w-8 text-green-600"
+          className="h-8 w-8 text-brand-aqua"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -84,7 +84,7 @@ export function BookingSuccess({
         </svg>
       </div>
 
-      <h2 className="mt-6 text-2xl font-bold tracking-tight sm:text-3xl">
+      <h2 className="mt-6 text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl">
         {siteContent.booking.success_heading}
       </h2>
       <p className="mt-3 text-neutral-600">
@@ -99,7 +99,7 @@ export function BookingSuccess({
       </p>
 
       <div className="mt-8 space-y-3">
-        <p className="text-sm font-medium text-neutral-700">
+        <p className="text-sm font-medium text-brand-navy">
           {siteContent.booking.add_to_calendar}
         </p>
 
@@ -108,7 +108,7 @@ export function BookingSuccess({
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleGoogleClick}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-brand-navy transition-colors hover:bg-brand-aqua-pale hover:border-brand-aqua/30"
         >
           {siteContent.booking.google_calendar}
         </a>
@@ -118,14 +118,14 @@ export function BookingSuccess({
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleOutlookClick}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-brand-navy transition-colors hover:bg-brand-aqua-pale hover:border-brand-aqua/30"
         >
           {siteContent.booking.outlook}
         </a>
 
         <button
           onClick={handleIcsDownload}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm text-neutral-700 transition-colors hover:bg-neutral-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-brand-navy transition-colors hover:bg-brand-aqua-pale hover:border-brand-aqua/30"
         >
           {siteContent.booking.download_ics}
         </button>

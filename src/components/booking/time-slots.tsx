@@ -16,7 +16,7 @@ export function TimeSlots({ slots, selectedStart, onSelect }: TimeSlotsProps) {
     <div>
       <label
         id="time-slots-label"
-        className="mb-3 block text-sm font-medium text-neutral-700"
+        className="mb-3 block text-sm font-medium text-brand-navy"
       >
         {siteContent.booking.select_time}
       </label>
@@ -33,11 +33,11 @@ export function TimeSlots({ slots, selectedStart, onSelect }: TimeSlotsProps) {
               role="radio"
               aria-checked={selected}
               onClick={() => onSelect(slot.start, slot.end)}
-              className={`rounded-lg border px-3 py-3 text-center text-sm transition-colors
+              className={`rounded-lg border px-3 py-3 text-center text-sm transition-all duration-150
                 ${
                   selected
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400"
+                    ? "border-brand-aqua bg-brand-aqua text-white shadow-sm shadow-brand-aqua/20"
+                    : "border-neutral-200 bg-white text-brand-navy hover:border-brand-aqua/40 hover:bg-brand-aqua-pale"
                 }
               `}
             >

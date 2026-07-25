@@ -52,7 +52,7 @@ export function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
     <div>
       <label
         id="date-picker-label"
-        className="mb-3 block text-sm font-medium text-neutral-700"
+        className="mb-3 block text-sm font-medium text-brand-navy"
       >
         {siteContent.booking.select_date}
       </label>
@@ -71,11 +71,11 @@ export function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
               aria-checked={selected}
               disabled={disabled}
               onClick={() => onDateChange(date)}
-              className={`shrink-0 rounded-lg border px-4 py-3 text-center text-sm transition-colors
+              className={`shrink-0 rounded-lg border px-4 py-3 text-center text-sm transition-all duration-150
                 ${
                   selected
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400"
+                    ? "border-brand-aqua bg-brand-aqua text-white shadow-sm shadow-brand-aqua/20"
+                    : "border-neutral-200 bg-white text-brand-navy hover:border-brand-aqua/40 hover:bg-brand-aqua-pale"
                 }
                 ${disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"}
               `}

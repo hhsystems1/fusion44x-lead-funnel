@@ -58,11 +58,11 @@ export function PoolDiagnosticSection() {
   );
 
   return (
-    <SectionContainer id="pool-diagnostic" background="light">
+    <SectionContainer id="pool-diagnostic" background="white">
       <div className="text-center">
         <h2
           id="diagnostic-heading"
-          className="text-2xl font-bold tracking-tight sm:text-3xl"
+          className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
         >
           {siteContent.diagnostic.heading}
         </h2>

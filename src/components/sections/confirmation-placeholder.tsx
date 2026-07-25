@@ -32,7 +32,7 @@ export function ConfirmationPlaceholder() {
         >
           {siteContent.confirmation.heading}
         </h2>
-        <p className="mt-4 text-lg text-neutral-300">
+        <p className="mt-4 text-lg text-white/70">
           {siteContent.confirmation.subheading}
         </p>
         <div className="mt-8 text-left">
@@ -41,8 +41,8 @@ export function ConfirmationPlaceholder() {
           </h3>
           <ol className="space-y-3">
             {siteContent.confirmation.steps.map((step, i) => (
-              <li key={i} className="flex items-start gap-3 text-neutral-300">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm text-white">
+              <li key={i} className="flex items-start gap-3 text-white/70">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-aqua/20 text-sm text-brand-aqua-light">
                   {i + 1}
                 </span>
                 <span>{step}</span>
@@ -50,6 +50,9 @@ export function ConfirmationPlaceholder() {
             ))}
           </ol>
         </div>
+        <p className="mt-8 text-sm text-white/50">
+          {siteContent.confirmation.support_note}
+        </p>
       </div>
     </SectionContainer>
   );

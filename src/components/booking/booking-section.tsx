@@ -10,6 +10,8 @@ import { DatePicker } from "./date-picker";
 import { TimeSlots } from "./time-slots";
 import { ReviewConfirm } from "./review-confirm";
 import { BookingSuccess } from "./booking-success";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorMessage } from "@/components/ui/error-message";
 
 type BookingStep = "date" | "slots" | "review" | "success";
 
@@ -108,7 +110,7 @@ export function BookingSection() {
       <div className="mx-auto max-w-xl">
         <h2
           id="booking-heading"
-          className="text-center text-2xl font-bold tracking-tight sm:text-3xl"
+          className="text-center text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
         >
           {siteContent.booking.heading}
         </h2>
@@ -133,24 +135,22 @@ export function BookingSection() {
             <div className="mb-6">
               <button
                 onClick={handleBackToSlots}
-                className="text-sm text-neutral-500 underline hover:text-neutral-800"
+                className="text-sm text-brand-aqua hover:text-brand-aqua-light transition-colors"
               >
                 &larr; {siteContent.booking.select_date}
               </button>
             </div>
 
             {slotsLoading && (
-              <div className="py-12 text-center text-neutral-500">
-                {siteContent.booking.loading_slots}
-              </div>
+              <LoadingState message={siteContent.booking.loading_slots} />
             )}
 
             {slotsError && !slotsLoading && (
-              <div className="py-12 text-center">
-                <p className="text-red-600">{siteContent.booking.loading_error}</p>
+              <div className="py-8 text-center">
+                <ErrorMessage message={siteContent.booking.loading_error} />
                 <button
                   onClick={handleRetry}
-                  className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white hover:bg-neutral-800"
+                  className="mt-4 rounded-lg bg-brand-aqua px-6 py-2 text-sm font-medium text-white hover:bg-brand-aqua-light transition-colors"
                 >
                   {siteContent.booking.try_again}
                 </button>
