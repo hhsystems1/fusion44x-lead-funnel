@@ -84,7 +84,7 @@ export const siteContent = {
   diagnostic: {
     heading: "Pool Assessment",
     subheading: "Tell us about your pool or spa so we can recommend the right solution.",
-    complete_label: "Assessment complete \u2014 enter your details to see your recommendation and available consultation times.",
+    complete_label: "Your assessment is complete. Enter your details to view the recommended next step and available consultation times.",
     next: "Continue",
     back: "Back",
     complete: "Complete Assessment",

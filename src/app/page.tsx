@@ -9,6 +9,7 @@ import { EducationSection } from "@/components/sections/education-section";
 import { HowFusionWorksSection } from "@/components/sections/how-fusion-works-section";
 import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { FunnelExperience } from "@/components/funnel/funnel-experience";
+import { FaqSection } from "@/components/sections/faq-section";
 import { HowItWorksModal } from "@/components/sections/how-it-works-modal";
 import { Footer } from "@/components/sections/footer";
 
@@ -28,6 +29,7 @@ export default function Home() {
         <EducationSection />
         <HowFusionWorksSection />
         <FunnelExperience />
+        <FaqSection />
       </main>
       <Footer />
       <HowItWorksModal isOpen={hiwOpen} onClose={closeHiw} />
