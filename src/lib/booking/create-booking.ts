@@ -261,7 +261,8 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       appointmentId: appId,
       eventId: event_id,
     });
-  } catch {
+  } catch (err) {
+    console.error("[createBooking] delivery_create_failed appointment_id=%s error=%s", appId, err instanceof Error ? err.message : "unknown");
     return { status: 500, code: "DELIVERY_CREATE_FAILED", message: "Internal server error" };
   }
 
@@ -311,13 +312,14 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       },
     });
   } catch (err) {
+    console.error("[createBooking] gcal_create_failed appointment_id=%s error=%s", appId, err instanceof Error ? err.message : JSON.stringify(err));
     try {
       await failAppointmentViaRpc({ appointmentId: appId, safeErrorCode: "GCAL_CREATE_FAILED" });
     } catch {
       // swallow
     }
 
-    const errObj = err as { code?: number };
+    const errObj = err as { code?: number; message?: string };
     const safeCode = errObj && typeof errObj.code === "number" ? `GCAL_${errObj.code}` : "GCAL_ERROR";
     try {
       await markDeliveryFailed({ deliveryId, safeErrorCode: safeCode });

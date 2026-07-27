@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const createEventSchema = z.object({
   summary: z.string().min(1).max(256),
-  start: z.string().datetime(),
-  end: z.string().datetime(),
+  start: z.string().datetime({ offset: true }),
+  end: z.string().datetime({ offset: true }),
   timezone: z.string().min(1).max(64),
   description: z.string().optional(),
   extendedProperties: z

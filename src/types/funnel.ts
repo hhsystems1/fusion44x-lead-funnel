@@ -191,4 +191,5 @@ export interface FunnelState {
   booking_submission_state: SubmissionState;
   booking_error: string | null;
   booking_error_code: BookingErrorCode | null;
+  booking_api_code: string | null;
 }

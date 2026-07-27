@@ -526,7 +526,7 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
           if (frontendCode === "conflict") {
             dispatch({ type: "BOOKING_CONFLICT" });
           } else {
-            dispatch({ type: "BOOKING_FAIL", error_code: frontendCode });
+            dispatch({ type: "BOOKING_FAIL", error_code: frontendCode, api_code: apiCode });
           }
 
           // Allow retry after failure

@@ -13,6 +13,7 @@ interface ReviewConfirmProps {
   email: string | null;
   submissionState: string;
   errorCode: BookingErrorCode | null;
+  apiErrorCode?: string | null;
   onConfirm: () => void;
 }
 
@@ -50,6 +51,7 @@ export function ReviewConfirm({
   email,
   submissionState,
   errorCode,
+  apiErrorCode,
   onConfirm,
 }: ReviewConfirmProps) {
   const isSubmitting = submissionState === "submitting";
@@ -98,7 +100,7 @@ export function ReviewConfirm({
           </p>
           {process.env.NODE_ENV === "development" && (
             <p className="mt-1 font-mono text-xs text-red-400">
-              Error reference: {BOOKING_ERROR_DEBUG_CODES[errorCode]}
+              {apiErrorCode ? `Error: ${apiErrorCode}` : `Error reference: ${BOOKING_ERROR_DEBUG_CODES[errorCode]}`}
             </p>
           )}
         </div>
