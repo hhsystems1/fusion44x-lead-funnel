@@ -104,33 +104,33 @@ describe("brand assets", () => {
   });
 
   it("logo SVG exists at the permanent brand path", () => {
-    const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.svg");
+    const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
     expect(existsSync(logoPath)).toBe(true);
   });
 
   it("white logo SVG exists at the permanent brand path", () => {
     const logoPath = path.join(
       ROOT,
-      "public/brand/fusion44x-logo-white.svg",
+      "public/brand/fusion44x-logoandslogan.png",
     );
     expect(existsSync(logoPath)).toBe(true);
   });
 
-  it("logo SVG contains the Fusion 44X name", () => {
-    const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.svg");
-    const content = readFileSync(logoPath, "utf-8");
-    expect(content).toContain("Fusion");
-    expect(content).toContain("44X");
+  it("logo PNG has reasonable file size", () => {
+    const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
+    const stat = statSync(logoPath);
+    expect(stat.size).toBeGreaterThan(0);
+    expect(stat.size).toBeLessThan(10_000_000);
   });
 
-  it("white logo SVG contains the Fusion 44X name", () => {
+  it("logoandslogan PNG has reasonable file size", () => {
     const logoPath = path.join(
       ROOT,
-      "public/brand/fusion44x-logo-white.svg",
+      "public/brand/fusion44x-logoandslogan.png",
     );
-    const content = readFileSync(logoPath, "utf-8");
-    expect(content).toContain("Fusion");
-    expect(content).toContain("44X");
+    const stat = statSync(logoPath);
+    expect(stat.size).toBeGreaterThan(0);
+    expect(stat.size).toBeLessThan(10_000_000);
   });
 });
 
@@ -141,11 +141,11 @@ describe("asset configuration", () => {
   );
 
   it("logo src points to the permanent brand path", () => {
-    expect(assetsContent).toContain("/brand/fusion44x-logo.svg");
+    expect(assetsContent).toContain("/brand/fusion44x-logo.png");
   });
 
   it("white logo src points to the permanent brand path", () => {
-    expect(assetsContent).toContain("/brand/fusion44x-logo-white.svg");
+    expect(assetsContent).toContain("/brand/fusion44x-logoandslogan.png");
   });
 
   it("favicon src points to favicon.ico", () => {

@@ -1,7 +1,7 @@
 export const assets = {
   logo: {
-    src: "/brand/fusion44x-logo.svg",
-    src_white: "/brand/fusion44x-logo-white.svg",
+    src: "/brand/fusion44x-logo.png",
+    src_white: "/brand/fusion44x-logoandslogan.png",
     alt: "Fusion 44X",
     placeholder: "Fusion 44X Logo",
   },
