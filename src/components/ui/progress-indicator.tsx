@@ -20,7 +20,7 @@ export function ProgressIndicator({
         <span aria-hidden="true">{percent}%</span>
       </div>
       <div
-        className="h-2 w-full overflow-hidden rounded-full bg-neutral-200"
+        className="h-2.5 w-full overflow-hidden rounded-full bg-brand-aqua/10"
         role="progressbar"
         aria-valuenow={current}
         aria-valuemin={1}
@@ -28,7 +28,7 @@ export function ProgressIndicator({
         aria-label={label ?? `Step ${current} of ${total}`}
       >
         <div
-          className="h-full rounded-full bg-neutral-900 transition-all duration-300 motion-reduce:transition-none"
+          className="h-full rounded-full bg-gradient-to-r from-brand-aqua to-brand-aqua-light transition-all duration-300 motion-reduce:transition-none"
           style={{ width: `${percent}%` }}
         />
       </div>

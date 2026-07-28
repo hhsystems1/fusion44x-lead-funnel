@@ -4,15 +4,16 @@ interface SectionContainerProps {
   id?: string;
   children: ReactNode;
   className?: string;
-  background?: "white" | "light" | "dark";
+  background?: "white" | "light" | "dark" | "brand";
   as?: "section" | "div";
   labelledBy?: string;
 }
 
 const bgMap = {
-  white: "bg-background",
-  light: "bg-neutral-50",
-  dark: "bg-neutral-900 text-white",
+  white: "bg-white",
+  light: "bg-brand-surface",
+  dark: "bg-brand-navy text-white",
+  brand: "bg-brand-blue text-white",
 };
 
 export function SectionContainer({
@@ -26,7 +27,7 @@ export function SectionContainer({
   return (
     <Tag
       id={id}
-      className={`w-full px-4 py-16 sm:px-6 sm:py-24 md:px-8 ${bgMap[background]} ${className}`}
+      className={`w-full px-5 py-16 sm:px-6 sm:py-24 md:px-8 ${bgMap[background]} ${className}`}
       aria-labelledby={labelledBy}
     >
       <div className="mx-auto max-w-3xl">{children}</div>

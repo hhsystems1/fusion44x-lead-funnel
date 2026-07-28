@@ -4,6 +4,7 @@ import type {
   FunnelState,
   FunnelStepId,
   SubmissionState,
+  BookingErrorCode,
 } from "@/types/funnel";
 import { FUNNEL_STEPS } from "@/types/funnel";
 
@@ -18,7 +19,7 @@ export type FunnelAction =
   | { type: "DIAG_BACK" }
   | { type: "DIAG_SET_INDEX"; index: number }
   | { type: "CONTACT_SUBMIT_START" }
-  | { type: "CONTACT_SUBMIT_SUCCESS"; lead_id: string }
+  | { type: "CONTACT_SUBMIT_SUCCESS"; lead_id: string; first_name: string; email: string }
   | { type: "CONTACT_SUBMIT_DUPLICATE" }
   | { type: "CONTACT_SUBMIT_ERROR" }
   | { type: "SET_VALIDATION_ERRORS"; errors: Record<string, string> }
@@ -31,15 +32,17 @@ export type FunnelAction =
   | { type: "SELECT_SLOT"; start: string; end: string }
   | { type: "BOOKING_START" }
   | { type: "BOOKING_SUCCESS"; appointment_id: string; start_time: string; end_time: string }
-  | { type: "BOOKING_FAIL"; error: string }
+  | { type: "BOOKING_FAIL"; error_code: BookingErrorCode; api_code?: string }
   | { type: "BOOKING_CONFLICT" }
   | { type: "CLEAR_BOOKING_SELECTION" };
 
 export function createInitialState(): FunnelState {
   return {
-    current_step: FUNNEL_STEPS.HERO,
+    current_step: FUNNEL_STEPS.POOL_DIAGNOSTIC,
     session_id: null,
     lead_id: null,
+    first_name: null,
+    email: null,
     diagnostic_answers: {},
     completed_steps: [],
     submission_state: "idle",
@@ -52,6 +55,8 @@ export function createInitialState(): FunnelState {
     appointment_id: null,
     booking_submission_state: "idle",
     booking_error: null,
+    booking_error_code: null,
+    booking_api_code: null,
   };
 }
 
@@ -146,6 +151,8 @@ export function funnelReducer(
         ...state,
         submission_state: "success" as SubmissionState,
         lead_id: action.lead_id,
+        first_name: action.first_name,
+        email: action.email,
       };
 
     case "CONTACT_SUBMIT_DUPLICATE":
@@ -202,6 +209,7 @@ export function funnelReducer(
         selected_slot_end: null,
         booking_submission_state: "idle",
         booking_error: null,
+        booking_error_code: null,
       };
 
     case "SELECT_SLOT":
@@ -216,6 +224,8 @@ export function funnelReducer(
         ...state,
         booking_submission_state: "submitting",
         booking_error: null,
+        booking_error_code: null,
+        booking_api_code: null,
       };
 
     case "BOOKING_SUCCESS":
@@ -226,13 +236,17 @@ export function funnelReducer(
         selected_slot_start: action.start_time,
         selected_slot_end: action.end_time,
         booking_error: null,
+        booking_error_code: null,
+        booking_api_code: null,
       };
 
     case "BOOKING_FAIL":
       return {
         ...state,
         booking_submission_state: "error",
-        booking_error: action.error,
+        booking_error: action.error_code,
+        booking_error_code: action.error_code,
+        booking_api_code: action.api_code ?? null,
       };
 
     case "BOOKING_CONFLICT":
@@ -241,7 +255,9 @@ export function funnelReducer(
         booking_submission_state: "idle",
         selected_slot_start: null,
         selected_slot_end: null,
-        booking_error: "conflict",
+        booking_error: null,
+        booking_error_code: "conflict",
+        booking_api_code: null,
       };
 
     case "CLEAR_BOOKING_SELECTION":
@@ -253,6 +269,7 @@ export function funnelReducer(
         appointment_id: null,
         booking_submission_state: "idle",
         booking_error: null,
+        booking_error_code: null,
       };
 
     default:

@@ -9,7 +9,7 @@ export function LoadingState({ message = "Loading..." }: LoadingStateProps) {
       role="status"
       aria-live="polite"
     >
-      <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-neutral-900 border-t-transparent" />
+      <span className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-brand-aqua border-t-transparent" />
       <p className="text-sm text-neutral-500">{message}</p>
     </div>
   );

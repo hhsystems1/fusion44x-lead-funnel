@@ -21,9 +21,9 @@ const validAnswers: DiagnosticAnswers = {
 
 describe("funnelReducer", () => {
   describe("initial state", () => {
-    it("starts at hero step", () => {
+    it("starts at pool-diagnostic step", () => {
       const state = fresh();
-      expect(state.current_step).toBe(FUNNEL_STEPS.HERO);
+      expect(state.current_step).toBe(FUNNEL_STEPS.POOL_DIAGNOSTIC);
     });
 
     it("has no session_id", () => {
@@ -209,9 +209,13 @@ describe("funnelReducer", () => {
       const state = funnelReducer(fresh(), {
         type: "CONTACT_SUBMIT_SUCCESS",
         lead_id: "lead-123",
+        first_name: "Jane",
+        email: "jane@example.com",
       });
       expect(state.submission_state).toBe("success");
       expect(state.lead_id).toBe("lead-123");
+      expect(state.first_name).toBe("Jane");
+      expect(state.email).toBe("jane@example.com");
     });
 
     it("sets duplicate state", () => {
@@ -281,7 +285,7 @@ describe("funnelReducer", () => {
       const state = funnelReducer(modified, { type: "RESET" });
       expect(state.session_id).toBeNull();
       expect(state.lead_id).toBeNull();
-      expect(state.current_step).toBe(FUNNEL_STEPS.HERO);
+      expect(state.current_step).toBe(FUNNEL_STEPS.POOL_DIAGNOSTIC);
     });
   });
 

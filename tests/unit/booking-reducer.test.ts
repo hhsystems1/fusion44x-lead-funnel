@@ -22,10 +22,10 @@ describe("booking reducer actions", () => {
 
     it("resets booking error on date change", () => {
       const s1 = funnelReducer(
-        { ...fresh(), booking_error: "conflict" },
+        { ...fresh(), booking_error_code: "conflict" as const },
         { type: "SELECT_DATE", date: "2026-07-29" },
       );
-      expect(s1.booking_error).toBeNull();
+      expect(s1.booking_error_code).toBeNull();
       expect(s1.booking_submission_state).toBe("idle");
     });
   });
@@ -46,7 +46,7 @@ describe("booking reducer actions", () => {
     it("sets booking submission state to submitting", () => {
       const state = funnelReducer(fresh(), { type: "BOOKING_START" });
       expect(state.booking_submission_state).toBe("submitting");
-      expect(state.booking_error).toBeNull();
+      expect(state.booking_error_code).toBeNull();
     });
   });
 
@@ -66,13 +66,13 @@ describe("booking reducer actions", () => {
   });
 
   describe("BOOKING_FAIL", () => {
-    it("sets error state with reason", () => {
+    it("sets error state with code", () => {
       const state = funnelReducer(fresh(), {
         type: "BOOKING_FAIL",
-        error: "server_error",
+        error_code: "server_error",
       });
       expect(state.booking_submission_state).toBe("error");
-      expect(state.booking_error).toBe("server_error");
+      expect(state.booking_error_code).toBe("server_error");
     });
   });
 
@@ -89,7 +89,7 @@ describe("booking reducer actions", () => {
       expect(state.booking_submission_state).toBe("idle");
       expect(state.selected_slot_start).toBeNull();
       expect(state.selected_slot_end).toBeNull();
-      expect(state.booking_error).toBe("conflict");
+      expect(state.booking_error_code).toBe("conflict");
     });
   });
 
@@ -103,7 +103,7 @@ describe("booking reducer actions", () => {
           selected_slot_end: "2026-07-28T14:30:00Z",
           appointment_id: "appt-123",
           booking_submission_state: "success",
-          booking_error: null,
+          booking_error_code: null,
         },
         { type: "CLEAR_BOOKING_SELECTION" },
       );
@@ -112,7 +112,7 @@ describe("booking reducer actions", () => {
       expect(state.selected_slot_end).toBeNull();
       expect(state.appointment_id).toBeNull();
       expect(state.booking_submission_state).toBe("idle");
-      expect(state.booking_error).toBeNull();
+      expect(state.booking_error_code).toBeNull();
     });
   });
 
@@ -131,20 +131,20 @@ describe("booking reducer actions", () => {
       expect(s2.appointment_id).toBe("appt-123");
     });
 
-    it("start → conflict → idle with error", () => {
+    it("start → conflict → idle with error code", () => {
       const s1 = funnelReducer(fresh(), { type: "BOOKING_START" });
       expect(s1.booking_submission_state).toBe("submitting");
 
       const s2 = funnelReducer(s1, { type: "BOOKING_CONFLICT" });
       expect(s2.booking_submission_state).toBe("idle");
-      expect(s2.booking_error).toBe("conflict");
+      expect(s2.booking_error_code).toBe("conflict");
     });
 
     it("start → fail → error", () => {
       const s1 = funnelReducer(fresh(), { type: "BOOKING_START" });
-      const s2 = funnelReducer(s1, { type: "BOOKING_FAIL", error: "network_error" });
+      const s2 = funnelReducer(s1, { type: "BOOKING_FAIL", error_code: "network_error" });
       expect(s2.booking_submission_state).toBe("error");
-      expect(s2.booking_error).toBe("network_error");
+      expect(s2.booking_error_code).toBe("network_error");
     });
   });
 
@@ -156,7 +156,7 @@ describe("booking reducer actions", () => {
       expect(state.selected_slot_end).toBeNull();
       expect(state.appointment_id).toBeNull();
       expect(state.booking_submission_state).toBe("idle");
-      expect(state.booking_error).toBeNull();
+      expect(state.booking_error_code).toBeNull();
     });
   });
 });

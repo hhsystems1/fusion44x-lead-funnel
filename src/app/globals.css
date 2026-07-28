@@ -2,9 +2,16 @@
 
 @theme inline {
   --color-background: #ffffff;
-  --color-foreground: #0a0a0a;
+  --color-foreground: #0c1e3a;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-brand-navy: #0c1e3a;
+  --color-brand-blue: #0d3b66;
+  --color-brand-aqua: #0891b2;
+  --color-brand-aqua-light: #22d3ee;
+  --color-brand-aqua-pale: #ecfeff;
+  --color-brand-surface: #f0f9ff;
 }
 
 * {
@@ -22,7 +29,7 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 100vh;
 }
 
@@ -48,8 +55,20 @@ select {
   font: inherit;
 }
 
-/* Focus visible for keyboard users */
 :focus-visible {
-  outline: 2px solid var(--color-foreground);
+  outline: 2px solid var(--color-brand-aqua);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-brand-aqua);
+  color: white;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -81,8 +81,7 @@ export const CURRENT_TREATMENT_CODES = [
   "not_sure",
 ] as const;
 
-export type CurrentTreatmentCode =
-  (typeof CURRENT_TREATMENT_CODES)[number];
+export type CurrentTreatmentCode = (typeof CURRENT_TREATMENT_CODES)[number];
 
 export const CURRENT_ISSUES_CODES = [
   "chemical_smell",
@@ -157,10 +156,27 @@ export type SubmissionState =
   | "duplicate"
   | "error";
 
+// =============================================================================
+// Booking Error Codes (safe, machine-readable — never expose raw server data)
+// =============================================================================
+
+export const BOOKING_ERROR_CODES = {
+  MISSING_FIELDS: "missing_fields",
+  CONFLICT: "conflict",
+  SERVER_ERROR: "server_error",
+  NETWORK_ERROR: "network_error",
+  UNKNOWN_ERROR: "unknown_error",
+} as const;
+
+export type BookingErrorCode =
+  (typeof BOOKING_ERROR_CODES)[keyof typeof BOOKING_ERROR_CODES];
+
 export interface FunnelState {
   current_step: FunnelStepId;
   session_id: string | null;
   lead_id: string | null;
+  first_name: string | null;
+  email: string | null;
   diagnostic_answers: DiagnosticAnswers;
   completed_steps: FunnelStepId[];
   submission_state: SubmissionState;
@@ -174,4 +190,6 @@ export interface FunnelState {
   appointment_id: string | null;
   booking_submission_state: SubmissionState;
   booking_error: string | null;
+  booking_error_code: BookingErrorCode | null;
+  booking_api_code: string | null;
 }

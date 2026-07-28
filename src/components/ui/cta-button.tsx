@@ -9,11 +9,11 @@ interface CtaButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles = {
   primary:
-    "bg-neutral-900 text-white hover:bg-neutral-800 focus-visible:ring-neutral-900",
+    "bg-brand-aqua text-white hover:bg-brand-aqua-light focus-visible:ring-brand-aqua shadow-sm shadow-brand-aqua/20",
   secondary:
-    "bg-white text-neutral-900 border border-neutral-300 hover:bg-neutral-50 focus-visible:ring-neutral-400",
+    "bg-white text-brand-navy border border-brand-aqua/30 hover:border-brand-aqua hover:bg-brand-aqua-pale focus-visible:ring-brand-aqua",
   ghost:
-    "bg-transparent text-neutral-900 hover:bg-neutral-100 focus-visible:ring-neutral-400",
+    "bg-transparent text-brand-navy hover:bg-brand-surface focus-visible:ring-brand-aqua",
 };
 
 const sizeStyles = {
@@ -33,7 +33,7 @@ export function CtaButton({
 }: CtaButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >
