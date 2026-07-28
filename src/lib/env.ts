@@ -135,3 +135,30 @@ export function requireEmailEnv(): EmailEnv {
 export function getBookingTimezone(): string {
   return process.env.BOOKING_TIMEZONE || "America/New_York";
 }
+
+// =============================================================================
+// Admin Dashboard Authentication
+// =============================================================================
+
+export interface AdminAuthEnv {
+  username: string;
+  password: string;
+  sessionSecret: string;
+}
+
+export function requireAdminAuthEnv(): AdminAuthEnv {
+  return {
+    username: requireVar(
+      "ADMIN_DASHBOARD_USERNAME",
+      "accessing the admin dashboard",
+    ),
+    password: requireVar(
+      "ADMIN_DASHBOARD_PASSWORD",
+      "accessing the admin dashboard",
+    ),
+    sessionSecret: requireVar(
+      "ADMIN_DASHBOARD_SESSION_SECRET",
+      "securing admin dashboard sessions (generate a random 32+ char string)",
+    ),
+  };
+}

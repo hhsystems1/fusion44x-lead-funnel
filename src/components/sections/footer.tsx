@@ -12,9 +12,7 @@ export function Footer() {
           <img
             src={assets.logo.src_white}
             alt={assets.logo.alt}
-            className="mx-auto h-10 max-w-[200px] w-auto object-contain sm:max-w-[260px]"
-            width={1839}
-            height={336}
+            className="mx-auto h-auto max-w-[280px] w-auto object-contain sm:max-w-[320px]"
           />
         ) : (
           <p className="text-sm font-bold tracking-tight text-white">
