@@ -280,9 +280,8 @@ describe("logo component", () => {
     expect(logoContent).toContain("object-contain");
   });
 
-  it("includes explicit width and height attributes", () => {
-    expect(logoContent).toContain("width=");
-    expect(logoContent).toContain("height=");
+  it("constrains logo size via max-h classes", () => {
+    expect(logoContent).toContain("max-h-");
   });
 });
 
@@ -331,6 +330,20 @@ describe("sticky assessment bar", () => {
 
   it("is full width on mobile", () => {
     expect(barContent).toContain("inset-x-0");
+  });
+
+  it("only shows on scroll down (scroll-based visibility)", () => {
+    expect(barContent).toContain("addEventListener");
+    expect(barContent).toContain("scroll");
+    expect(barContent).toContain("passive");
+  });
+
+  it("hides at the top of the page", () => {
+    expect(barContent).toContain("isAtTop");
+  });
+
+  it("hides near the bottom of the page", () => {
+    expect(barContent).toContain("isNearBottom");
   });
 });
 

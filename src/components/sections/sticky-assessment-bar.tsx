@@ -1,11 +1,33 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { FUNNEL_STEPS } from "@/types/funnel";
 
 export function StickyAssessmentBar() {
   const { goToStep, state } = useFunnel();
+  const [visible, setVisible] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollY = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const isAtTop = scrollY <= 5;
+      const isNearBottom = scrollY >= maxScroll - 120;
+      const isScrollingDown = scrollY > lastScrollY.current;
+      lastScrollY.current = scrollY;
+
+      if (isAtTop || isNearBottom || !isScrollingDown) {
+        setVisible(false);
+      } else {
+        setVisible(true);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleClick = useCallback(() => {
     goToStep(state.current_step);
@@ -17,7 +39,7 @@ export function StickyAssessmentBar() {
     }, 50);
   }, [goToStep, state.current_step]);
 
-  if (state.current_step === FUNNEL_STEPS.CONFIRMATION) {
+  if (state.current_step === FUNNEL_STEPS.CONFIRMATION || !visible) {
     return null;
   }
 
