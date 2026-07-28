@@ -13,7 +13,7 @@ export const assets = {
     placeholder: "Hero Product Image",
   },
   hero_video: {
-    src: "1213733921",
+    src: "1213733920",
     placeholder: "Hero Video",
   },
   product_photo: {
