@@ -13,9 +13,9 @@ export function Logo({ className = "" }: LogoProps) {
       <img
         src={assets.logo.src}
         alt={assets.logo.alt}
-        className={className}
-        width={160}
-        height={36}
+        className={`object-contain ${className}`}
+        width={1837}
+        height={179}
       />
     );
   }

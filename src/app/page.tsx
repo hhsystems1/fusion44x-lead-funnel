@@ -10,6 +10,7 @@ import { HowFusionWorksSection } from "@/components/sections/how-fusion-works-se
 import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { FunnelExperience } from "@/components/funnel/funnel-experience";
 import { FaqSection } from "@/components/sections/faq-section";
+import { StickyAssessmentBar } from "@/components/sections/sticky-assessment-bar";
 import { HowItWorksModal } from "@/components/sections/how-it-works-modal";
 import { Footer } from "@/components/sections/footer";
 
@@ -22,7 +23,7 @@ export default function Home() {
   return (
     <FunnelProvider>
       <Header />
-      <main>
+      <main className="pb-20 sm:pb-24">
         <HeroSection onHowItWorksClick={openHiw} />
         <ProofBar />
         <TestimonialsSection />
@@ -32,6 +33,7 @@ export default function Home() {
         <FaqSection />
       </main>
       <Footer />
+      <StickyAssessmentBar />
       <HowItWorksModal isOpen={hiwOpen} onClose={closeHiw} />
     </FunnelProvider>
   );

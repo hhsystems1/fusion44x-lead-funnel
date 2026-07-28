@@ -18,9 +18,9 @@ export function Header() {
   }, [goToStep, state.current_step]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-6 md:px-8">
-        <Logo className="h-7 w-auto" />
+    <header className="relative z-50 w-full border-b border-neutral-200/80 bg-white">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:h-16 sm:px-6 md:px-8">
+        <Logo className="h-8 w-auto sm:h-10" />
 
         <div className="flex items-center gap-3">
           <a
