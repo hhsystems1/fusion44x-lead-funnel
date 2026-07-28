@@ -11,6 +11,9 @@ export function TestimonialsSection() {
     <section className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8" aria-labelledby="testimonials-heading">
       <div className="mx-auto max-w-5xl">
         <div className="text-center">
+          <p className="mb-3 text-sm font-semibold tracking-widest uppercase text-brand-aqua">
+            Real Pool Owners. Real Experiences.
+          </p>
           <h2
             id="testimonials-heading"
             className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
@@ -41,7 +44,7 @@ export function TestimonialsSection() {
                 <button
                   onClick={() => setPlayingIndex(i)}
                   className="group relative aspect-[9/16] w-full overflow-hidden bg-neutral-100"
-                  aria-label="Play testimonial video"
+                  aria-label={siteContent.testimonials.video_label}
                 >
                   <img
                     src={video.thumbnail}
@@ -55,11 +58,20 @@ export function TestimonialsSection() {
                       </svg>
                     </div>
                   </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8">
+                    <p className="text-xs font-medium text-white">
+                      {siteContent.testimonials.video_label}
+                    </p>
+                  </div>
                 </button>
               )}
             </div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-sm text-neutral-400">
+          {siteContent.testimonials.placeholder_caption}
+        </p>
       </div>
     </section>
   );

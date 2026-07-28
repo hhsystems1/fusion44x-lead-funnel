@@ -80,8 +80,8 @@ export function ContactStage() {
           Already Submitted
         </h3>
         <p className="mt-2 text-sm text-amber-700">
-          Your session has already been submitted. A specialist will
-          contact you shortly.
+          Your session has already been submitted. The Fusion44X team
+          will review your setup shortly.
         </p>
       </div>
     );
@@ -102,8 +102,15 @@ export function ContactStage() {
           tabIndex={-1}
           className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl focus:outline-none"
         >
-          {siteContent.contact.heading}
+          {siteContent.diagnostic.complete_label}
         </h3>
+        <p className="mt-2 text-sm text-neutral-600">
+          {siteContent.diagnostic.complete_copy}
+        </p>
+        <hr className="mx-auto my-6 max-w-xs border-neutral-200" />
+        <p className="mb-4 text-sm font-semibold text-brand-navy">
+          {siteContent.contact.heading}
+        </p>
         <p className="mt-2 text-sm text-neutral-600">
           {siteContent.contact.subheading}
         </p>

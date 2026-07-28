@@ -22,6 +22,9 @@ export function EducationSection() {
     <section className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8" aria-labelledby="education-heading">
       <div className="mx-auto max-w-5xl">
         <div className="text-center">
+          <p className="mb-3 text-sm font-semibold tracking-widest uppercase text-brand-aqua">
+            {siteContent.education.eyebrow}
+          </p>
           <h2
             id="education-heading"
             className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"

@@ -20,6 +20,7 @@ export function Footer() {
           </p>
         )}
         <p className="mt-0 text-xl font-semibold text-white/80">{footer.tagline}</p>
+        <p className="mt-2 text-sm text-white/40">{footer.supporting_line}</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
           <a

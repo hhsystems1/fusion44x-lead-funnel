@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { siteContent } from "@/config/site-content";
+
 import { assets } from "@/config/assets";
 import { AssetPlaceholder } from "@/components/ui/asset-placeholder";
 
@@ -82,7 +82,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
             id="hiw-modal-title"
             className="text-xl font-bold text-brand-navy sm:text-2xl"
           >
-            {siteContent.how_it_works_modal.heading}
+            See How Fusion44X Works
           </h2>
           <button
             ref={closeButtonRef}

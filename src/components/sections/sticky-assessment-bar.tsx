@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { FUNNEL_STEPS } from "@/types/funnel";
+import { siteContent } from "@/config/site-content";
 
 export function StickyAssessmentBar() {
   const { goToStep, state } = useFunnel();
@@ -42,13 +43,13 @@ export function StickyAssessmentBar() {
     >
       <div className="flex items-center justify-between gap-4 bg-white/75 backdrop-blur-xl border border-white/20 px-5 py-3 shadow-xl rounded-2xl sm:w-full sm:max-w-[780px] sm:py-4 sm:px-6">
         <p className="text-sm font-medium text-brand-navy sm:text-base">
-          Ready to take your free pool assessment?
+          {siteContent.sticky_cta.question}
         </p>
         <button
           onClick={handleClick}
           className="shrink-0 inline-flex items-center justify-center rounded-lg bg-brand-aqua px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua sm:px-6 sm:py-3 sm:text-base"
         >
-          Start Now
+          {siteContent.sticky_cta.button}
         </button>
       </div>
     </div>

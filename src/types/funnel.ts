@@ -63,10 +63,9 @@ export type InstallationTypeCode =
   (typeof INSTALLATION_TYPE_CODES)[number];
 
 export const POOL_SIZE_CODES = [
-  "under_10000",
-  "10000_to_20000",
-  "20001_to_30000",
-  "over_30000",
+  "small",
+  "average",
+  "large",
   "not_sure",
 ] as const;
 
@@ -75,8 +74,6 @@ export type PoolSizeCode = (typeof POOL_SIZE_CODES)[number];
 export const CURRENT_TREATMENT_CODES = [
   "chlorine",
   "salt",
-  "bromine",
-  "pool_service",
   "other",
   "not_sure",
 ] as const;
@@ -98,12 +95,11 @@ export const CURRENT_ISSUES_CODES = [
 export type CurrentIssueCode = (typeof CURRENT_ISSUES_CODES)[number];
 
 export const PRIMARY_GOAL_CODES = [
-  "reduce_chemicals",
-  "clearer_water",
-  "more_comfortable_water",
-  "easier_maintenance",
-  "protect_equipment",
-  "all_of_the_above",
+  "family_confidence",
+  "eliminate_chemicals",
+  "tired_of_balancing",
+  "algae_quality_problems",
+  "simpler_routine",
 ] as const;
 
 export type PrimaryGoalCode = (typeof PRIMARY_GOAL_CODES)[number];
