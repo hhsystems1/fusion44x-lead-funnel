@@ -6,7 +6,7 @@ export const assets = {
     placeholder: "Fusion 44X Logo",
   },
   favicon: {
-    src: "/favicon.ico",
+    src: "/brand/fusion44x-favicon.png",
   },
   hero_image: {
     src: null,

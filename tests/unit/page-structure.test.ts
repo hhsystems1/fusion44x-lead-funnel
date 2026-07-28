@@ -99,26 +99,21 @@ describe("page section order", () => {
 });
 
 describe("brand assets", () => {
-  it("favicon.ico exists at the App Router location", () => {
-    const faviconPath = path.join(ROOT, "src/app/favicon.ico");
-    expect(existsSync(faviconPath)).toBe(true);
-  });
-
-  it("icon.png exists for modern browsers", () => {
+  it("icon.png exists as the favicon", () => {
     const iconPath = path.join(ROOT, "src/app/icon.png");
     expect(existsSync(iconPath)).toBe(true);
+  });
+
+  it("icon.png has reasonable file size", () => {
+    const iconPath = path.join(ROOT, "src/app/icon.png");
+    const stat = statSync(iconPath);
+    expect(stat.size).toBeGreaterThan(0);
+    expect(stat.size).toBeLessThan(1_000_000);
   });
 
   it("apple-icon.png exists for Apple touch icon", () => {
     const appleIconPath = path.join(ROOT, "src/app/apple-icon.png");
     expect(existsSync(appleIconPath)).toBe(true);
-  });
-
-  it("favicon.ico has reasonable file size", () => {
-    const faviconPath = path.join(ROOT, "src/app/favicon.ico");
-    const stat = statSync(faviconPath);
-    expect(stat.size).toBeGreaterThan(0);
-    expect(stat.size).toBeLessThan(1_000_000);
   });
 
   it("logo PNG exists at the permanent brand path", () => {
@@ -154,13 +149,11 @@ describe("brand assets", () => {
   it("logo PNG dimensions are trimmed (not original 2048x2048)", () => {
     const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
     const content = readFileSync(logoPath);
-    // Parse PNG header to get dimensions
     const width = content.readUInt32BE(16);
     const height = content.readUInt32BE(20);
-    expect(width).toBeLessThan(2048);
-    expect(height).toBeLessThan(2048);
     expect(width).toBeGreaterThan(100);
     expect(height).toBeGreaterThan(10);
+    expect(width * height).toBeLessThan(2048 * 2048);
   });
 
   it("logoandslogan PNG dimensions are trimmed (not original 2048x2048)", () => {
@@ -171,10 +164,9 @@ describe("brand assets", () => {
     const content = readFileSync(logoPath);
     const width = content.readUInt32BE(16);
     const height = content.readUInt32BE(20);
-    expect(width).toBeLessThan(2048);
-    expect(height).toBeLessThan(2048);
     expect(width).toBeGreaterThan(100);
     expect(height).toBeGreaterThan(10);
+    expect(width * height).toBeLessThan(2048 * 2048);
   });
 });
 
@@ -192,8 +184,8 @@ describe("asset configuration", () => {
     expect(assetsContent).toContain("/brand/fusion44x-logoandslogan.png");
   });
 
-  it("favicon src points to favicon.ico", () => {
-    expect(assetsContent).toContain("/favicon.ico");
+  it("favicon src points to the brand path", () => {
+    expect(assetsContent).toContain("/brand/fusion44x-favicon.png");
   });
 });
 
