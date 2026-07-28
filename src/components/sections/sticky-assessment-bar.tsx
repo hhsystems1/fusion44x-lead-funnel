@@ -1,28 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { FUNNEL_STEPS } from "@/types/funnel";
 
 export function StickyAssessmentBar() {
   const { goToStep, state } = useFunnel();
   const [visible, setVisible] = useState(false);
-  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY;
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const isAtTop = scrollY <= 5;
-      const isNearBottom = scrollY >= maxScroll - 120;
-      const isScrollingDown = scrollY > lastScrollY.current;
-      lastScrollY.current = scrollY;
-
-      if (isAtTop || isNearBottom || !isScrollingDown) {
-        setVisible(false);
-      } else {
-        setVisible(true);
-      }
+      setVisible(scrollY > 5 && scrollY < maxScroll - 120);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -45,12 +35,12 @@ export function StickyAssessmentBar() {
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-40 sm:pb-4 sm:px-4 sm:flex sm:justify-center"
+      className="fixed bottom-0.5 inset-x-0 z-40 px-4 sm:pb-4 sm:flex sm:justify-center"
       role="complementary"
       aria-label="Free pool assessment"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-center justify-between gap-4 border-t border-neutral-200 bg-white px-5 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.08)] sm:w-full sm:max-w-[780px] sm:rounded-xl sm:border sm:border-neutral-200 sm:shadow-lg sm:py-4 sm:px-6">
+      <div className="flex items-center justify-between gap-4 bg-white/75 backdrop-blur-xl border border-white/20 px-5 py-3 shadow-xl rounded-2xl sm:w-full sm:max-w-[780px] sm:py-4 sm:px-6">
         <p className="text-sm font-medium text-brand-navy sm:text-base">
           Ready to take your free pool assessment?
         </p>

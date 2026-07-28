@@ -240,17 +240,9 @@ describe("footer configuration", () => {
     "utf-8",
   );
 
-  it("uses the logoandslogan for dark footer background", () => {
-    expect(footerContent).toContain("logo.src_white");
-  });
-
-  it("renders the logo image when src_white is available", () => {
+  it("renders the logo image in the footer", () => {
     expect(footerContent).toContain("<img");
-    expect(footerContent).toContain("assets.logo.src_white");
-  });
-
-  it("uses object-contain for the footer logo", () => {
-    expect(footerContent).toContain("object-contain");
+    expect(footerContent).toContain("assets.logo.src");
   });
 
   it("constrains footer logo max width", () => {

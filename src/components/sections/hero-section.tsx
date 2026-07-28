@@ -60,7 +60,15 @@ export function HeroSection({ onHowItWorksClick }: HeroSectionProps) {
             </div>
           </div>
           <div className="hidden md:block">
-            {assets.hero_image.src ? (
+            {assets.hero_video.src ? (
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                <iframe
+                  src={`https://player.vimeo.com/video/${assets.hero_video.src}?background=1`}
+                  className="absolute inset-0 h-full w-full"
+                  allow="autoplay; fullscreen"
+                />
+              </div>
+            ) : assets.hero_image.src ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={assets.hero_image.src}

@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { FunnelState, FunnelStepId, DiagnosticQuestionId, BookingErrorCode } from "@/types/funnel";
+import type { DiagnosticAnswers, FunnelState, FunnelStepId, DiagnosticQuestionId, BookingErrorCode } from "@/types/funnel";
 import { FUNNEL_STEPS } from "@/types/funnel";
 import { InternalEvents } from "@/config/tracking-events";
 import { funnelReducer, createInitialState, type FunnelAction } from "./funnel-reducer";
@@ -60,6 +60,19 @@ interface FunnelContextValue {
   resetFunnel: () => void;
 }
 
+function isDiagnosticComplete(answers: DiagnosticAnswers | null): boolean {
+  if (!answers) return false;
+  return (
+    !!answers.water_feature &&
+    !!answers.installation_type &&
+    !!answers.pool_size &&
+    !!answers.current_treatment &&
+    Array.isArray(answers.current_issues) &&
+    answers.current_issues.length > 0 &&
+    !!answers.primary_goal
+  );
+}
+
 const FunnelContext = createContext<FunnelContextValue | null>(null);
 
 export function FunnelProvider({ children }: { children: ReactNode }) {
@@ -105,6 +118,11 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
     // Validate: if step is booking but no session_id, reset to diagnostic
     if (step === FUNNEL_STEPS.BOOKING && !sessionId) {
+      validStep = FUNNEL_STEPS.POOL_DIAGNOSTIC;
+    }
+
+    // Validate: if step is contact-information but diagnostic is incomplete, reset
+    if (step === FUNNEL_STEPS.CONTACT_INFORMATION && !isDiagnosticComplete(answers)) {
       validStep = FUNNEL_STEPS.POOL_DIAGNOSTIC;
     }
 

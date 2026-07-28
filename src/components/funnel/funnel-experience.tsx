@@ -12,10 +12,16 @@ export function FunnelExperience() {
   const { state, resetFunnel } = useFunnel();
   const viewportRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const isInitialRender = useRef(true);
 
   const step = state.current_step;
 
   useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+
     if (
       step === FUNNEL_STEPS.POOL_DIAGNOSTIC ||
       step === FUNNEL_STEPS.CONTACT_INFORMATION ||
