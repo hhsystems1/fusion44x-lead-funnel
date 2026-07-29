@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback } from "react";
 import { siteContent } from "@/config/site-content";
 import { assets } from "@/config/assets";
@@ -71,10 +72,11 @@ export function SolutionSection() {
 
           <div className="flex items-start justify-center">
             {assets.product_photo.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={assets.product_photo.src}
                 alt={assets.product_photo.alt}
+                width={1008}
+                height={1059}
                 className="w-full max-w-sm rounded-xl"
               />
             ) : (

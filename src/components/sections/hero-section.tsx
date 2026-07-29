@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback } from "react";
 import { siteContent } from "@/config/site-content";
 import { assets } from "@/config/assets";
@@ -70,10 +71,11 @@ export function HeroSection() {
                 />
               </div>
             ) : assets.hero_image.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={assets.hero_image.src}
                 alt={assets.hero_image.alt}
+                width={1008}
+                height={1059}
                 className="w-full rounded-xl"
               />
             ) : (

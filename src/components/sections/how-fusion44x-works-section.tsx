@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import {
   Droplets,
@@ -101,10 +102,11 @@ export function HowFusion44xWorksSection() {
         <div className="mt-10 md:flex md:items-start md:gap-8 lg:gap-12">
           <div className="relative w-full md:w-1/2 md:shrink-0">
             {assets.how_it_works_diagram.src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={assets.how_it_works_diagram.src}
                 alt={assets.how_it_works_diagram.alt}
+                width={734}
+                height={1028}
                 className="w-full h-auto rounded-xl"
               />
             ) : (

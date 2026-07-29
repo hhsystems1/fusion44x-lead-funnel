@@ -1,5 +1,4 @@
-"use client";
-
+import Image from "next/image";
 import { assets } from "@/config/assets";
 
 interface LogoProps {
@@ -9,10 +8,11 @@ interface LogoProps {
 export function Logo({ className = "" }: LogoProps) {
   if (assets.logo.src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={assets.logo.src}
         alt={assets.logo.alt}
+        width={2048}
+        height={469}
         className={`max-h-10 w-auto object-contain sm:max-h-12 ${className}`}
       />
     );
