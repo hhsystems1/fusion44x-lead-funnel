@@ -8,7 +8,7 @@ export function Footer() {
     <footer className="w-full border-t border-neutral-200 bg-brand-navy px-5 py-10 sm:px-6 md:px-8">
       <div className="mx-auto max-w-5xl text-center">
         {assets.logo.src ? (
-          <div className="mx-auto w-16 sm:w-24">
+          <div className="mx-auto w-20 sm:w-32">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={assets.logo.src}

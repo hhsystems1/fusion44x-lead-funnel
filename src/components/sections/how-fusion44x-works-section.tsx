@@ -26,12 +26,12 @@ interface Marker {
 }
 
 const markers: Marker[] = [
-  { number: 1, x: 367, y: 87 },
-  { number: 2, x: 367, y: 241 },
-  { number: 3, x: 186, y: 442 },
-  { number: 4, x: 574, y: 147 },
-  { number: 5, x: 430, y: 750 },
-  { number: 6, x: 367, y: 951 },
+  { number: 1, x: 347, y: 107 },
+  { number: 2, x: 347, y: 261 },
+  { number: 3, x: 166, y: 462 },
+  { number: 4, x: 554, y: 167 },
+  { number: 5, x: 410, y: 770 },
+  { number: 6, x: 347, y: 971 },
 ];
 
 function useIntersectionAnimation(
