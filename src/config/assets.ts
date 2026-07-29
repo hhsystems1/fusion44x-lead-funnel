@@ -25,9 +25,9 @@ export const assets = {
     src: null,
     placeholder: "How It Works Video Coming Soon",
   },
-  how_it_works_reference: {
-    src: "/brand/fusion44x-how-it-works-reference.png",
-    alt: "Fusion44X Hydro-pH-Infusion system diagram reference",
+  how_it_works_diagram: {
+    src: "/brand/how-it-works.png",
+    alt: "Fusion44X Hydro-pH-Infusion system diagram with numbered part callouts",
   },
   testimonial_videos: [
     {

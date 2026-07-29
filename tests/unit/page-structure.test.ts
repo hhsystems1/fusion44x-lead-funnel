@@ -320,14 +320,24 @@ describe("how fusion44x works product section", () => {
     expect(siteContent).toContain("Compatible with many existing pool systems");
   });
 
-  it("uses the correct Fusion44X reference image, not product-image.jpg", () => {
-    expect(hiwContent).toContain("how_it_works_reference");
+  it("uses the correct Fusion44X diagram image, not product-image.jpg", () => {
+    expect(hiwContent).toContain("how_it_works_diagram");
     expect(hiwContent).not.toContain("product_photo");
     expect(hiwContent).not.toContain("product-image.jpg");
   });
 
-  it("mobile version removes connector lines (hidden on md)", () => {
-    expect(hiwContent).toContain("hidden md:block");
+  it("has SVG connector lines with numbered markers on desktop", () => {
+    expect(hiwContent).toContain("<polyline");
+    expect(hiwContent).toContain("markers");
+    expect(hiwContent).toContain('viewBox="0 0 1024 1536"');
+  });
+
+  it("SVG overlay is hidden on mobile", () => {
+    expect(hiwContent).toContain("hidden h-full w-full md:block");
+  });
+
+  it("mobile version removes connector lines (SVG className has hidden + md:block)", () => {
+    expect(hiwContent).toContain("hidden h-full w-full md:block");
   });
 
   it("uses lucide-react icons in facts row", () => {
