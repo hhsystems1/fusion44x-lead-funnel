@@ -44,6 +44,9 @@ export function HeroSection() {
             <p className="mx-auto mt-4 max-w-lg text-base text-white/70 sm:text-lg md:mx-0">
               {siteContent.hero.subheading}
             </p>
+            <p className="mx-auto mt-2 max-w-lg text-sm italic text-white/50 sm:text-sm md:mx-0">
+              {siteContent.hero.supporting_line}
+            </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
               <CtaButton
                 size="lg"
@@ -59,6 +62,9 @@ export function HeroSection() {
                 {siteContent.hero.cta_secondary}
               </button>
             </div>
+            <p className="mx-auto mt-6 max-w-lg text-center text-xs text-white/40 md:mx-0 md:text-left">
+              {siteContent.hero.trust_line}
+            </p>
           </div>
           <div className="hidden md:block">
             {assets.hero_video.src ? (

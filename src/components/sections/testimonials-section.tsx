@@ -74,6 +74,10 @@ export function TestimonialsSection() {
             </div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-sm text-neutral-400">
+          {siteContent.testimonials.placeholder_caption}
+        </p>
       </div>
     </section>
   );

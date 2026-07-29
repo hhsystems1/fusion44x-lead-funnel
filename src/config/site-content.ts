@@ -10,7 +10,7 @@ export const siteContent = {
       "Fusion44X is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water in compatible pools and spas. Take our free pool assessment.",
     og_title: "Fusion44X — Cleaner Pool Water Without the Chemical Cycle",
     og_description:
-      "A different approach to pool and spa water treatment. Take the free assessment.",
+      "Ready for pool water you can feel better about? Take the free Fusion44X pool assessment and find out whether your setup is compatible.",
   },
   hero: {
     eyebrow: "Fusion44X Hydro-pH-Infusion System",
@@ -169,9 +169,9 @@ export const siteContent = {
     of: "of",
   },
   contact: {
-    heading: "Your Information",
+    heading: "Where Should We Send Your Assessment?",
     subheading:
-      "Enter your details so we can send your recommendation and connect you with a specialist.",
+      "Share your information below so we can review your setup and help determine whether Fusion44X is right for your pool or spa.",
     first_name: "First Name",
     last_name: "Last Name",
     email: "Email Address",
@@ -183,11 +183,11 @@ export const siteContent = {
     contact_method_phone: "Phone",
     contact_method_text: "Text",
     consent_to_contact:
-      "I agree to be contacted about my inquiry. (Required)",
+      "I agree to be contacted by Fusion44X about my pool assessment and product options.",
     marketing_consent:
-      "I would like to receive tips, promotions, and product updates.",
-    submit: "Submit Information",
-    submitting: "Submitting...",
+      "I would like to receive occasional pool-care education, product updates, and Fusion44X offers.",
+    submit: "Get My Free Pool Assessment",
+    submitting: "Submitting Your Assessment\u2026",
     error_required: "This field is required",
     error_invalid_email: "Please enter a valid email address",
     error_invalid_phone: "Please enter a valid phone number",
@@ -199,19 +199,19 @@ export const siteContent = {
       "Select a date and time for your Fusion44X consultation.",
     timezone_label: "All times shown in",
     timezone_display: "Eastern Time",
-    select_date: "Select a date",
-    select_time: "Select a time",
+    select_date: "Select a Date",
+    select_time: "Select a Time",
     no_slots: "No available times for this date.",
     no_slots_sub: "Please select another date.",
     loading_slots: "Loading available times...",
     loading_error: "Could not load available times.",
     try_again: "Try again",
-    review_heading: "Review Your Appointment",
+    review_heading: "Review Your Consultation",
     review_date: "Date",
     review_time: "Time",
     review_name: "Name",
     review_email: "Email",
-    confirm: "Confirm Appointment",
+    confirm: "Confirm My Consultation",
     confirming: "Confirming...",
     conflict:
       "That time was just taken. Please choose another available time.",
@@ -223,10 +223,20 @@ export const siteContent = {
       "We lost the connection while confirming your appointment. Please check your connection and try again.",
     error_unknown_error: "Something went wrong. Please try again.",
   },
+  booking_transition: {
+    heading: "Let\u2019s Review Your Pool Together",
+    subheading:
+      "Choose a convenient time to speak with a Fusion44X specialist about your pool, your water concerns, and the right next step.",
+    reassurance:
+      "This is a no-obligation consultation. You will have the opportunity to ask questions and understand whether Fusion44X fits your setup.",
+  },
   confirmation: {
-    heading: "Your Consultation Is Confirmed",
-    subheading: "A confirmation email has been sent.",
-    details_heading: "Appointment Details",
+    heading: "Your Fusion44X Consultation Is Confirmed",
+    subheading:
+      "Your appointment is scheduled, and a confirmation email is on its way.",
+    next_step:
+      "During your consultation, we will review your pool setup, discuss your water concerns, and help determine whether Fusion44X is the right fit for your family.",
+    details_heading: "Your Appointment Details",
     date_label: "Date",
     time_label: "Time",
     timezone_label: "Timezone",
@@ -235,12 +245,26 @@ export const siteContent = {
     outlook: "Outlook Web",
     download_ics: "Download .ics file",
     appointment_ref: "Reference",
-    support_line: "Questions? Contact us at",
+    support_line: "Questions before your appointment?",
     support_phone: "775-600-5305",
+    support_email: "support@fusion44x.com",
+  },
+  faq: {
+    cta_heading:
+      "Ready to Find Out If Fusion44X Fits Your Pool?",
+    cta_copy:
+      "Start with a free assessment and let our team review your setup.",
+    cta_button: "Get My Free Pool Assessment",
+  },
+  sticky_cta: {
+    question: "Ready for water you can feel better about?",
+    button: "Start My Free Assessment",
   },
   footer: {
+    brand: "Fusion44X",
     tagline: "Water Made Perfect",
-    support_email: "support@fusion44x.com",
+    supporting_line:
+      "Helping families move beyond the traditional pool chemical cycle.",
     support_phone: "775-600-5305",
     copyright: `\u00a9 ${new Date().getFullYear()} Fusion44X. All rights reserved.`,
   },

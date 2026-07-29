@@ -98,10 +98,10 @@ describe("persistence", () => {
       const answers = {
         water_feature: "pool" as const,
         installation_type: "in_ground" as const,
-        pool_size: "10000_to_20000" as const,
+        pool_size: "average" as const,
         current_treatment: "chlorine" as const,
         current_issues: ["algae" as const, "cloudy_water" as const],
-        primary_goal: "clearer_water" as const,
+        primary_goal: "family_confidence" as const,
       };
       saveDiagnosticAnswers(answers);
       expect(getDiagnosticAnswers()).toEqual(answers);
