@@ -1,8 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  Droplets,
+  Gauge,
+  Pipette,
+  Shield,
+  Timer,
+} from "lucide-react";
 import { siteContent } from "@/config/site-content";
 import { assets } from "@/config/assets";
+
+const factIcons = [
+  Droplets,   // Hydrogen bubbles
+  Gauge,      // pH range
+  Timer,      // Pump runtime
+  Shield,     // Annual probe replacement
+  Pipette,    // Compatible with many systems
+];
 
 function useIntersectionAnimation(
   ref: React.RefObject<HTMLElement | null>,
@@ -18,7 +33,7 @@ function useIntersectionAnimation(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (prefersReduced) {
-      els.forEach((e) => e.style.opacity = "1");
+      els.forEach((e) => (e.style.opacity = "1"));
       return;
     }
 
@@ -52,7 +67,7 @@ export function HowFusion44xWorksSection() {
       className="w-full bg-brand-navy px-5 py-16 sm:px-6 sm:py-20 md:px-8"
       aria-labelledby="hiw-product-heading"
     >
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <div className="text-center">
           <p className="mb-2 text-sm font-semibold tracking-widest uppercase text-brand-aqua-light">
             {siteContent.how_fusion44x_works.eyebrow}
@@ -68,71 +83,82 @@ export function HowFusion44xWorksSection() {
           </p>
         </div>
 
-        <div className="mt-10 grid items-start gap-8 md:grid-cols-2 md:gap-12">
-          <div className="relative mx-auto w-full max-w-sm">
-            {assets.product_photo.src ? (
+        <div className="mt-10 md:flex md:items-start md:gap-8 lg:gap-12">
+          <div className="md:w-1/2 md:shrink-0">
+            {assets.how_it_works_reference.src ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={assets.product_photo.src}
-                alt={assets.product_photo.alt}
-                className="w-full rounded-xl"
+                src={assets.how_it_works_reference.src}
+                alt={
+                  assets.how_it_works_reference.alt
+                }
+                className="w-full h-auto rounded-xl object-contain"
               />
             ) : (
-              <div className="flex aspect-square items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40">
-                Fusion44X
+              <div className="flex aspect-[1122/1402] max-w-sm items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40">
+                Fusion44X System Diagram
               </div>
             )}
-
-            <div className="absolute inset-0 hidden md:block" aria-hidden="true">
-              <svg
-                viewBox="0 0 400 400"
-                className="h-full w-full"
-                fill="none"
-              >
-                <circle cx="300" cy="60" r="16" className="fill-brand-aqua" />
-                <circle cx="120" cy="100" r="16" className="fill-brand-aqua" />
-                <circle cx="80" cy="280" r="16" className="fill-brand-aqua" />
-                <circle cx="320" cy="180" r="16" className="fill-brand-aqua" />
-                <circle cx="280" cy="340" r="16" className="fill-brand-aqua" />
-                <circle cx="140" cy="350" r="16" className="fill-brand-aqua" />
-              </svg>
-            </div>
           </div>
 
-          <div className="grid gap-4">
-            {callouts.map((callout) => (
-              <div
-                key={callout.number}
-                className="callout-card flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-4 opacity-0 transition-all duration-500 motion-reduce:opacity-100"
-                style={{
-                  transitionDelay: `${callout.number * 100}ms`,
-                }}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-aqua text-sm font-bold text-white">
-                  {callout.number}
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold text-white">
-                    {callout.title}
-                  </h3>
-                  <p className="mt-0.5 text-sm text-white/60">
-                    {callout.text}
-                  </p>
+          <div className="relative mt-6 md:mt-0 md:w-1/2">
+            <div
+              className="absolute left-0 top-2 bottom-2 w-px bg-gradient-to-b from-brand-aqua/50 via-brand-aqua/20 to-transparent hidden md:block"
+              aria-hidden="true"
+            />
+            <div className="space-y-3 md:pl-8 lg:pl-10">
+              {callouts.map((callout) => (
+                <div
+                  key={callout.number}
+                  className="callout-card relative flex items-start gap-4 rounded-xl border border-white/10 bg-white/5 p-4 opacity-0 transition-all duration-500 motion-reduce:opacity-100"
+                  style={{
+                    transitionDelay: `${callout.number * 100}ms`,
+                  }}
+                >
+                  <div
+                    className="absolute left-0 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 md:block"
+                    aria-hidden="true"
+                  >
+                    <div className="h-2.5 w-2.5 rounded-full bg-brand-aqua shadow-[0_0_6px_rgba(8,145,178,0.5)]" />
+                  </div>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-aqua/20 text-sm font-bold text-brand-aqua-light">
+                    {callout.number}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">
+                      {callout.title}
+                    </h3>
+                    <p className="mt-0.5 text-sm text-white/60">
+                      {callout.text}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-5">
-          {system_facts.map((fact, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-center text-xs text-white/70 sm:px-4 sm:py-3 sm:text-sm"
-            >
-              {fact}
-            </div>
-          ))}
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+          {system_facts.map((fact, i) => {
+            const Icon = factIcons[i] ?? null;
+            return (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-4 text-center"
+              >
+                {Icon && (
+                  <Icon
+                    className="h-5 w-5 text-brand-aqua-light"
+                    aria-hidden="true"
+                    strokeWidth={1.5}
+                  />
+                )}
+                <span className="text-xs leading-relaxed text-white/70 sm:text-sm">
+                  {fact}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

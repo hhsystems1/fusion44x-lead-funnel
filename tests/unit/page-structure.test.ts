@@ -319,6 +319,20 @@ describe("how fusion44x works product section", () => {
     expect(siteContent).toContain("Annual probe replacement");
     expect(siteContent).toContain("Compatible with many existing pool systems");
   });
+
+  it("uses the correct Fusion44X reference image, not product-image.jpg", () => {
+    expect(hiwContent).toContain("how_it_works_reference");
+    expect(hiwContent).not.toContain("product_photo");
+    expect(hiwContent).not.toContain("product-image.jpg");
+  });
+
+  it("mobile version removes connector lines (hidden on md)", () => {
+    expect(hiwContent).toContain("hidden md:block");
+  });
+
+  it("uses lucide-react icons in facts row", () => {
+    expect(hiwContent).toContain("lucide-react");
+  });
 });
 
 describe("next step section (renamed from how it works)", () => {

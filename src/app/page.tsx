@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <FunnelProvider>
       <Header />
-      <main className="pb-20 sm:pb-24">
+      <main className="pb-28 sm:pb-32">
         <HeroSection />
         <ProofBar />
         <TestimonialsSection />
