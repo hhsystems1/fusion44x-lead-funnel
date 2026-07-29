@@ -32,8 +32,6 @@ export const siteContent = {
     heading: "Why Families Choose Fusion44X",
     subheading:
       "Hear from pool and spa owners who wanted water they could feel better about letting their families enjoy.",
-    video_label: "Fusion44X Customer Story",
-    placeholder_caption: "More customer stories coming soon.",
   },
   problem_cycle: {
     eyebrow: "The Real Concern",
@@ -196,9 +194,9 @@ export const siteContent = {
     error_consent_required: "You must agree to be contacted to proceed",
   },
   booking: {
-    heading: "Schedule Your Free Pool Consultation",
+    heading: "Schedule Your Consultation",
     subheading:
-      "Select an available date and time below.",
+      "Select a date and time for your Fusion44X consultation.",
     timezone_label: "All times shown in",
     timezone_display: "Eastern Time",
     select_date: "Select a Date",

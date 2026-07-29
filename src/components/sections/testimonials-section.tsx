@@ -11,7 +11,6 @@ export function TestimonialsSection() {
   const hasVideos = assets.testimonial_videos.some((v) => v.src);
   if (!hasVideos) return null;
 
-
   return (
     <section
       className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8"
@@ -52,7 +51,7 @@ export function TestimonialsSection() {
                 <button
                   onClick={() => setPlayingIndex(i)}
                   className="group relative aspect-[9/16] w-full overflow-hidden bg-neutral-100"
-                  aria-label={siteContent.testimonials.video_label}
+                  aria-label="Play testimonial video"
                 >
                   <Image
                     src={video.thumbnail}
