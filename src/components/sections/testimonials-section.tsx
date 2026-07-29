@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { siteContent } from "@/config/site-content";
 import { assets } from "@/config/assets";
 
@@ -53,10 +54,12 @@ export function TestimonialsSection() {
                   className="group relative aspect-[9/16] w-full overflow-hidden bg-neutral-100"
                   aria-label={siteContent.testimonials.video_label}
                 >
-                  <img
+                  <Image
                     src={video.thumbnail}
                     alt=""
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors group-hover:bg-black/20">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform group-hover:scale-110">
