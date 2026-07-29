@@ -59,6 +59,9 @@ export function PoolDiagnosticStage() {
   return (
     <div>
       <div className="text-center">
+        <p className="mb-3 text-sm font-semibold tracking-widest uppercase text-brand-aqua">
+          Free Pool Assessment
+        </p>
         <h3
           id="diagnostic-stage-heading"
           className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
@@ -67,6 +70,9 @@ export function PoolDiagnosticStage() {
         </h3>
         <p className="mt-2 text-sm text-neutral-600">
           {siteContent.diagnostic.subheading}
+        </p>
+        <p className="mt-3 text-xs text-neutral-400">
+          {siteContent.diagnostic.intro_reassurance}
         </p>
       </div>
 

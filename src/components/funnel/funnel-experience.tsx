@@ -12,10 +12,16 @@ export function FunnelExperience() {
   const { state, resetFunnel } = useFunnel();
   const viewportRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const isInitialRender = useRef(true);
 
   const step = state.current_step;
 
   useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+
     if (
       step === FUNNEL_STEPS.POOL_DIAGNOSTIC ||
       step === FUNNEL_STEPS.CONTACT_INFORMATION ||
@@ -49,10 +55,10 @@ export function FunnelExperience() {
           tabIndex={-1}
           className="sr-only"
         >
-          {step === FUNNEL_STEPS.POOL_DIAGNOSTIC && "Pool Assessment"}
-          {step === FUNNEL_STEPS.CONTACT_INFORMATION && "Your Information"}
-          {step === FUNNEL_STEPS.BOOKING && "Schedule Your Consultation"}
-          {step === FUNNEL_STEPS.CONFIRMATION && "Your Consultation Is Confirmed"}
+          {step === FUNNEL_STEPS.POOL_DIAGNOSTIC && "Free Pool Assessment"}
+          {step === FUNNEL_STEPS.CONTACT_INFORMATION && "Your Pool Assessment"}
+          {step === FUNNEL_STEPS.BOOKING && "Schedule Your Free Pool Consultation"}
+          {step === FUNNEL_STEPS.CONFIRMATION && "Your Fusion44X Consultation Is Confirmed"}
         </h2>
 
         {step === FUNNEL_STEPS.POOL_DIAGNOSTIC && <PoolDiagnosticStage />}

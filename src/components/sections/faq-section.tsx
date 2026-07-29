@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { faqItems } from "@/config/faq";
 import { useFunnel } from "@/lib/funnel/funnel-context";
+import { siteContent } from "@/config/site-content";
 
 function FaqAccordionItem({
   id,
@@ -119,11 +120,17 @@ export function FaqSection() {
         </div>
 
         <div className="mt-10 text-center">
+          <h3 className="text-lg font-semibold text-brand-navy">
+            {siteContent.faq.cta_heading}
+          </h3>
+          <p className="mt-1 text-sm text-neutral-600">
+            {siteContent.faq.cta_copy}
+          </p>
           <button
             onClick={handleCtaClick}
-            className="inline-flex items-center justify-center rounded-lg bg-brand-aqua px-8 py-4 text-lg font-semibold text-white shadow-sm shadow-brand-aqua/20 transition-all duration-200 hover:bg-brand-aqua-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua"
+            className="mt-4 inline-flex items-center justify-center rounded-lg bg-brand-aqua px-8 py-4 text-lg font-semibold text-white shadow-sm shadow-brand-aqua/20 transition-all duration-200 hover:bg-brand-aqua-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua"
           >
-            Get Your Free Pool Assessment
+            {siteContent.faq.cta_button}
           </button>
         </div>
       </div>

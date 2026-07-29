@@ -7,21 +7,22 @@ export function Footer() {
   return (
     <footer className="w-full border-t border-neutral-200 bg-brand-navy px-5 py-10 sm:px-6 md:px-8">
       <div className="mx-auto max-w-5xl text-center">
-        {assets.logo.src_white ? (
+        {assets.logo.src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={assets.logo.src_white}
+            src={assets.logo.src}
             alt={assets.logo.alt}
-            className="mx-auto h-auto max-w-[280px] w-auto object-contain sm:max-w-[320px]"
+            className="mx-auto h-auto max-w-[120px] w-auto object-contain sm:max-w-[150px]"
           />
         ) : (
           <p className="text-sm font-bold tracking-tight text-white">
             {siteContent.company.name}
           </p>
         )}
-        <p className="mt-1 text-sm text-white/50">{footer.tagline}</p>
+        <p className="mt-0 text-xl font-semibold text-white/80">{footer.tagline}</p>
+        <p className="mt-2 text-sm text-white/40">{footer.supporting_line}</p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
           <a
             href={`mailto:${footer.support_email}`}
             className="transition-colors hover:text-brand-aqua-light"

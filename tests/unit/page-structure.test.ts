@@ -35,10 +35,16 @@ describe("page section order", () => {
     expect(eduIdx).toBeGreaterThan(testIdx);
   });
 
-  it("renders HowFusionWorksSection after EducationSection", () => {
+  it("renders ChemicalCycleSection after EducationSection", () => {
     const eduIdx = pageContent.indexOf("<EducationSection");
+    const ccIdx = pageContent.indexOf("<ChemicalCycleSection");
+    expect(ccIdx).toBeGreaterThan(eduIdx);
+  });
+
+  it("renders HowFusionWorksSection after ChemicalCycleSection", () => {
+    const ccIdx = pageContent.indexOf("<ChemicalCycleSection");
     const hfwIdx = pageContent.indexOf("<HowFusionWorksSection");
-    expect(hfwIdx).toBeGreaterThan(eduIdx);
+    expect(hfwIdx).toBeGreaterThan(ccIdx);
   });
 
   it("renders FunnelExperience after HowFusionWorksSection", () => {
@@ -59,13 +65,14 @@ describe("page section order", () => {
     expect(footerIdx).toBeGreaterThan(faqIdx);
   });
 
-  it("has the correct overall section order: Header, Hero, ProofBar, Testimonials, Education, HowFusionWorks, Funnel, FAQ, Footer", () => {
+  it("has the correct overall section order: Header, Hero, ProofBar, Testimonials, Education, ChemicalCycle, HowFusionWorks, Funnel, FAQ, Footer", () => {
     const order = [
       "<Header />",
       "<HeroSection",
       "<ProofBar />",
       "<TestimonialsSection />",
       "<EducationSection />",
+      "<ChemicalCycleSection",
       "<HowFusionWorksSection />",
       "<FunnelExperience />",
       "<FaqSection />",
@@ -121,14 +128,6 @@ describe("brand assets", () => {
     expect(existsSync(logoPath)).toBe(true);
   });
 
-  it("logoandslogan PNG exists at the permanent brand path", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
-    expect(existsSync(logoPath)).toBe(true);
-  });
-
   it("logo PNG has reasonable file size", () => {
     const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
     const stat = statSync(logoPath);
@@ -136,31 +135,8 @@ describe("brand assets", () => {
     expect(stat.size).toBeLessThan(10_000_000);
   });
 
-  it("logoandslogan PNG has reasonable file size", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
-    const stat = statSync(logoPath);
-    expect(stat.size).toBeGreaterThan(0);
-    expect(stat.size).toBeLessThan(10_000_000);
-  });
-
   it("logo PNG dimensions are trimmed (not original 2048x2048)", () => {
     const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
-    const content = readFileSync(logoPath);
-    const width = content.readUInt32BE(16);
-    const height = content.readUInt32BE(20);
-    expect(width).toBeGreaterThan(100);
-    expect(height).toBeGreaterThan(10);
-    expect(width * height).toBeLessThan(2048 * 2048);
-  });
-
-  it("logoandslogan PNG dimensions are trimmed (not original 2048x2048)", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
     const content = readFileSync(logoPath);
     const width = content.readUInt32BE(16);
     const height = content.readUInt32BE(20);
@@ -180,12 +156,12 @@ describe("asset configuration", () => {
     expect(assetsContent).toContain("/brand/fusion44x-logo.png");
   });
 
-  it("logoandslogan src points to the permanent brand path", () => {
-    expect(assetsContent).toContain("/brand/fusion44x-logoandslogan.png");
-  });
-
   it("favicon src points to the brand path", () => {
     expect(assetsContent).toContain("/brand/fusion44x-favicon.png");
+  });
+
+  it("logo alt is Fusion44X (no space)", () => {
+    expect(assetsContent).toContain("Fusion44X");
   });
 });
 
@@ -240,17 +216,9 @@ describe("footer configuration", () => {
     "utf-8",
   );
 
-  it("uses the logoandslogan for dark footer background", () => {
-    expect(footerContent).toContain("logo.src_white");
-  });
-
-  it("renders the logo image when src_white is available", () => {
+  it("renders the logo image in the footer", () => {
     expect(footerContent).toContain("<img");
-    expect(footerContent).toContain("assets.logo.src_white");
-  });
-
-  it("uses object-contain for the footer logo", () => {
-    expect(footerContent).toContain("object-contain");
+    expect(footerContent).toContain("assets.logo.src");
   });
 
   it("constrains footer logo max width", () => {
@@ -306,17 +274,12 @@ describe("sticky assessment bar", () => {
     expect(barContent).toContain("scrollIntoView");
   });
 
-  it("preserves the current funnel step", () => {
-    expect(barContent).toContain("state.current_step");
-    expect(barContent).toContain("goToStep");
+  it("displays the CTA question text from siteContent", () => {
+    expect(barContent).toContain("siteContent.sticky_cta.question");
   });
 
-  it("displays the CTA question text", () => {
-    expect(barContent).toContain("Ready to take your free pool assessment?");
-  });
-
-  it("displays the Start Now button", () => {
-    expect(barContent).toContain("Start Now");
+  it("displays the Start My Free Assessment button from siteContent", () => {
+    expect(barContent).toContain("siteContent.sticky_cta.button");
   });
 
   it("includes safe-area padding for iPhone", () => {
@@ -324,7 +287,7 @@ describe("sticky assessment bar", () => {
   });
 
   it("uses a floating pill shape on desktop", () => {
-    expect(barContent).toContain("rounded-xl");
+    expect(barContent).toContain("rounded-2xl");
     expect(barContent).toContain("max-w-");
   });
 
@@ -332,18 +295,9 @@ describe("sticky assessment bar", () => {
     expect(barContent).toContain("inset-x-0");
   });
 
-  it("only shows on scroll down (scroll-based visibility)", () => {
-    expect(barContent).toContain("addEventListener");
-    expect(barContent).toContain("scroll");
-    expect(barContent).toContain("passive");
-  });
-
-  it("hides at the top of the page", () => {
-    expect(barContent).toContain("isAtTop");
-  });
-
-  it("hides near the bottom of the page", () => {
-    expect(barContent).toContain("isNearBottom");
+  it("preserves the current funnel step", () => {
+    expect(barContent).toContain("state.current_step");
+    expect(barContent).toContain("goToStep");
   });
 });
 
@@ -386,8 +340,8 @@ describe("FAQ section accessibility", () => {
     expect(faqContent).toContain("gridTemplateRows");
   });
 
-  it("has the CTA button", () => {
-    expect(faqContent).toContain("Get Your Free Pool Assessment");
+  it("has the CTA button from siteContent", () => {
+    expect(faqContent).toContain("siteContent.faq.cta_button");
   });
 
   it("CTA scrolls to the funnel viewport", () => {
@@ -409,13 +363,13 @@ describe("diagnostic transition text", () => {
 
   it("uses updated complete_label text", () => {
     expect(siteContent).toContain(
-      "Your assessment is complete. Enter your details to view the recommended next step and available consultation times.",
+      "Your Pool Assessment Is Almost Complete",
     );
   });
 
-  it("does not contain old complete_label text", () => {
+  it("does not claim automated recommendation already generated", () => {
     expect(siteContent).not.toContain(
-      "Assessment complete \u2014 enter your details to see your recommendation",
+      "Your assessment is complete. Enter your details to view the recommended next step",
     );
   });
 });

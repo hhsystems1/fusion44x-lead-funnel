@@ -195,8 +195,8 @@ describe("Reset clears session state", () => {
 
 describe("Page section order", () => {
   it("testimonials content exists as a section", () => {
-    expect(siteContent.testimonials.heading).toBe("Customer Stories");
-    expect(siteContent.testimonials.subheading).toContain("Fusion 44X");
+    expect(siteContent.testimonials.heading).toBe("Why Families Choose Fusion44X");
+    expect(siteContent.testimonials.subheading).toContain("water they could feel better");
   });
 
   it("testimonials are not fake names/ratings", () => {
@@ -214,7 +214,7 @@ describe("Page section order", () => {
 describe("Proof bar", () => {
   it("does not contain numeric claims like 1,000+ pool owners", () => {
     expect(siteContent.proof_bar.claim).not.toMatch(/\d[\d,]*\+?\s*(pool|owner|customer|client)/i);
-    expect(siteContent.proof_bar.claim).toContain("Approved customer-count proof goes here");
+    expect(siteContent.proof_bar.claim).toBe("");
   });
 
   it("renders neutral items when no approved claim", () => {

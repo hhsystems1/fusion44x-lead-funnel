@@ -1,26 +1,25 @@
 export const assets = {
   logo: {
     src: "/brand/fusion44x-logo.png",
-    src_white: "/brand/fusion44x-logoandslogan.png",
-    alt: "Fusion 44X",
-    placeholder: "Fusion 44X Logo",
+    alt: "Fusion44X",
+    placeholder: "Fusion44X Logo",
   },
   favicon: {
     src: "/brand/fusion44x-favicon.png",
   },
   hero_image: {
-    src: null,
-    alt: "Fusion 44X pool water treatment system",
+    src: "/brand/product-image.jpg",
+    alt: "Fusion44X pool water treatment system",
     placeholder: "Hero Product Image",
   },
   hero_video: {
-    src: null,
+    src: "1213733920",
     placeholder: "Hero Video",
   },
   product_photo: {
     src: null,
-    alt: "Fusion 44X device",
-    placeholder: "Fusion 44X Product Photo",
+    alt: "Fusion44X device",
+    placeholder: "Fusion44X Product Photo",
   },
   how_it_works_video: {
     src: null,
@@ -28,22 +27,25 @@ export const assets = {
   },
   testimonial_videos: [
     {
-      src: null,
-      thumbnail: null,
+      src: "1071565091",
+      thumbnail:
+        "https://i.vimeocdn.com/video/2000312141-f5f2522d5cd2e412e19feeb8da2396226fe2ec140f7385056bba31734d88120a-d_640?region=us",
       customer_name: null,
       caption: null,
       placeholder: "Customer Story Video Placeholder",
     },
     {
-      src: null,
-      thumbnail: null,
+      src: "1079914507",
+      thumbnail:
+        "https://i.vimeocdn.com/video/2010396448-1d8c70cd2edf046a24732cf822107a1ee6cd178f5161ab16aa9aaa28d59c9d11-d_640?region=us",
       customer_name: null,
       caption: null,
       placeholder: "Customer Story Video Placeholder",
     },
     {
-      src: null,
-      thumbnail: null,
+      src: "1077748658",
+      thumbnail:
+        "https://i.vimeocdn.com/video/2007836280-7bcf052dbdac6f6eee1254a6bb6ef4002e901d53be4a749276f160c1f08b99dc-d_640?region=us",
       customer_name: null,
       caption: null,
       placeholder: "Customer Story Video Placeholder",
@@ -51,7 +53,7 @@ export const assets = {
   ],
   og_image: {
     src: null,
-    alt: "Fusion 44X — Water Made Perfect",
+    alt: "Fusion44X — Water Made Perfect",
     placeholder: "Social Share Image",
   },
 } as const;

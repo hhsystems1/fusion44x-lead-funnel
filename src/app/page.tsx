@@ -6,6 +6,7 @@ import { Header } from "@/components/sections/header";
 import { HeroSection } from "@/components/sections/hero-section";
 import { ProofBar } from "@/components/sections/proof-bar";
 import { EducationSection } from "@/components/sections/education-section";
+import { ChemicalCycleSection } from "@/components/sections/chemical-cycle-section";
 import { HowFusionWorksSection } from "@/components/sections/how-fusion-works-section";
 import { TestimonialsSection } from "@/components/sections/testimonials-section";
 import { FunnelExperience } from "@/components/funnel/funnel-experience";
@@ -28,6 +29,7 @@ export default function Home() {
         <ProofBar />
         <TestimonialsSection />
         <EducationSection />
+        <ChemicalCycleSection />
         <HowFusionWorksSection />
         <FunnelExperience />
         <FaqSection />

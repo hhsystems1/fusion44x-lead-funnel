@@ -137,12 +137,38 @@ describe("Content assertions", () => {
     expect(siteContent.footer.support_email).toBe("support@fusion44x.com");
   });
 
-  it("company name is Fusion 44X", () => {
-    expect(siteContent.company.name).toBe("Fusion 44X");
+  it("company name is Fusion44X", () => {
+    expect(siteContent.company.name).toBe("Fusion44X");
   });
 
-  it("hero uses Water Made Perfect heading", () => {
-    expect(siteContent.hero.heading).toBe("Water Made Perfect");
+  it("hero heading matches approved copy", () => {
+    expect(siteContent.hero.heading).toBe(
+      "Do You Feel Good About What Your Family Is Swimming In?",
+    );
+  });
+
+  it("hero eyebrow is Water Made Perfect", () => {
+    expect(siteContent.hero.eyebrow).toBe("Water Made Perfect");
+  });
+
+  it("chemical-cycle section exists in siteContent", () => {
+    expect(siteContent.chemical_cycle).toBeDefined();
+    expect(siteContent.chemical_cycle.heading).toBe(
+      "Test. Add. Wait. React. Repeat.",
+    );
+  });
+
+  it("no proof placeholder claim is rendered", () => {
+    expect(siteContent.proof_bar.claim).toBe("");
+  });
+
+  it("contact copy does not claim automated recommendation", () => {
+    expect(siteContent.diagnostic.complete_copy).not.toContain(
+      "automated",
+    );
+    expect(siteContent.diagnostic.complete_copy).not.toContain(
+      "personalized recommendation",
+    );
   });
 });
 

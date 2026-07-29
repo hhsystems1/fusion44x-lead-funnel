@@ -95,6 +95,10 @@ export function ConfirmationStage() {
         {siteContent.confirmation.subheading}
       </p>
 
+      <p className="mx-auto mt-4 max-w-lg text-sm text-neutral-500">
+        {siteContent.confirmation.next_step}
+      </p>
+
       <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 text-left shadow-sm">
         <h4 className="text-sm font-semibold text-brand-navy">
           {siteContent.confirmation.details_heading}
@@ -157,6 +161,10 @@ export function ConfirmationStage() {
         {siteContent.confirmation.support_line}{" "}
         <a href={`tel:${siteContent.confirmation.support_phone.replace(/[^+\d]/g, "")}`} className="text-brand-aqua hover:text-brand-aqua-light">
           {siteContent.confirmation.support_phone}
+        </a>
+        {" or "}
+        <a href={`mailto:${siteContent.confirmation.support_email}`} className="text-brand-aqua hover:text-brand-aqua-light">
+          {siteContent.confirmation.support_email}
         </a>
       </p>
     </div>
