@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { siteContent } from "@/config/site-content";
 import { assets } from "@/config/assets";
 import { AssetPlaceholder } from "@/components/ui/asset-placeholder";
 
@@ -35,7 +34,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
         const modal = document.getElementById("hiw-modal");
         if (!modal) return;
         const focusable = modal.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         if (focusable.length === 0) return;
         const first = focusable[0];
@@ -82,7 +81,7 @@ export function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProps) {
             id="hiw-modal-title"
             className="text-xl font-bold text-brand-navy sm:text-2xl"
           >
-            {siteContent.how_it_works_modal.heading}
+            How It Works
           </h2>
           <button
             ref={closeButtonRef}

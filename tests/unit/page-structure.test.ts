@@ -29,22 +29,34 @@ describe("page section order", () => {
     expect(testIdx).toBeGreaterThan(proofIdx);
   });
 
-  it("renders EducationSection after TestimonialsSection", () => {
+  it("renders ProblemCycleSection after TestimonialsSection", () => {
     const testIdx = pageContent.indexOf("<TestimonialsSection");
-    const eduIdx = pageContent.indexOf("<EducationSection");
-    expect(eduIdx).toBeGreaterThan(testIdx);
+    const probIdx = pageContent.indexOf("<ProblemCycleSection");
+    expect(probIdx).toBeGreaterThan(testIdx);
   });
 
-  it("renders HowFusionWorksSection after EducationSection", () => {
-    const eduIdx = pageContent.indexOf("<EducationSection");
-    const hfwIdx = pageContent.indexOf("<HowFusionWorksSection");
-    expect(hfwIdx).toBeGreaterThan(eduIdx);
+  it("renders SolutionSection after ProblemCycleSection", () => {
+    const probIdx = pageContent.indexOf("<ProblemCycleSection");
+    const solIdx = pageContent.indexOf("<SolutionSection");
+    expect(solIdx).toBeGreaterThan(probIdx);
   });
 
-  it("renders FunnelExperience after HowFusionWorksSection", () => {
-    const hfwIdx = pageContent.indexOf("<HowFusionWorksSection");
+  it("renders HowFusion44xWorksSection after SolutionSection", () => {
+    const solIdx = pageContent.indexOf("<SolutionSection");
+    const hiwIdx = pageContent.indexOf("<HowFusion44xWorksSection");
+    expect(hiwIdx).toBeGreaterThan(solIdx);
+  });
+
+  it("renders NextStepSection after HowFusion44xWorksSection", () => {
+    const hiwIdx = pageContent.indexOf("<HowFusion44xWorksSection");
+    const nsIdx = pageContent.indexOf("<NextStepSection");
+    expect(nsIdx).toBeGreaterThan(hiwIdx);
+  });
+
+  it("renders FunnelExperience after NextStepSection", () => {
+    const nsIdx = pageContent.indexOf("<NextStepSection");
     const funnelIdx = pageContent.indexOf("<FunnelExperience");
-    expect(funnelIdx).toBeGreaterThan(hfwIdx);
+    expect(funnelIdx).toBeGreaterThan(nsIdx);
   });
 
   it("renders FaqSection after FunnelExperience", () => {
@@ -59,16 +71,18 @@ describe("page section order", () => {
     expect(footerIdx).toBeGreaterThan(faqIdx);
   });
 
-  it("has the correct overall section order: Header, Hero, ProofBar, Testimonials, Education, HowFusionWorks, Funnel, FAQ, Footer", () => {
+  it("has the correct consolidated section order", () => {
     const order = [
       "<Header />",
       "<HeroSection",
-      "<ProofBar />",
-      "<TestimonialsSection />",
-      "<EducationSection />",
-      "<HowFusionWorksSection />",
-      "<FunnelExperience />",
-      "<FaqSection />",
+      "<ProofBar",
+      "<TestimonialsSection",
+      "<ProblemCycleSection",
+      "<SolutionSection",
+      "<HowFusion44xWorksSection",
+      "<NextStepSection",
+      "<FunnelExperience",
+      "<FaqSection",
       "<Footer />",
     ];
     let lastIndex = -1;
@@ -96,6 +110,252 @@ describe("page section order", () => {
   it("adds bottom padding to main for sticky bar clearance", () => {
     expect(pageContent).toMatch(/pb-\d+/);
   });
+
+  it("does not render the old EducationSection", () => {
+    expect(pageContent).not.toContain("EducationSection");
+  });
+
+  it("does not render the old HowFusionWorksSection", () => {
+    expect(pageContent).not.toContain("HowFusionWorksSection");
+  });
+
+  it("does not render the old HowItWorksModal", () => {
+    expect(pageContent).not.toContain("HowItWorksModal");
+  });
+});
+
+describe("hero content", () => {
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it("hero headline is not a question (no question mark)", () => {
+    const headingMatch = siteContent.match(/heading:\s*"([^"]+)"/);
+    if (headingMatch) {
+      expect(headingMatch[1]).not.toContain("?");
+    }
+  });
+
+  it('does not contain "The problem may be the chemical cycle itself"', () => {
+    expect(siteContent).not.toContain(
+      "The problem may be the chemical cycle itself",
+    );
+  });
+
+  it("uses the approved hero heading", () => {
+    expect(siteContent).toContain(
+      "Cleaner, More Comfortable Pool Water",
+    );
+  });
+
+  it("hero eyebrow is Fusion44X Hydro-pH-Infusion System", () => {
+    expect(siteContent).toContain("Fusion44X Hydro-pH-Infusion System");
+  });
+
+  it("hero secondary CTA is See How Fusion44X Works", () => {
+    expect(siteContent).toContain("See How Fusion44X Works");
+  });
+});
+
+describe("proof line", () => {
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it("customerCountVerified is false by default", () => {
+    expect(siteContent).toContain("customerCountVerified: false");
+  });
+
+  it("does not display 1,000+ in the default line", () => {
+    expect(siteContent).toContain(
+      "Trusted by pool and spa owners looking for a different way to care for their water",
+    );
+  });
+
+  it("verified line contains 1,000+", () => {
+    expect(siteContent).toContain("1,000+");
+  });
+});
+
+describe("testimonial content", () => {
+  const testimonialsContent = readFileSync(
+    path.join(ROOT, "src/components/sections/testimonials-section.tsx"),
+    "utf-8",
+  );
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it('does not contain "More customer stories coming soon"', () => {
+    expect(testimonialsContent).not.toContain("More customer stories coming soon");
+  });
+
+  it("references the eyebrow from config", () => {
+    expect(testimonialsContent).toContain("siteContent.testimonials.eyebrow");
+  });
+
+  it("references the heading from config", () => {
+    expect(testimonialsContent).toContain("siteContent.testimonials.heading");
+  });
+
+  it("config contains the eyebrow Real Pool Owners. Real Experiences.", () => {
+    expect(siteContent).toContain("Real Pool Owners. Real Experiences.");
+  });
+
+  it("config contains heading Why Families Choose Fusion44X", () => {
+    expect(siteContent).toContain("Why Families Choose Fusion44X");
+  });
+});
+
+describe("combined problem and chemical cycle section", () => {
+  const problemCycleContent = readFileSync(
+    path.join(ROOT, "src/components/sections/problem-cycle-section.tsx"),
+    "utf-8",
+  );
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it("references problem cards from config", () => {
+    expect(problemCycleContent).toContain("problems");
+    expect(problemCycleContent).toContain("siteContent.problem_cycle");
+    expect(siteContent).toContain("Recurring Algae");
+    expect(siteContent).toContain("Constant Chemical Balancing");
+    expect(siteContent).toContain("Harsh-Feeling Water");
+    expect(siteContent).toContain("Questions About What Is in the Water");
+  });
+
+  it("references chemical cycle steps from config", () => {
+    expect(problemCycleContent).toContain("chemical_cycle_steps");
+    expect(siteContent).toContain("Test");
+    expect(siteContent).toContain("Add");
+    expect(siteContent).toContain("Wait");
+    expect(siteContent).toContain("React");
+    expect(siteContent).toContain("Test Again");
+  });
+
+  it("renders the belief-shifting line from config", () => {
+    expect(siteContent).toContain("If the same water keeps needing");
+  });
+
+  it("has one CTA for the combined section", () => {
+    const ctaCount = (problemCycleContent.match(/<CtaButton /g) || []).length;
+    expect(ctaCount).toBe(1);
+  });
+});
+
+describe("combined solution section", () => {
+  const solutionContent = readFileSync(
+    path.join(ROOT, "src/components/sections/solution-section.tsx"),
+    "utf-8",
+  );
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it("references solution body copy from config", () => {
+    expect(solutionContent).toContain("siteContent.solution.body");
+    expect(siteContent).toContain("Fusion44X is not another chemical");
+  });
+
+  it("references benefits from config", () => {
+    expect(solutionContent).toContain("siteContent.solution.benefits");
+    expect(siteContent).toContain("Move away from chlorine");
+    expect(siteContent).toContain("Move away from saltwater");
+    expect(siteContent).toContain("Reduce the traditional chemical routine");
+    expect(siteContent).toContain("Retrofit compatible");
+  });
+
+  it("renders the qualification line from config", () => {
+    expect(solutionContent).toContain("siteContent.solution.qualification");
+    expect(siteContent).toContain("Compatibility, installation requirements");
+  });
+
+  it("has one CTA", () => {
+    const ctaCount = (solutionContent.match(/<CtaButton /g) || []).length;
+    expect(ctaCount).toBe(1);
+  });
+});
+
+describe("how fusion44x works product section", () => {
+  const hiwContent = readFileSync(
+    path.join(ROOT, "src/components/sections/how-fusion44x-works-section.tsx"),
+    "utf-8",
+  );
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it('has the id "how-it-works"', () => {
+    expect(hiwContent).toContain('id="how-it-works"');
+  });
+
+  it("references heading from config", () => {
+    expect(hiwContent).toContain("siteContent.how_fusion44x_works.heading");
+    expect(siteContent).toContain("How Hydro-pH-Infusion Works");
+  });
+
+  it("renders all 6 product callouts from config", () => {
+    expect(hiwContent).toContain("callouts");
+    expect(hiwContent).toContain("siteContent.how_fusion44x_works");
+    expect(siteContent).toContain("Probe Cap");
+    expect(siteContent).toContain("Fusion44X Probe");
+    expect(siteContent).toContain("Treatment Container");
+    expect(siteContent).toContain("Digital Meter and Controller");
+    expect(siteContent).toContain("Pool Equipment Connection");
+    expect(siteContent).toContain("Pump Runtime");
+  });
+
+  it("renders system facts from config", () => {
+    expect(hiwContent).toContain("system_facts");
+    expect(siteContent).toContain("Hydrogen bubbles generated through electrolysis");
+    expect(siteContent).toContain("Supports a pH range of 7.2");
+    expect(siteContent).toContain("Annual probe replacement");
+    expect(siteContent).toContain("Compatible with many existing pool systems");
+  });
+});
+
+describe("next step section (renamed from how it works)", () => {
+  const nextStepContent = readFileSync(
+    path.join(ROOT, "src/components/sections/next-step-section.tsx"),
+    "utf-8",
+  );
+  const siteContent = readFileSync(
+    path.join(ROOT, "src/config/site-content.ts"),
+    "utf-8",
+  );
+
+  it("references eyebrow from config", () => {
+    expect(nextStepContent).toContain("siteContent.next_step.eyebrow");
+    expect(siteContent).toContain("Your Next Step");
+  });
+
+  it("references heading from config", () => {
+    expect(nextStepContent).toContain("siteContent.next_step.heading");
+    expect(siteContent).toContain("Start With Your Free Pool Assessment");
+  });
+
+  it("references steps from config", () => {
+    expect(nextStepContent).toContain("siteContent.next_step");
+    expect(siteContent).toContain("Tell Us About Your Pool");
+    expect(siteContent).toContain("We Review Your Setup");
+    expect(siteContent).toContain("Review Your Options");
+  });
+
+  it("does not call itself How It Works", () => {
+    expect(nextStepContent).not.toContain("How It Works");
+  });
+
+  it("CTA is from config", () => {
+    expect(nextStepContent).toContain("siteContent.next_step.cta");
+    expect(siteContent).toContain("Start My Free Assessment");
+  });
 });
 
 describe("brand assets", () => {
@@ -121,14 +381,6 @@ describe("brand assets", () => {
     expect(existsSync(logoPath)).toBe(true);
   });
 
-  it("logoandslogan PNG exists at the permanent brand path", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
-    expect(existsSync(logoPath)).toBe(true);
-  });
-
   it("logo PNG has reasonable file size", () => {
     const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
     const stat = statSync(logoPath);
@@ -136,31 +388,8 @@ describe("brand assets", () => {
     expect(stat.size).toBeLessThan(10_000_000);
   });
 
-  it("logoandslogan PNG has reasonable file size", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
-    const stat = statSync(logoPath);
-    expect(stat.size).toBeGreaterThan(0);
-    expect(stat.size).toBeLessThan(10_000_000);
-  });
-
   it("logo PNG dimensions are trimmed (not original 2048x2048)", () => {
     const logoPath = path.join(ROOT, "public/brand/fusion44x-logo.png");
-    const content = readFileSync(logoPath);
-    const width = content.readUInt32BE(16);
-    const height = content.readUInt32BE(20);
-    expect(width).toBeGreaterThan(100);
-    expect(height).toBeGreaterThan(10);
-    expect(width * height).toBeLessThan(2048 * 2048);
-  });
-
-  it("logoandslogan PNG dimensions are trimmed (not original 2048x2048)", () => {
-    const logoPath = path.join(
-      ROOT,
-      "public/brand/fusion44x-logoandslogan.png",
-    );
     const content = readFileSync(logoPath);
     const width = content.readUInt32BE(16);
     const height = content.readUInt32BE(20);
@@ -180,12 +409,12 @@ describe("asset configuration", () => {
     expect(assetsContent).toContain("/brand/fusion44x-logo.png");
   });
 
-  it("logoandslogan src points to the permanent brand path", () => {
-    expect(assetsContent).toContain("/brand/fusion44x-logoandslogan.png");
-  });
-
   it("favicon src points to the brand path", () => {
     expect(assetsContent).toContain("/brand/fusion44x-favicon.png");
+  });
+
+  it("product_photo src points to product-image.jpg", () => {
+    expect(assetsContent).toContain("/brand/product-image.jpg");
   });
 });
 
@@ -316,7 +545,7 @@ describe("sticky assessment bar", () => {
   });
 
   it("uses a floating pill shape on desktop", () => {
-    expect(barContent).toContain("rounded-xl");
+    expect(barContent).toContain("rounded-2xl");
     expect(barContent).toContain("max-w-");
   });
 
@@ -330,12 +559,12 @@ describe("sticky assessment bar", () => {
     expect(barContent).toContain("passive");
   });
 
-  it("hides at the top of the page", () => {
-    expect(barContent).toContain("isAtTop");
+  it("hides at the top of the page (scrollY > 5)", () => {
+    expect(barContent).toContain("scrollY > 5");
   });
 
   it("hides near the bottom of the page", () => {
-    expect(barContent).toContain("isNearBottom");
+    expect(barContent).toContain("maxScroll");
   });
 });
 
@@ -412,30 +641,61 @@ describe("diagnostic transition text", () => {
   });
 });
 
-describe("booking behavior unchanged", () => {
-  const bookingConfig = readFileSync(
-    path.join(ROOT, "src/config/booking.ts"),
-    "utf-8",
-  );
-
-  it("retains 30-minute appointments", () => {
+describe("backend files not modified", () => {
+  it("booking config still retains 30-minute appointments", () => {
+    const bookingConfig = readFileSync(
+      path.join(ROOT, "src/config/booking.ts"),
+      "utf-8",
+    );
     expect(bookingConfig).toContain("30");
   });
 
-  it("retains America/New_York timezone", () => {
+  it("booking config retains America/New_York timezone", () => {
+    const bookingConfig = readFileSync(
+      path.join(ROOT, "src/config/booking.ts"),
+      "utf-8",
+    );
     expect(bookingConfig).toContain("America/New_York");
   });
 
-  const funnelContext = readFileSync(
-    path.join(ROOT, "src/lib/funnel/funnel-context.tsx"),
-    "utf-8",
-  );
-
-  it("still uses createBookingRequest for booking submission", () => {
+  it("funnel context still uses createBookingRequest", () => {
+    const funnelContext = readFileSync(
+      path.join(ROOT, "src/lib/funnel/funnel-context.tsx"),
+      "utf-8",
+    );
     expect(funnelContext).toContain("createBookingRequest");
   });
 
-  it("still uses submitLeadApi for lead submission", () => {
+  it("funnel context still uses submitLeadApi", () => {
+    const funnelContext = readFileSync(
+      path.join(ROOT, "src/lib/funnel/funnel-context.tsx"),
+      "utf-8",
+    );
     expect(funnelContext).toContain("submitLeadApi");
+  });
+
+  it("diagnostic question config is unchanged", () => {
+    const diagConfig = readFileSync(
+      path.join(ROOT, "src/config/funnel-questions.ts"),
+      "utf-8",
+    );
+    expect(diagConfig).toContain("water-feature");
+    expect(diagConfig).toContain("installation-type");
+    expect(diagConfig).toContain("pool-size");
+    expect(diagConfig).toContain("current-treatment");
+    expect(diagConfig).toContain("current-issues");
+    expect(diagConfig).toContain("primary-goal");
+  });
+
+  it("funnel types are unchanged", () => {
+    const funnelTypes = readFileSync(
+      path.join(ROOT, "src/types/funnel.ts"),
+      "utf-8",
+    );
+    expect(funnelTypes).toContain("FUNNEL_STEPS");
+    expect(funnelTypes).toContain("POOL_DIAGNOSTIC");
+    expect(funnelTypes).toContain("CONTACT_INFORMATION");
+    expect(funnelTypes).toContain("BOOKING");
+    expect(funnelTypes).toContain("CONFIRMATION");
   });
 });

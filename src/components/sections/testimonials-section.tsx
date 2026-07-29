@@ -7,10 +7,19 @@ import { assets } from "@/config/assets";
 export function TestimonialsSection() {
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
+  const hasVideos = assets.testimonial_videos.some((v) => v.src);
+  if (!hasVideos) return null;
+
   return (
-    <section className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8" aria-labelledby="testimonials-heading">
+    <section
+      className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8"
+      aria-labelledby="testimonials-heading"
+    >
       <div className="mx-auto max-w-5xl">
         <div className="text-center">
+          <p className="mb-2 text-sm font-semibold tracking-widest uppercase text-brand-aqua">
+            {siteContent.testimonials.eyebrow}
+          </p>
           <h2
             id="testimonials-heading"
             className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl"
@@ -50,7 +59,12 @@ export function TestimonialsSection() {
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors group-hover:bg-black/20">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform group-hover:scale-110">
-                      <svg className="ml-0.5 h-5 w-5 text-brand-navy" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg
+                        className="ml-0.5 h-5 w-5 text-brand-navy"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>

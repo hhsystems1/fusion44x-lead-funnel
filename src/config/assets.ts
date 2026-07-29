@@ -1,15 +1,15 @@
 export const assets = {
   logo: {
     src: "/brand/fusion44x-logo.png",
-    alt: "Fusion 44X",
-    placeholder: "Fusion 44X Logo",
+    alt: "Fusion44X",
+    placeholder: "Fusion44X Logo",
   },
   favicon: {
     src: "/brand/fusion44x-favicon.png",
   },
   hero_image: {
     src: "/brand/product-image.jpg",
-    alt: "Fusion 44X pool water treatment system",
+    alt: "Fusion44X pool water treatment system",
     placeholder: "Hero Product Image",
   },
   hero_video: {
@@ -17,13 +17,17 @@ export const assets = {
     placeholder: "Hero Video",
   },
   product_photo: {
-    src: null,
-    alt: "Fusion 44X device",
-    placeholder: "Fusion 44X Product Photo",
+    src: "/brand/product-image.jpg",
+    alt: "Fusion44X Hydro-pH-Infusion system",
+    placeholder: "Fusion44X Product Photo",
   },
   how_it_works_video: {
     src: null,
     placeholder: "How It Works Video Coming Soon",
+  },
+  how_it_works_reference: {
+    src: "/brand/fusion44x-how-it-works-reference.png",
+    alt: "Fusion44X Hydro-pH-Infusion system diagram reference",
   },
   testimonial_videos: [
     {
@@ -53,7 +57,7 @@ export const assets = {
   ],
   og_image: {
     src: null,
-    alt: "Fusion 44X — Water Made Perfect",
+    alt: "Fusion44X \u2014 Cleaner Pool Water Without the Chemical Cycle",
     placeholder: "Social Share Image",
   },
 } as const;

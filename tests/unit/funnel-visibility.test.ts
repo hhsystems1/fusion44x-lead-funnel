@@ -137,12 +137,14 @@ describe("Content assertions", () => {
     expect(siteContent.footer.support_email).toBe("support@fusion44x.com");
   });
 
-  it("company name is Fusion 44X", () => {
-    expect(siteContent.company.name).toBe("Fusion 44X");
+  it("company name is Fusion44X", () => {
+    expect(siteContent.company.name).toBe("Fusion44X");
   });
 
-  it("hero uses Water Made Perfect heading", () => {
-    expect(siteContent.hero.heading).toBe("Water Made Perfect");
+  it("hero uses the approved consolidated heading", () => {
+    expect(siteContent.hero.heading).toBe(
+      "Cleaner, More Comfortable Pool Water—Without the Traditional Chlorine and Salt Cycle",
+    );
   });
 });
 

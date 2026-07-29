@@ -195,8 +195,7 @@ describe("Reset clears session state", () => {
 
 describe("Page section order", () => {
   it("testimonials content exists as a section", () => {
-    expect(siteContent.testimonials.heading).toBe("Customer Stories");
-    expect(siteContent.testimonials.subheading).toContain("Fusion 44X");
+    expect(siteContent.testimonials.heading).toBe("Why Families Choose Fusion44X");
   });
 
   it("testimonials are not fake names/ratings", () => {
@@ -212,22 +211,21 @@ describe("Page section order", () => {
 // =============================================================================
 
 describe("Proof bar", () => {
-  it("does not contain numeric claims like 1,000+ pool owners", () => {
-    expect(siteContent.proof_bar.claim).not.toMatch(/\d[\d,]*\+?\s*(pool|owner|customer|client)/i);
-    expect(siteContent.proof_bar.claim).toContain("Approved customer-count proof goes here");
+  it("does not display 1,000+ when customerCountVerified is false", () => {
+    expect(siteContent.proof_line.customerCountVerified).toBe(false);
   });
 
-  it("renders neutral items when no approved claim", () => {
-    const items = siteContent.proof_bar.supporting_items;
-    expect(items).toContain("Free pool assessment");
-    expect(items).toContain("No-obligation consultation");
-    expect(items).toContain("Direct manufacturer support");
+  it("renders safe default when customerCountVerified is false", () => {
+    const line = siteContent.proof_line.customerCountVerified
+      ? siteContent.proof_line.verified_line
+      : siteContent.proof_line.default_line;
+    expect(line).toContain("Trusted by pool and spa owners");
+    expect(line).not.toContain("1,000+");
   });
 
-  it("no fake numbers in supporting items", () => {
-    for (const item of siteContent.proof_bar.supporting_items) {
-      expect(item).not.toMatch(/\d{2,}/);
-    }
+  it("no fake numbers in proof line", () => {
+    const line = siteContent.proof_line.default_line;
+    expect(line).not.toMatch(/\d{2,}/);
   });
 });
 

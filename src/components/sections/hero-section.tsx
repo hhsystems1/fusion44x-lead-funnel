@@ -7,11 +7,7 @@ import { useFunnel } from "@/lib/funnel/funnel-context";
 import { CtaButton } from "@/components/ui/cta-button";
 import { AssetPlaceholder } from "@/components/ui/asset-placeholder";
 
-interface HeroSectionProps {
-  onHowItWorksClick: () => void;
-}
-
-export function HeroSection({ onHowItWorksClick }: HeroSectionProps) {
+export function HeroSection() {
   const { goToStep } = useFunnel();
 
   const handlePrimaryCta = useCallback(() => {
@@ -21,6 +17,11 @@ export function HeroSection({ onHowItWorksClick }: HeroSectionProps) {
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
   }, [goToStep]);
+
+  const handleSecondaryCta = useCallback(() => {
+    const el = document.getElementById("how-it-works");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   return (
     <section
@@ -32,7 +33,7 @@ export function HeroSection({ onHowItWorksClick }: HeroSectionProps) {
         <div className="grid items-center gap-10 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-left">
             <p className="mb-3 text-sm font-semibold tracking-widest uppercase text-brand-aqua-light">
-              {siteContent.company.name}
+              {siteContent.hero.eyebrow}
             </p>
             <h1
               id="hero-heading"
@@ -52,7 +53,7 @@ export function HeroSection({ onHowItWorksClick }: HeroSectionProps) {
                 {siteContent.hero.cta_primary}
               </CtaButton>
               <button
-                onClick={onHowItWorksClick}
+                onClick={handleSecondaryCta}
                 className="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-base font-medium text-white/80 transition-colors hover:border-white/40 hover:text-white"
               >
                 {siteContent.hero.cta_secondary}

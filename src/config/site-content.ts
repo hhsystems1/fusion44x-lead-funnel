@@ -1,90 +1,167 @@
 export const siteContent = {
   company: {
-    name: "Fusion 44X",
+    name: "Fusion44X",
     slogan: "Water Made Perfect",
-    description: "A probe-based water treatment system for pools and spas.",
+    description: "A hardware-based water treatment system for pools and spas.",
   },
   seo: {
-    title: "Fusion 44X — Water Made Perfect",
+    title: "Fusion44X — Cleaner Pool Water Without the Chemical Cycle",
     description:
-      "Fusion 44X is a probe-based water treatment system for pools and spas. Take our free pool assessment to find the right solution for your setup.",
-    og_title: "Fusion 44X — Water Made Perfect",
+      "Fusion44X is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water in compatible pools and spas. Take our free pool assessment.",
+    og_title: "Fusion44X — Cleaner Pool Water Without the Chemical Cycle",
     og_description:
       "A different approach to pool and spa water treatment. Take the free assessment.",
   },
   hero: {
-    heading: "Water Made Perfect",
+    eyebrow: "Fusion44X Hydro-pH-Infusion System",
+    heading:
+      "Cleaner, More Comfortable Pool Water—Without the Traditional Chlorine and Salt Cycle",
     subheading:
-      "Fusion 44X is a probe-based treatment system that retrofits onto your existing pool or spa equipment. Take our free assessment to find the right solution for your setup.",
+      "Fusion44X is a hardware-based water system designed to create hydrogen-rich, balanced water in compatible pools and spas—so your family can enjoy the water with greater confidence.",
     cta_primary: "Get Your Free Pool Assessment",
-    cta_secondary: "How It Works",
+    cta_secondary: "See How Fusion44X Works",
   },
-  proof_bar: {
-    enabled: true,
-    claim: "Approved customer-count proof goes here",
-    supporting_items: [
-      "Free pool assessment",
-      "No-obligation consultation",
-      "Direct manufacturer support",
-    ],
-  },
-  education: {
-    heading: "Pool Care Shouldn't Be This Hard",
-    subheading: "If any of this sounds familiar, you are not alone.",
-    problems: [
-      {
-        heading: "Recurring Algae Problems",
-        text: "You treat the water, the algae comes back. It is frustrating and it wastes your time and money.",
-      },
-      {
-        heading: "Constant Chemical Maintenance",
-        text: "Testing, adjusting, re-testing. The cycle never ends and it is hard to keep up.",
-      },
-      {
-        heading: "Uncomfortable Water",
-        text: "Dry skin, irritated eyes, and a strong chemical smell make swimming less enjoyable for you and your family.",
-      },
-      {
-        heading: "Ongoing Pool-Care Frustration",
-        text: "You have tried different products and methods. Nothing seems to solve the problem for good.",
-      },
-    ],
-    cta: "Take the Free Assessment",
-  },
-  how_fusion_works: {
-    heading: "How Fusion 44X Works",
-    subheading: "A different approach to water treatment.",
-    features: [
-      {
-        heading: "Retrofits to Your Existing Equipment",
-        text: "Fusion 44X connects to your current pool or spa equipment. No full system replacement needed.",
-      },
-      {
-        heading: "Probe-Based Monitoring",
-        text: "A sensor probe continuously reads your water conditions and responds in real time.",
-      },
-      {
-        heading: "Professional or DIY Installation",
-        text: "Install it yourself or have your local pool technician set it up. Both options are supported.",
-      },
-      {
-        heading: "Direct Manufacturer Support",
-        text: "Questions about setup or operation? You get direct support from the Fusion 44X team.",
-      },
-    ],
-  },
-  how_it_works_modal: {
-    heading: "How It Works",
-    video_label: "How It Works Video Coming Soon",
+  proof_line: {
+    customerCountVerified: false,
+    verified_line: "Trusted by 1,000+ pool owners using Fusion44X",
+    default_line:
+      "Trusted by pool and spa owners looking for a different way to care for their water",
   },
   testimonials: {
-    heading: "Customer Stories",
-    subheading: "Real pool and spa owners share their experience with Fusion 44X.",
+    eyebrow: "Real Pool Owners. Real Experiences.",
+    heading: "Why Families Choose Fusion44X",
+    subheading:
+      "Hear from pool and spa owners who wanted water they could feel better about letting their families enjoy.",
+  },
+  problem_cycle: {
+    eyebrow: "The Real Concern",
+    heading: "Pool Care Should Not Feel Like an Endless Chemical Cycle",
+    subheading:
+      "For many families, the concern is not only the work. It is constantly adding products while still questioning how the water feels and what their family is swimming in.",
+    problems: [
+      {
+        heading: "Recurring Algae",
+        text: "You treat the water, it clears temporarily, and the same problem returns.",
+      },
+      {
+        heading: "Constant Chemical Balancing",
+        text: "Testing, adding, waiting, and adjusting can become a never-ending routine.",
+      },
+      {
+        heading: "Harsh-Feeling Water",
+        text: "Strong smells, red eyes, and dry-feeling skin can make the pool less enjoyable.",
+      },
+      {
+        heading: "Questions About What Is in the Water",
+        text: "When children, family, and friends use the pool, it is natural to want more confidence in the water.",
+      },
+    ],
+    chemical_cycle_steps: ["Test", "Add", "Wait", "React", "Test Again"],
+    chemical_examples: [
+      "Chlorine",
+      "Shock",
+      "Acid",
+      "Stabilizer",
+      "Algaecide",
+      "Clarifier",
+    ],
+    belief_line:
+      "If the same water keeps needing one product after another, are you creating balance\u2014or simply managing the next reaction?",
+    cta: "Get Your Free Pool Assessment",
+  },
+  solution: {
+    eyebrow: "What Is Fusion44X?",
+    heading:
+      "A Water System Designed for Families Who Want More Confidence in Their Pool",
+    body: "Fusion44X is not another chemical to pour into your pool. It is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water throughout compatible pools and spas.",
+    supporting:
+      "Instead of relying on the traditional chlorine, salt, and weekly chemical cycle, Fusion44X works with compatible pool equipment to support a different way of treating the water.",
+    benefits_heading: "Fusion44X May Be for You If You Want To\u2026",
+    benefits: [
+      "Move away from chlorine",
+      "Move away from saltwater chlorine generation",
+      "Reduce the traditional chemical routine",
+      "Enjoy cleaner, more comfortable-feeling water",
+      "Feel more confident about the water your family uses",
+      "Retrofit compatible existing pool equipment",
+      "Receive direct manufacturer support",
+    ],
+    qualification:
+      "Compatibility, installation requirements, and ongoing pool-care needs vary. Complete the free assessment so the Fusion44X team can review your setup.",
+    cta: "See If Fusion44X Fits My Pool",
+  },
+  how_fusion44x_works: {
+    eyebrow: "Inside the Fusion44X System",
+    heading: "How Hydro-pH-Infusion Works",
+    subheading:
+      "Fusion44X works with compatible pool equipment to generate hydrogen-rich water and support balanced pool and spa conditions while the circulation system is running.",
+    callouts: [
+      {
+        number: 1,
+        title: "Probe Cap",
+        text: "Seals the treatment container and secures the probe assembly.",
+      },
+      {
+        number: 2,
+        title: "Fusion44X Probe",
+        text: "The proprietary electrolysis chamber generates hydrogen bubbles while the system operates.",
+      },
+      {
+        number: 3,
+        title: "Treatment Container",
+        text: "Holds the required treatment solution for the Hydro-pH-Infusion process.",
+      },
+      {
+        number: 4,
+        title: "Digital Meter and Controller",
+        text: "Displays the system reading and helps monitor operation.",
+      },
+      {
+        number: 5,
+        title: "Pool Equipment Connection",
+        text: "The Fusion44X hardware integrates with compatible existing circulation equipment.",
+      },
+      {
+        number: 6,
+        title: "Pump Runtime",
+        text: "The system operates while the pool pump is running.",
+      },
+    ],
+    system_facts: [
+      "Hydrogen bubbles generated through electrolysis",
+      "Supports a pH range of 7.2\u20137.6",
+      "Operates with pump runtime",
+      "Annual probe replacement",
+      "Compatible with many existing pool systems",
+    ],
+  },
+  next_step: {
+    eyebrow: "Your Next Step",
+    heading: "Start With Your Free Pool Assessment",
+    subheading:
+      "Every pool and spa is different. Tell us about your setup so the Fusion44X team can review compatibility and help you understand the right next step.",
+    steps: [
+      {
+        heading: "Tell Us About Your Pool",
+        text: "Answer a few quick questions about your pool, current system, size, and main concerns.",
+      },
+      {
+        heading: "We Review Your Setup",
+        text: "The Fusion44X team reviews compatibility and identifies the appropriate system configuration.",
+      },
+      {
+        heading: "Review Your Options",
+        text: "Schedule a consultation to ask questions, understand the recommendation, and decide whether Fusion44X is right for your pool.",
+      },
+    ],
+    cta: "Start My Free Assessment",
   },
   diagnostic: {
     heading: "Pool Assessment",
-    subheading: "Tell us about your pool or spa so we can recommend the right solution.",
-    complete_label: "Your assessment is complete. Enter your details to view the recommended next step and available consultation times.",
+    subheading:
+      "Tell us about your pool or spa so we can recommend the right solution.",
+    complete_label:
+      "Your assessment is complete. Enter your details to view the recommended next step and available consultation times.",
     next: "Continue",
     back: "Back",
     complete: "Complete Assessment",
@@ -118,7 +195,8 @@ export const siteContent = {
   },
   booking: {
     heading: "Schedule Your Consultation",
-    subheading: "Select a date and time for your Fusion 44X consultation.",
+    subheading:
+      "Select a date and time for your Fusion44X consultation.",
     timezone_label: "All times shown in",
     timezone_display: "Eastern Time",
     select_date: "Select a date",
@@ -135,15 +213,15 @@ export const siteContent = {
     review_email: "Email",
     confirm: "Confirm Appointment",
     confirming: "Confirming...",
-    conflict: "That time was just taken. Please choose another available time.",
+    conflict:
+      "That time was just taken. Please choose another available time.",
     error_missing_fields:
       "We\u2019re missing part of your booking information. Please go back and select your date and time again.",
     error_server_error:
       "We couldn\u2019t confirm your appointment right now. Please try again.",
     error_network_error:
       "We lost the connection while confirming your appointment. Please check your connection and try again.",
-    error_unknown_error:
-      "Something went wrong. Please try again.",
+    error_unknown_error: "Something went wrong. Please try again.",
   },
   confirmation: {
     heading: "Your Consultation Is Confirmed",
@@ -164,6 +242,6 @@ export const siteContent = {
     tagline: "Water Made Perfect",
     support_email: "support@fusion44x.com",
     support_phone: "775-600-5305",
-    copyright: `\u00a9 ${new Date().getFullYear()} Fusion 44X. All rights reserved.`,
+    copyright: `\u00a9 ${new Date().getFullYear()} Fusion44X. All rights reserved.`,
   },
 } as const;
