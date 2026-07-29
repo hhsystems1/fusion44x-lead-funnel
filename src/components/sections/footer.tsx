@@ -12,15 +12,14 @@ export function Footer() {
           <img
             src={assets.logo.src}
             alt={assets.logo.alt}
-            className="mx-auto h-auto max-w-[120px] w-auto object-contain sm:max-w-[150px]"
+            className="mx-auto h-auto max-w-[200px] w-auto object-contain sm:max-w-[240px]"
           />
         ) : (
           <p className="text-sm font-bold tracking-tight text-white">
             {siteContent.company.name}
           </p>
         )}
-        <p className="mt-0 text-xl font-semibold text-white/80">{footer.tagline}</p>
-        <p className="mt-2 text-sm text-white/40">{footer.supporting_line}</p>
+        <p className="mt-0.5 text-base font-medium text-white/70">{footer.tagline}</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
           <a

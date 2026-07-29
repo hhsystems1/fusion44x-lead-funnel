@@ -17,13 +17,17 @@ export const assets = {
     placeholder: "Hero Video",
   },
   product_photo: {
-    src: null,
-    alt: "Fusion44X device",
+    src: "/brand/product-image.jpg",
+    alt: "Fusion44X Hydro-pH-Infusion system",
     placeholder: "Fusion44X Product Photo",
   },
   how_it_works_video: {
     src: null,
     placeholder: "How It Works Video Coming Soon",
+  },
+  how_it_works_diagram: {
+    src: "/brand/how-it-works-edited.png",
+    alt: "Fusion44X Hydro-pH-Infusion system diagram with numbered part callouts",
   },
   testimonial_videos: [
     {
@@ -53,7 +57,7 @@ export const assets = {
   ],
   og_image: {
     src: null,
-    alt: "Fusion44X — Water Made Perfect",
+    alt: "Fusion44X \u2014 Cleaner Pool Water Without the Chemical Cycle",
     placeholder: "Social Share Image",
   },
 } as const;
