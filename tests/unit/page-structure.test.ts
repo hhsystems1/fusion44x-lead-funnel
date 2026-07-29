@@ -329,7 +329,7 @@ describe("how fusion44x works product section", () => {
   it("has SVG connector lines with numbered markers on desktop", () => {
     expect(hiwContent).toContain("<polyline");
     expect(hiwContent).toContain("markers");
-    expect(hiwContent).toContain('viewBox="0 0 1024 1536"');
+    expect(hiwContent).toContain('viewBox="0 0 734 1028"');
   });
 
   it("SVG overlay is hidden on mobile", () => {

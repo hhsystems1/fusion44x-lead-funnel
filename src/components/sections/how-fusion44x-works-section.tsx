@@ -26,12 +26,12 @@ interface Marker {
 }
 
 const markers: Marker[] = [
-  { number: 1, x: 512, y: 130 },
-  { number: 2, x: 512, y: 360 },
-  { number: 3, x: 260, y: 660 },
-  { number: 4, x: 800, y: 220 },
-  { number: 5, x: 600, y: 1120 },
-  { number: 6, x: 512, y: 1420 },
+  { number: 1, x: 367, y: 87 },
+  { number: 2, x: 367, y: 241 },
+  { number: 3, x: 186, y: 442 },
+  { number: 4, x: 574, y: 147 },
+  { number: 5, x: 430, y: 750 },
+  { number: 6, x: 367, y: 951 },
 ];
 
 function useIntersectionAnimation(
@@ -114,14 +114,14 @@ export function HowFusion44xWorksSection() {
             )}
 
             <svg
-              viewBox="0 0 1024 1536"
+              viewBox="0 0 734 1028"
               className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
               aria-hidden="true"
             >
               {markers.map((m) => (
                 <g key={m.number}>
                   <polyline
-                    points={`${m.x},${m.y} ${m.x + 90},${m.y}`}
+                    points={`${m.x},${m.y} ${m.x + 65},${m.y}`}
                     stroke="#22d3ee"
                     strokeWidth="1.5"
                     strokeDasharray="4 3"
