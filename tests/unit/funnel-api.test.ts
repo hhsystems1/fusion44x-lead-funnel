@@ -22,10 +22,10 @@ describe("buildLeadPayload", () => {
       diagnostic_answers: {
         water_feature: "pool",
         installation_type: "in_ground",
-        pool_size: "10000_to_20000",
+        pool_size: "average",
         current_treatment: "chlorine",
         current_issues: ["algae"],
-        primary_goal: "clearer_water",
+        primary_goal: "family_confidence",
       },
       marketing_consent: true,
     });
@@ -84,10 +84,10 @@ describe("submitLead", () => {
     diagnostic_answers: {
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "10000_to_20000",
+      pool_size: "average",
       current_treatment: "chlorine",
       current_issues: ["algae"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     },
     marketing_consent: false,
   });

@@ -10,6 +10,7 @@ export function TestimonialsSection() {
   const hasVideos = assets.testimonial_videos.some((v) => v.src);
   if (!hasVideos) return null;
 
+
   return (
     <section
       className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8"
@@ -50,7 +51,7 @@ export function TestimonialsSection() {
                 <button
                   onClick={() => setPlayingIndex(i)}
                   className="group relative aspect-[9/16] w-full overflow-hidden bg-neutral-100"
-                  aria-label="Play testimonial video"
+                  aria-label={siteContent.testimonials.video_label}
                 >
                   <img
                     src={video.thumbnail}
@@ -69,11 +70,20 @@ export function TestimonialsSection() {
                       </svg>
                     </div>
                   </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8">
+                    <p className="text-xs font-medium text-white">
+                      {siteContent.testimonials.video_label}
+                    </p>
+                  </div>
                 </button>
               )}
             </div>
           ))}
         </div>
+
+        <p className="mt-8 text-center text-sm text-neutral-400">
+          {siteContent.testimonials.placeholder_caption}
+        </p>
       </div>
     </section>
   );

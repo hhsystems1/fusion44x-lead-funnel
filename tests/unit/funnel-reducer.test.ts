@@ -13,10 +13,10 @@ function fresh(): FunnelState {
 const validAnswers: DiagnosticAnswers = {
   water_feature: "pool" as WaterFeatureCode,
   installation_type: "in_ground" as InstallationTypeCode,
-  pool_size: "under_10000" as PoolSizeCode,
+  pool_size: "small" as PoolSizeCode,
   current_treatment: "chlorine" as CurrentTreatmentCode,
   current_issues: ["algae"] as CurrentIssueCode[],
-  primary_goal: "clearer_water" as PrimaryGoalCode,
+  primary_goal: "family_confidence" as PrimaryGoalCode,
 };
 
 describe("funnelReducer", () => {
@@ -118,9 +118,9 @@ describe("funnelReducer", () => {
           code: "above_ground",
           key: "installation_type",
         },
-        { qid: "pool-size", code: "under_10000", key: "pool_size" },
+        { qid: "pool-size", code: "small", key: "pool_size" },
         { qid: "current-treatment", code: "salt", key: "current_treatment" },
-        { qid: "primary-goal", code: "clearer_water", key: "primary_goal" },
+        { qid: "primary-goal", code: "family_confidence", key: "primary_goal" },
       ];
       for (const { qid, code, key } of tests) {
         const state = funnelReducer(fresh(), {

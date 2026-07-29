@@ -146,6 +146,20 @@ describe("Content assertions", () => {
       "Cleaner, More Comfortable Pool Water—Without the Traditional Chlorine and Salt Cycle",
     );
   });
+
+  it("hero eyebrow matches approved copy", () => {
+    expect(siteContent.hero.eyebrow).toBe("Fusion44X Hydro-pH-Infusion System");
+  });
+
+  it("proof_line does not contain numeric claims", () => {
+    const line = siteContent.proof_line.default_line;
+    expect(line).not.toMatch(/\d{2,}/);
+  });
+
+  it("diagnostic complete_label does not claim automated recommendation", () => {
+    expect(siteContent.diagnostic.complete_label).not.toContain("automated");
+    expect(siteContent.diagnostic.complete_label).not.toContain("personalized recommendation");
+  });
 });
 
 // =============================================================================

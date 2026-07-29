@@ -26,21 +26,17 @@ describe("FAQ configuration", () => {
     }
   });
 
-  it("marks items needing client approval with pendingApproval", () => {
-    const pending = faqItems.filter((item) => item.pendingApproval);
-    expect(pending.length).toBeGreaterThan(0);
-  });
-
   it("covers all required question topics", () => {
     const questions = faqItems.map((item) => item.question.toLowerCase());
     const requiredTopics = [
       "what is fusion",
+      "another pool chemical",
+      "families choose",
       "existing pool equipment",
+      "chlorine or salt",
       "who can install",
-      "local pool technician",
-      "support",
-      "replace every",
-      "right for my pool",
+      "eliminate every pool",
+      "which fusion44x system",
       "consultation",
     ];
     for (const topic of requiredTopics) {

@@ -235,10 +235,10 @@ describe("leadCreateSchema", () => {
     diagnostic: {
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "10000_to_20000",
+      pool_size: "average",
       current_treatment: "chlorine",
       current_issues: ["algae", "cloudy_water"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     },
     consent: {
       consent_to_contact: true,
@@ -333,10 +333,10 @@ describe("consent requirement", () => {
     diagnostic: {
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "10000_to_20000",
+      pool_size: "average",
       current_treatment: "chlorine",
       current_issues: ["algae"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     },
     consent: {
       consent_to_contact: true,
@@ -498,10 +498,10 @@ describe("RPC parameter behavior", () => {
     diagnostic: {
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "under_10000",
+      pool_size: "small",
       current_treatment: "chlorine",
       current_issues: ["algae"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     },
     consent: {
       consent_to_contact: true,
@@ -581,10 +581,10 @@ describe("current_issues validation", () => {
     diagnostic: {
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "under_10000",
+      pool_size: "small",
       current_treatment: "chlorine",
       current_issues: ["algae"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     },
     consent: {
       consent_to_contact: true,
@@ -646,7 +646,7 @@ describe("lead conflict detection (schema level)", () => {
       pool_size: "not_sure",
       current_treatment: "salt",
       current_issues: ["cloudy_water"],
-      primary_goal: "easier_maintenance",
+      primary_goal: "family_confidence",
     },
     consent: {
       consent_to_contact: true,

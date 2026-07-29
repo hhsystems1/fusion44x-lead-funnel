@@ -196,6 +196,7 @@ describe("Reset clears session state", () => {
 describe("Page section order", () => {
   it("testimonials content exists as a section", () => {
     expect(siteContent.testimonials.heading).toBe("Why Families Choose Fusion44X");
+    expect(siteContent.testimonials.subheading).toContain("water they could feel better");
   });
 
   it("testimonials are not fake names/ratings", () => {

@@ -102,8 +102,18 @@ export function BookingStage() {
           tabIndex={-1}
           className="text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl focus:outline-none"
         >
-          {siteContent.booking.heading}
+          {siteContent.booking_transition.heading}
         </h3>
+        <p className="mt-2 text-sm text-neutral-600">
+          {siteContent.booking_transition.subheading}
+        </p>
+        <p className="mt-3 text-xs text-neutral-500">
+          {siteContent.booking_transition.reassurance}
+        </p>
+        <hr className="mx-auto my-6 max-w-xs border-neutral-200" />
+        <h4 className="mb-2 text-lg font-semibold text-brand-navy">
+          {siteContent.booking.heading}
+        </h4>
         <p className="mt-2 text-sm text-neutral-600">
           {siteContent.booking.subheading}
         </p>

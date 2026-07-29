@@ -20,8 +20,9 @@ export function Footer() {
           </p>
         )}
         <p className="mt-0.5 text-base font-medium text-white/70">{footer.tagline}</p>
+        <p className="mt-2 text-sm text-white/40">{footer.supporting_line}</p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
           <a
             href={`mailto:${footer.support_email}`}
             className="transition-colors hover:text-brand-aqua-light"

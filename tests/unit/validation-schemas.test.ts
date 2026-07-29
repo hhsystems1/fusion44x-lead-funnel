@@ -40,8 +40,8 @@ describe("installationTypeSchema", () => {
 
 describe("poolSizeSchema", () => {
   it("accepts valid pool size codes", () => {
-    expect(poolSizeSchema.safeParse("under_10000").success).toBe(true);
-    expect(poolSizeSchema.safeParse("10000_to_20000").success).toBe(true);
+    expect(poolSizeSchema.safeParse("small").success).toBe(true);
+    expect(poolSizeSchema.safeParse("average").success).toBe(true);
     expect(poolSizeSchema.safeParse("not_sure").success).toBe(true);
   });
 
@@ -93,8 +93,8 @@ describe("currentIssuesSchema", () => {
 
 describe("primaryGoalSchema", () => {
   it("accepts valid primary goal codes", () => {
-    expect(primaryGoalSchema.safeParse("reduce_chemicals").success).toBe(true);
-    expect(primaryGoalSchema.safeParse("all_of_the_above").success).toBe(true);
+    expect(primaryGoalSchema.safeParse("family_confidence").success).toBe(true);
+    expect(primaryGoalSchema.safeParse("simpler_routine").success).toBe(true);
   });
 
   it("rejects invalid primary goal codes", () => {
@@ -107,10 +107,10 @@ describe("diagnosticAnswersSchema", () => {
     const result = diagnosticAnswersSchema.safeParse({
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "10000_to_20000",
+      pool_size: "average",
       current_treatment: "chlorine",
       current_issues: ["algae", "cloudy_water"],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     });
     expect(result.success).toBe(true);
   });
@@ -122,7 +122,7 @@ describe("diagnosticAnswersSchema", () => {
       pool_size: "not_sure",
       current_treatment: "salt",
       current_issues: ["algae"],
-      primary_goal: "easier_maintenance",
+      primary_goal: "tired_of_balancing",
     });
     expect(result.success).toBe(true);
   });
@@ -133,7 +133,7 @@ describe("diagnosticAnswersSchema", () => {
       installation_type: "above_ground",
       pool_size: "not_sure",
       current_treatment: "salt",
-      primary_goal: "easier_maintenance",
+      primary_goal: "tired_of_balancing",
     });
     expect(result.success).toBe(false);
   });
@@ -142,10 +142,10 @@ describe("diagnosticAnswersSchema", () => {
     const result = diagnosticAnswersSchema.safeParse({
       water_feature: "pool",
       installation_type: "in_ground",
-      pool_size: "under_10000",
+      pool_size: "small",
       current_treatment: "chlorine",
       current_issues: [],
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     });
     expect(result.success).toBe(false);
   });
@@ -154,9 +154,9 @@ describe("diagnosticAnswersSchema", () => {
     const result = diagnosticAnswersSchema.safeParse({
       water_feature: "invalid",
       installation_type: "in_ground",
-      pool_size: "under_10000",
+      pool_size: "small",
       current_treatment: "chlorine",
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     });
     expect(result.success).toBe(false);
   });
@@ -167,7 +167,7 @@ describe("diagnosticAnswersSchema", () => {
       installation_type: "in_ground",
       // missing pool_size
       current_treatment: "chlorine",
-      primary_goal: "clearer_water",
+      primary_goal: "family_confidence",
     });
     expect(result.success).toBe(false);
   });

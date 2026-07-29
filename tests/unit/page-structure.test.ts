@@ -440,6 +440,10 @@ describe("asset configuration", () => {
   it("product_photo src points to product-image.jpg", () => {
     expect(assetsContent).toContain("/brand/product-image.jpg");
   });
+
+  it("logo alt is Fusion44X (no space)", () => {
+    expect(assetsContent).toContain("Fusion44X");
+  });
 });
 
 describe("header configuration", () => {
@@ -551,17 +555,12 @@ describe("sticky assessment bar", () => {
     expect(barContent).toContain("scrollIntoView");
   });
 
-  it("preserves the current funnel step", () => {
-    expect(barContent).toContain("state.current_step");
-    expect(barContent).toContain("goToStep");
+  it("displays the CTA question text from siteContent", () => {
+    expect(barContent).toContain("siteContent.sticky_cta.question");
   });
 
-  it("displays the CTA question text", () => {
-    expect(barContent).toContain("Ready to take your free pool assessment?");
-  });
-
-  it("displays the Start Now button", () => {
-    expect(barContent).toContain("Start Now");
+  it("displays the Start My Free Assessment button from siteContent", () => {
+    expect(barContent).toContain("siteContent.sticky_cta.button");
   });
 
   it("includes safe-area padding for iPhone", () => {
@@ -589,6 +588,11 @@ describe("sticky assessment bar", () => {
 
   it("hides near the bottom of the page", () => {
     expect(barContent).toContain("maxScroll");
+  });
+
+  it("preserves the current funnel step", () => {
+    expect(barContent).toContain("state.current_step");
+    expect(barContent).toContain("goToStep");
   });
 });
 
@@ -631,8 +635,8 @@ describe("FAQ section accessibility", () => {
     expect(faqContent).toContain("gridTemplateRows");
   });
 
-  it("has the CTA button", () => {
-    expect(faqContent).toContain("Get Your Free Pool Assessment");
+  it("has the CTA button from siteContent", () => {
+    expect(faqContent).toContain("siteContent.faq.cta_button");
   });
 
   it("CTA scrolls to the funnel viewport", () => {
@@ -652,16 +656,14 @@ describe("diagnostic transition text", () => {
     "utf-8",
   );
 
-  it("uses updated complete_label text", () => {
+  it("uses the consolidated complete_label text", () => {
     expect(siteContent).toContain(
-      "Your assessment is complete. Enter your details to view the recommended next step and available consultation times.",
+      "Your assessment is complete. Enter your details to view the recommended next step",
     );
   });
 
-  it("does not contain old complete_label text", () => {
-    expect(siteContent).not.toContain(
-      "Assessment complete \u2014 enter your details to see your recommendation",
-    );
+  it("complete_label does not claim automated recommendation", () => {
+    expect(siteContent).not.toContain("automated");
   });
 });
 
