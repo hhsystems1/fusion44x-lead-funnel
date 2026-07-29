@@ -70,20 +70,12 @@ export function TestimonialsSection() {
                       </svg>
                     </div>
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 pt-8">
-                    <p className="text-xs font-medium text-white">
-                      {siteContent.testimonials.video_label}
-                    </p>
-                  </div>
                 </button>
               )}
             </div>
           ))}
         </div>
 
-        <p className="mt-8 text-center text-sm text-neutral-400">
-          {siteContent.testimonials.placeholder_caption}
-        </p>
       </div>
     </section>
   );
