@@ -41,7 +41,7 @@ export function TestimonialsSection() {
               {playingIndex === i ? (
                 <div className="relative aspect-[9/16] w-full bg-black">
                   <iframe
-                    src={`https://player.vimeo.com/video/${video.src}?autoplay=1&muted=0&controls=1&byline=0&portrait=0&playsinline=1&dnt=1`}
+                    src={`https://player.vimeo.com/video/${video.src}?autoplay=1&muted=0&controls=1&title=0&byline=0&portrait=0&playsinline=1&dnt=1`}
                     className="absolute inset-0 h-full w-full"
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
@@ -71,6 +71,13 @@ export function TestimonialsSection() {
                     </div>
                   </div>
                 </button>
+              )}
+              {video.caption && (
+                <div className="px-3 py-2.5">
+                  <p className="text-center text-xs font-medium text-neutral-700">
+                    {video.caption}
+                  </p>
+                </div>
               )}
             </div>
           ))}

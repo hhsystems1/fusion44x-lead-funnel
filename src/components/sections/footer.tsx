@@ -8,12 +8,14 @@ export function Footer() {
     <footer className="w-full border-t border-neutral-200 bg-brand-navy px-5 py-10 sm:px-6 md:px-8">
       <div className="mx-auto max-w-5xl text-center">
         {assets.logo.src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={assets.logo.src}
-            alt={assets.logo.alt}
-            className="mx-auto h-auto max-w-[100px] w-auto object-contain sm:max-w-[130px]"
-          />
+          <div className="mx-auto w-16 sm:w-24">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={assets.logo.src}
+              alt={assets.logo.alt}
+              className="h-auto w-auto max-w-full object-contain"
+            />
+          </div>
         ) : (
           <p className="text-sm font-bold tracking-tight text-white">
             {siteContent.company.name}

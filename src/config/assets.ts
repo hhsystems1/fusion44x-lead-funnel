@@ -35,7 +35,7 @@ export const assets = {
       thumbnail:
         "https://i.vimeocdn.com/video/2000312141-f5f2522d5cd2e412e19feeb8da2396226fe2ec140f7385056bba31734d88120a-d_640?region=us",
       customer_name: null,
-      caption: null,
+      caption: "Carlos, Miami Beach",
       placeholder: "Customer Story Video Placeholder",
     },
     {
@@ -43,7 +43,7 @@ export const assets = {
       thumbnail:
         "https://i.vimeocdn.com/video/2010396448-1d8c70cd2edf046a24732cf822107a1ee6cd178f5161ab16aa9aaa28d59c9d11-d_640?region=us",
       customer_name: null,
-      caption: null,
+      caption: "Bryan, Arizona",
       placeholder: "Customer Story Video Placeholder",
     },
     {
@@ -51,7 +51,7 @@ export const assets = {
       thumbnail:
         "https://i.vimeocdn.com/video/2007836280-7bcf052dbdac6f6eee1254a6bb6ef4002e901d53be4a749276f160c1f08b99dc-d_640?region=us",
       customer_name: null,
-      caption: null,
+      caption: "Geoff, California",
       placeholder: "Customer Story Video Placeholder",
     },
   ],
