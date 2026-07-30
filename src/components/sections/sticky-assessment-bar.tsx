@@ -13,7 +13,15 @@ export function StickyAssessmentBar() {
     const onScroll = () => {
       const scrollY = window.scrollY;
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      setVisible(scrollY > 5 && scrollY < maxScroll - 120);
+
+      const funnelEl = document.getElementById("funnel-viewport");
+      let funnelInView = false;
+      if (funnelEl) {
+        const rect = funnelEl.getBoundingClientRect();
+        funnelInView = rect.top < window.innerHeight && rect.bottom > 0;
+      }
+
+      setVisible(scrollY > 5 && scrollY < maxScroll - 120 && !funnelInView);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });

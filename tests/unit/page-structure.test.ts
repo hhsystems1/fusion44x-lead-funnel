@@ -586,6 +586,11 @@ describe("sticky assessment bar", () => {
     expect(barContent).toContain("maxScroll");
   });
 
+  it("hides when the assessment section is in the viewport", () => {
+    expect(barContent).toContain("funnel-viewport");
+    expect(barContent).toContain("getBoundingClientRect");
+  });
+
   it("preserves the current funnel step", () => {
     expect(barContent).toContain("state.current_step");
     expect(barContent).toContain("goToStep");
