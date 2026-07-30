@@ -59,7 +59,7 @@ export function ProblemCycleSection() {
 
   return (
     <section
-      className="w-full bg-white px-5 py-16 sm:px-6 sm:py-20 md:px-8"
+      className="w-full bg-white px-4 py-16 sm:px-6 sm:py-20 md:px-8"
       aria-labelledby="problem-cycle-heading"
     >
       <div className="mx-auto max-w-5xl">
@@ -100,13 +100,13 @@ export function ProblemCycleSection() {
         </div>
 
         <div className="mt-14">
-          <div className="rounded-xl border border-neutral-200 bg-brand-surface/50 p-6 sm:p-8">
+          <div className="rounded-xl border border-neutral-200 bg-brand-surface/50 p-4 sm:p-8">
             <h3 className="text-center text-lg font-semibold text-brand-navy sm:text-xl">
               The Traditional Chemical Cycle
             </h3>
 
             <div className="mx-auto mt-2 w-full max-w-[460px] sm:max-w-[560px]">
-              <div className="relative" style={{ aspectRatio: '500/340' }}>
+              <div className="relative" style={{ aspectRatio: '500/350' }}>
                 <span className="sr-only">
                   Traditional chemical cycle:{" "}
                   {chemical_cycle_steps.join(" → ")}.{" "}
@@ -162,7 +162,7 @@ export function ProblemCycleSection() {
 
                   return (
                     <svg
-                      viewBox="0 80 500 340"
+                      viewBox="0 75 500 350"
                       className="w-full h-auto"
                       aria-hidden="true"
                     >
@@ -236,7 +236,7 @@ export function ProblemCycleSection() {
                   const Icon = stepIconMap[step];
                   const N = chemical_cycle_steps.length;
                   const CX = 250, CY = 250;
-                  const INNER_R = 86, OUTER_R = 140;
+                  const INNER_R = 80, OUTER_R = 145;
                   const center = -90 + i * 360 / N;
                   const cR = center * Math.PI / 180;
                   const cX = CX + (INNER_R + OUTER_R) / 2 * Math.cos(cR);
@@ -248,16 +248,16 @@ export function ProblemCycleSection() {
                       className="pointer-events-none absolute select-none"
                       style={{
                         left: `${(cX / 500) * 100}%`,
-                        top: `${((cY - 80) / 340) * 100}%`,
+                        top: `${((cY - 75) / 350) * 100}%`,
                         transform: "translate(-50%, -50%)",
                       }}
                     >
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] font-bold leading-none text-brand-navy">
+                        <span className="text-[8px] font-bold leading-none text-brand-navy sm:text-[10px]">
                           {i + 1}
                         </span>
-                        <Icon className="h-5 w-5 text-brand-aqua" />
-                        <span className="whitespace-nowrap text-[11px] font-semibold text-brand-navy">
+                        <Icon className="h-3.5 w-3.5 text-brand-aqua sm:h-5 sm:w-5" />
+                        <span className="whitespace-nowrap text-[9px] font-semibold text-brand-navy sm:text-[11px]">
                           {step}
                         </span>
                       </div>
