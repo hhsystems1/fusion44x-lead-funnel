@@ -31,7 +31,7 @@ const initialForm: FormState = {
 };
 
 export function ContactStage() {
-  const { state, submitContact } = useFunnel();
+  const { state, dispatch, submitContact } = useFunnel();
   const [form, setForm] = useState<FormState>(initialForm);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -89,7 +89,18 @@ export function ContactStage() {
 
   if (state.submission_state === "error") {
     return (
-      <ErrorMessage message="Something went wrong. Please try again later." />
+      <div className="space-y-4">
+        <ErrorMessage message="Something went wrong. Please try again later." />
+        <div className="text-center">
+          <CtaButton
+            variant="primary"
+            size="lg"
+            onClick={() => dispatch({ type: "CLEAR_SUBMISSION_ERROR" })}
+          >
+            Try Again
+          </CtaButton>
+        </div>
+      </div>
     );
   }
 

@@ -24,6 +24,7 @@ export type FunnelAction =
   | { type: "CONTACT_SUBMIT_ERROR" }
   | { type: "SET_VALIDATION_ERRORS"; errors: Record<string, string> }
   | { type: "CLEAR_VALIDATION_ERRORS" }
+  | { type: "CLEAR_SUBMISSION_ERROR" }
   | { type: "COMPLETE_STEP"; step: FunnelStepId }
   | { type: "RESET" }
   | { type: "COMPLETE_DIAGNOSTIC" }
@@ -172,6 +173,13 @@ export function funnelReducer(
 
     case "CLEAR_VALIDATION_ERRORS":
       return { ...state, validation_errors: {} };
+
+    case "CLEAR_SUBMISSION_ERROR":
+      return {
+        ...state,
+        submission_state: "idle" as SubmissionState,
+        validation_errors: {},
+      };
 
     case "COMPLETE_STEP":
       if (state.completed_steps.includes(action.step)) return state;

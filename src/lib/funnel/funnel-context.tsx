@@ -401,9 +401,21 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
   const submitContact = useCallback(
     async (data: ContactFormData) => {
-      if (!state.session_id) {
-        dispatch({ type: "CONTACT_SUBMIT_ERROR" });
-        return;
+      let sessionId = state.session_id;
+
+      if (!sessionId) {
+        const retried = await initializeSession();
+        if (retried) {
+          sessionId = retried.session_id;
+          dispatch({ type: "SET_SESSION", session_id: sessionId });
+          if (!tracker) {
+            const t = createTracker({ session_id: sessionId });
+            setTracker(t);
+          }
+        } else {
+          dispatch({ type: "CONTACT_SUBMIT_ERROR" });
+          return;
+        }
       }
 
       const validation = validateContactForm(data as unknown as Record<string, unknown>);
@@ -420,20 +432,40 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
       dispatch({ type: "CONTACT_SUBMIT_START" });
 
+      const da = state.diagnostic_answers;
+      if (
+        !da.water_feature ||
+        !da.installation_type ||
+        !da.pool_size ||
+        !da.current_treatment ||
+        !da.current_issues ||
+        da.current_issues.length === 0 ||
+        !da.primary_goal
+      ) {
+        console.warn("[submitContact] diagnostic answers incomplete", da);
+        dispatch({ type: "CONTACT_SUBMIT_ERROR" });
+        return;
+      }
+
       if (tracker) {
         tracker.track(InternalEvents.CONTACT_SUBMITTED, {
           step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
         });
       }
 
-      const metaEventId = crypto.randomUUID();
+      let metaEventId: string;
+      try {
+        metaEventId = crypto.randomUUID();
+      } catch {
+        metaEventId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      }
       fbqTrack(MetaEvents.CONTACT, metaEventId, {
         content_name: "Lead Contact Form",
       });
 
       try {
         const payload = buildLeadPayload({
-          session_id: state.session_id,
+          session_id: sessionId,
           event_id: metaEventId,
           first_name: data.first_name,
           last_name: data.last_name,
@@ -463,9 +495,14 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
           dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.BOOKING });
           saveBookingStep(FUNNEL_STEPS.BOOKING);
         } else {
+          console.warn(
+            "[submitContact] API returned non-ok status=%d",
+            result.status,
+          );
           dispatch({ type: "CONTACT_SUBMIT_ERROR" });
         }
-      } catch {
+      } catch (err) {
+        console.warn("[submitContact] network error", err);
         dispatch({ type: "CONTACT_SUBMIT_ERROR" });
       }
     },
