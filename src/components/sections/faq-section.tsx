@@ -119,7 +119,7 @@ export function FaqSection() {
           ))}
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-10 rounded-xl border border-neutral-200 bg-brand-surface/50 px-6 py-8 text-center shadow-sm sm:px-10 sm:py-10">
           <h3 className="text-lg font-semibold text-brand-navy">
             {siteContent.faq.cta_heading}
           </h3>

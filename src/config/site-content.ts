@@ -258,6 +258,7 @@ export const siteContent = {
   },
   sticky_cta: {
     question: "Ready for water you can feel better about?",
+    question_mobile: "Need better pool water?",
     button: "Start My Free Assessment",
   },
   footer: {

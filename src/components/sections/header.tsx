@@ -68,7 +68,7 @@ export function Header() {
 
           <button
             onClick={handleScheduleClick}
-            className="inline-flex items-center justify-center rounded-lg bg-brand-aqua px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua sm:px-5 sm:py-2.5 sm:text-sm"
+            className="inline-flex items-center justify-center rounded-lg bg-brand-aqua px-2 py-1 text-[11px] font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua sm:px-5 sm:py-2.5 sm:text-sm"
           >
             Schedule a Call
           </button>

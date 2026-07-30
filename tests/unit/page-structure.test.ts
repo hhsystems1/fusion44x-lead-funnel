@@ -329,7 +329,7 @@ describe("how fusion44x works product section", () => {
   it("has SVG connector lines with numbered markers on desktop", () => {
     expect(hiwContent).toContain("<polyline");
     expect(hiwContent).toContain("markers");
-    expect(hiwContent).toContain('viewBox="0 0 734 1028"');
+    expect(hiwContent).toContain('viewBox="0 0 1024 1024"');
   });
 
   it("SVG overlay is hidden on mobile", () => {
@@ -376,10 +376,6 @@ describe("next step section (renamed from how it works)", () => {
     expect(nextStepContent).not.toContain("How It Works");
   });
 
-  it("CTA is from config", () => {
-    expect(nextStepContent).toContain("siteContent.next_step.cta");
-    expect(siteContent).toContain("Start My Free Assessment");
-  });
 });
 
 describe("brand assets", () => {

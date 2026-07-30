@@ -27,12 +27,12 @@ interface Marker {
 }
 
 const markers: Marker[] = [
-  { number: 1, x: 267, y: 137 },
-  { number: 2, x: 267, y: 291 },
-  { number: 3, x: 86, y: 492 },
-  { number: 4, x: 474, y: 197 },
-  { number: 5, x: 330, y: 800 },
-  { number: 6, x: 267, y: 1001 },
+  { number: 1, x: 438, y: 52 },
+  { number: 2, x: 535, y: 52 },
+  { number: 3, x: 635, y: 52 },
+  { number: 4, x: 232, y: 631 },
+  { number: 5, x: 555, y: 375 },
+  { number: 6, x: 790, y: 375 },
 ];
 
 function useIntersectionAnimation(
@@ -105,8 +105,8 @@ export function HowFusion44xWorksSection() {
               <Image
                 src={assets.how_it_works_diagram.src}
                 alt={assets.how_it_works_diagram.alt}
-                width={734}
-                height={1028}
+                width={1024}
+                height={1024}
                 className="w-full h-auto rounded-xl"
               />
             ) : (
@@ -116,7 +116,7 @@ export function HowFusion44xWorksSection() {
             )}
 
             <svg
-              viewBox="0 0 734 1028"
+              viewBox="0 0 1024 1024"
               className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
               aria-hidden="true"
             >

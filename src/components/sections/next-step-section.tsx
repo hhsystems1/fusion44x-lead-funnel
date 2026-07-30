@@ -1,21 +1,6 @@
-"use client";
-
-import { useCallback } from "react";
 import { siteContent } from "@/config/site-content";
-import { useFunnel } from "@/lib/funnel/funnel-context";
-import { CtaButton } from "@/components/ui/cta-button";
 
 export function NextStepSection() {
-  const { goToStep } = useFunnel();
-
-  const handleCta = useCallback(() => {
-    goToStep("pool-diagnostic");
-    setTimeout(() => {
-      const el = document.getElementById("funnel-viewport");
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  }, [goToStep]);
-
   const { steps } = siteContent.next_step;
 
   return (
@@ -56,12 +41,6 @@ export function NextStepSection() {
               </p>
             </div>
           ))}
-        </div>
-
-        <div className="mt-10 text-center">
-          <CtaButton size="lg" onClick={handleCta}>
-            {siteContent.next_step.cta}
-          </CtaButton>
         </div>
       </div>
     </section>
