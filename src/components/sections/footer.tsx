@@ -9,13 +9,13 @@ export function Footer() {
     <footer className="w-full border-t border-neutral-200 bg-brand-navy px-5 py-10 sm:px-6 md:px-8">
       <div className="mx-auto max-w-5xl text-center">
         {assets.logo.src ? (
-          <div className="mx-auto w-[300px]">
+          <div className="mx-auto flex justify-center w-full max-w-[200px]">
             <Image
               src={assets.logo.src}
               alt={assets.logo.alt}
               width={2048}
               height={469}
-              className="h-auto w-auto max-w-full object-contain"
+              className="h-auto w-full object-contain"
             />
           </div>
         ) : (
