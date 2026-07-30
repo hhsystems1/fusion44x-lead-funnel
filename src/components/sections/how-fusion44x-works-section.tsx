@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import {
+  Award,
   Droplets,
   Gauge,
   Pipette,
@@ -18,6 +19,7 @@ const factIcons = [
   Timer,
   Shield,
   Pipette,
+  Award,
 ];
 
 interface Marker {
@@ -181,7 +183,7 @@ export function HowFusion44xWorksSection() {
           </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
           {system_facts.map((fact, i) => {
             const Icon = factIcons[i] ?? null;
             return (

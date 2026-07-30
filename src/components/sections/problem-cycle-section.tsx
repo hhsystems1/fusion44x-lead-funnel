@@ -1,9 +1,25 @@
 "use client";
 
 import { useCallback } from "react";
+import {
+  Beaker,
+  Clock3,
+  Infinity,
+  RefreshCw,
+  RotateCcw,
+  TestTube2,
+} from "lucide-react";
 import { siteContent } from "@/config/site-content";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { CtaButton } from "@/components/ui/cta-button";
+
+const stepIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Test: TestTube2,
+  Add: Beaker,
+  Wait: Clock3,
+  React: RefreshCw,
+  "Test Again": RotateCcw,
+};
 
 function ProblemIcon({ index }: { index: number }) {
   const icons = [
@@ -89,30 +105,166 @@ export function ProblemCycleSection() {
               The Traditional Chemical Cycle
             </h3>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-              {chemical_cycle_steps.map((step, i) => (
-                <div key={i} className="flex items-center gap-2 sm:gap-3">
-                  <span className="inline-flex items-center justify-center rounded-lg bg-brand-aqua/10 px-3 py-1.5 text-sm font-medium text-brand-aqua sm:px-4 sm:py-2">
-                    {step}
-                  </span>
-                  {i < chemical_cycle_steps.length - 1 && (
+            <div className="mx-auto mt-2 w-full max-w-[460px] sm:max-w-[560px]">
+              <div className="relative" style={{ aspectRatio: '500/340' }}>
+                <span className="sr-only">
+                  Traditional chemical cycle:{" "}
+                  {chemical_cycle_steps.join(" → ")}.{" "}
+                  This cycle repeats endlessly.
+                </span>
+
+                {(() => {
+                  const N = chemical_cycle_steps.length;
+                  const CX = 250, CY = 250;
+                  const INNER_R = 80, OUTER_R = 145;
+                  const ARROW_R = 145;
+                  const SEG_DEG = 56, GAP_DEG = 16;
+                  const d2r = (d: number) => (d * Math.PI) / 180;
+
+                  const segs = Array.from({ length: N }, (_, i) => {
+                    const center = -90 + i * 360 / N;
+                    const sA = center - SEG_DEG / 2;
+                    const eA = center + SEG_DEG / 2;
+                    const sR = d2r(sA), eR = d2r(eA);
+
+                    const iSx = CX + INNER_R * Math.cos(sR);
+                    const iSy = CY + INNER_R * Math.sin(sR);
+                    const oSx = CX + OUTER_R * Math.cos(sR);
+                    const oSy = CY + OUTER_R * Math.sin(sR);
+                    const oEx = CX + OUTER_R * Math.cos(eR);
+                    const oEy = CY + OUTER_R * Math.sin(eR);
+                    const iEx = CX + INNER_R * Math.cos(eR);
+                    const iEy = CY + INNER_R * Math.sin(eR);
+
+                    const path = [
+                      `M ${iSx} ${iSy}`,
+                      `L ${oSx} ${oSy}`,
+                      `A ${OUTER_R} ${OUTER_R} 0 0 1 ${oEx} ${oEy}`,
+                      `L ${iEx} ${iEy}`,
+                      `A ${INNER_R} ${INNER_R} 0 0 0 ${iSx} ${iSy}`,
+                      "Z",
+                    ].join(" ");
+
+                    const arrowStart = center + SEG_DEG / 2 + 2;
+                    const arrowEnd = center + SEG_DEG / 2 + GAP_DEG - 2;
+                    const aS = d2r(arrowStart), aE = d2r(arrowEnd);
+                    const aPath = [
+                      `M ${CX + ARROW_R * Math.cos(aS)} ${CY + ARROW_R * Math.sin(aS)}`,
+                      `A ${ARROW_R} ${ARROW_R} 0 0 1 ${CX + ARROW_R * Math.cos(aE)} ${CY + ARROW_R * Math.sin(aE)}`,
+                    ].join(" ");
+
+                    const cR = d2r(center);
+                    const cX = CX + (INNER_R + OUTER_R) / 2 * Math.cos(cR);
+                    const cY = CY + (INNER_R + OUTER_R) / 2 * Math.sin(cR);
+
+                    return { path, aPath, cX, cY };
+                  });
+
+                  return (
                     <svg
-                      className="hidden h-5 w-5 text-neutral-300 sm:block"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                      viewBox="0 80 500 340"
+                      className="w-full h-auto"
                       aria-hidden="true"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
+                      <defs>
+                        <filter id="seg-shadow" x="-10%" y="-10%" width="130%" height="130%">
+                          <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0c1e3a" flood-opacity="0.07" />
+                        </filter>
+                        {segs.map((_, i) => (
+                          <marker
+                            key={i}
+                            id={`a${i}`}
+                            viewBox="0 0 10 10"
+                            refX="8"
+                            refY="5"
+                            markerWidth="7"
+                            markerHeight="7"
+                            orient="auto"
+                          >
+                            <path d="M 0 0 L 9 5 L 0 10 z" fill="#0096ff" />
+                          </marker>
+                        ))}
+                      </defs>
+
+                      {segs.map((seg, i) => (
+                        <path
+                          key={i}
+                          d={seg.path}
+                          fill="#e6f4ff"
+                          stroke="#0096ff"
+                          strokeWidth="1.5"
+                          strokeLinejoin="round"
+                          filter="url(#seg-shadow)"
+                        />
+                      ))}
+
+                      {segs.map((seg, i) => (
+                        <path
+                          key={`a${i}`}
+                          d={seg.aPath}
+                          fill="none"
+                          stroke="#0096ff"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          markerEnd={`url(#a${i})`}
+                        />
+                      ))}
+
+                      <circle
+                        cx={CX}
+                        cy={CY}
+                        r="76"
+                        fill="white"
+                        stroke="#0096ff"
+                        strokeWidth="2.5"
+                        filter="url(#seg-shadow)"
                       />
                     </svg>
-                  )}
+                  );
+                })()}
+
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
+                  <div className="flex flex-col items-center gap-1">
+                    <Infinity className="h-9 w-9 text-brand-aqua" />
+                    <span className="text-center text-xs font-bold leading-snug tracking-wider text-brand-navy">
+                      THE CYCLE<br />NEVER ENDS
+                    </span>
+                  </div>
                 </div>
-              ))}
+
+                {chemical_cycle_steps.map((step, i) => {
+                  const Icon = stepIconMap[step];
+                  const N = chemical_cycle_steps.length;
+                  const CX = 250, CY = 250;
+                  const INNER_R = 86, OUTER_R = 140;
+                  const center = -90 + i * 360 / N;
+                  const cR = center * Math.PI / 180;
+                  const cX = CX + (INNER_R + OUTER_R) / 2 * Math.cos(cR);
+                  const cY = CY + (INNER_R + OUTER_R) / 2 * Math.sin(cR);
+
+                  return (
+                    <div
+                      key={step}
+                      className="pointer-events-none absolute select-none"
+                      style={{
+                        left: `${(cX / 500) * 100}%`,
+                        top: `${((cY - 80) / 340) * 100}%`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-bold leading-none text-brand-navy">
+                          {i + 1}
+                        </span>
+                        <Icon className="h-5 w-5 text-brand-aqua" />
+                        <span className="whitespace-nowrap text-[11px] font-semibold text-brand-navy">
+                          {step}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-neutral-500">

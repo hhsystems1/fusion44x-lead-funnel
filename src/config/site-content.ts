@@ -56,7 +56,7 @@ export const siteContent = {
         text: "When children, family, and friends use the pool, it is natural to want more confidence in the water.",
       },
     ],
-    chemical_cycle_steps: ["Test", "Add", "Wait", "React", "Test Again"],
+    chemical_cycle_steps: ["Add", "Test", "Wait", "React", "Test Again"],
     chemical_examples: [
       "Chlorine",
       "Shock",
@@ -133,6 +133,7 @@ export const siteContent = {
       "Operates with pump runtime",
       "Annual probe replacement",
       "Compatible with many existing pool systems",
+      "Real lifetime warranty",
     ],
   },
   next_step: {
