@@ -28,11 +28,11 @@ interface Marker {
 
 const markers: Marker[] = [
   { number: 1, x: 333, y: 308 },
-  { number: 2, x: 333, y: 538 },
+  { number: 2, x: 383, y: 538 },
   { number: 3, x: 283, y: 738 },
-  { number: 4, x: 685, y: 333 },
+  { number: 4, x: 685, y: 280 },
   { number: 5, x: 685, y: 573 },
-  { number: 6, x: 790, y: 573 },
+  { number: 6, x: 830, y: 573 },
 ];
 
 function useIntersectionAnimation(
