@@ -40,6 +40,7 @@ import { submitLead as submitLeadApi, buildLeadPayload } from "./api";
 import { validateContactForm, type ContactFormData } from "./contact-validation";
 import { diagnosticQuestions } from "@/config/funnel-questions";
 import { createBookingRequest } from "./booking-api";
+import { MetaEvents } from "@/config/tracking-events";
 
 interface FunnelContextValue {
   state: FunnelState;
@@ -58,6 +59,16 @@ interface FunnelContextValue {
   selectSlot: (start: string, end: string) => void;
   submitBooking: (event_id: string) => Promise<void>;
   resetFunnel: () => void;
+}
+
+function fbqTrack(
+  event: string,
+  eventId: string,
+  params?: Record<string, unknown>,
+) {
+  if (typeof window !== "undefined" && typeof window.fbq === "function") {
+    window.fbq("track", event, params, { eventID: eventId });
+  }
 }
 
 function isDiagnosticComplete(answers: DiagnosticAnswers | null): boolean {
@@ -415,9 +426,15 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      const metaEventId = crypto.randomUUID();
+      fbqTrack(MetaEvents.CONTACT, metaEventId, {
+        content_name: "Lead Contact Form",
+      });
+
       try {
         const payload = buildLeadPayload({
           session_id: state.session_id,
+          event_id: metaEventId,
           first_name: data.first_name,
           last_name: data.last_name,
           email: data.email,
@@ -519,6 +536,10 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
 
       dispatch({ type: "BOOKING_START" });
       bookingCompletedRef.current = true;
+
+      fbqTrack(MetaEvents.SCHEDULE, event_id, {
+        content_name: "Consultation Booking",
+      });
 
       if (tracker) {
         tracker.track(InternalEvents.BOOKING_STARTED, {

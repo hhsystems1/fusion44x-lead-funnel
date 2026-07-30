@@ -19,6 +19,8 @@ import {
   JsonParseError,
 } from "@/lib/server/request-protection";
 import { createBooking } from "@/lib/booking/create-booking";
+import { tryCreateMetaCapiClient, createMetaPayload } from "@/lib/meta";
+import { MetaEvents } from "@/config/tracking-events";
 
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
@@ -218,7 +220,72 @@ export async function POST(request: NextRequest) {
     lead_id,
     appointment_id: result.appointment_id,
   });
+
+  fireMetaScheduleEvent({
+    lead_id,
+    session_id,
+    event_id,
+    request,
+    clientIp,
+  });
+
   return NextResponse.json(result, { status: 201, headers: { "x-request-id": requestId } });
+}
+
+async function fireMetaScheduleEvent(params: {
+  lead_id: string;
+  session_id: string;
+  event_id: string;
+  request: NextRequest;
+  clientIp: string | null;
+}) {
+  const client = tryCreateMetaCapiClient();
+  if (!client) return;
+
+  const clientUserAgent = params.request.headers.get("user-agent") ?? undefined;
+  const supabase = getServerSupabaseClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leadRow: any = await supabase
+    .from("leads")
+    .select("email, phone, first_name, last_name, zip_code")
+    .eq("id", params.lead_id)
+    .single()
+    .then((r) => r.data);
+
+  if (!leadRow) return;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sessionRow: any = await supabase
+    .from("funnel_sessions")
+    .select("fbc, fbp")
+    .eq("id", params.session_id)
+    .single()
+    .then((r) => r.data);
+
+  const payload = createMetaPayload({
+    event_name: MetaEvents.SCHEDULE,
+    event_id: params.event_id,
+    event_source_url: params.request.headers.get("referer") ?? undefined,
+    action_source: "website",
+    customer_info: {
+      email: leadRow.email as string,
+      phone: leadRow.phone as string,
+      first_name: leadRow.first_name as string,
+      last_name: leadRow.last_name as string,
+      zip_code: leadRow.zip_code as string,
+      client_ip_address: params.clientIp ?? undefined,
+      client_user_agent: clientUserAgent,
+      fbc: sessionRow?.fbc as string | undefined,
+      fbp: sessionRow?.fbp as string | undefined,
+    },
+  });
+
+  try {
+    await client.sendEvent(payload);
+  } catch {
+    // CAPI failures must never break the booking flow
+  }
 }
 
 export async function GET() {

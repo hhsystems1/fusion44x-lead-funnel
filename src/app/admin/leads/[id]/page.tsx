@@ -39,6 +39,10 @@ async function LeadDetailContent({ leadId }: { leadId: string }) {
           <p>{lead.zip_code}</p>
         </div>
         <div>
+          <p className="text-xs text-gray-500">Last Name</p>
+          <p>{lead.last_name}</p>
+        </div>
+        <div>
           <p className="text-xs text-gray-500">Created</p>
           <p>{formatDateTime(lead.created_at)}</p>
         </div>
@@ -76,6 +80,18 @@ async function LeadDetailContent({ leadId }: { leadId: string }) {
           <div>
             <p className="text-xs text-gray-500">Primary Goal</p>
             <p>{lead.primary_goal}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Current Issues</p>
+            {lead.current_issues.length > 0 ? (
+              <ul className="list-disc list-inside">
+                {lead.current_issues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-gray-400">—</span>
+            )}
           </div>
         </div>
       </div>

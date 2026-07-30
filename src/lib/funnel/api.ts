@@ -2,6 +2,7 @@ import type { DiagnosticAnswers } from "@/types/funnel";
 
 export interface LeadSubmitPayload {
   session_id: string;
+  event_id?: string;
   contact: {
     first_name: string;
     last_name: string;
@@ -58,10 +59,12 @@ export function buildLeadPayload(params: {
   diagnostic_answers: DiagnosticAnswers;
   marketing_consent: boolean;
   source?: string;
+  event_id?: string;
 }): LeadSubmitPayload {
   const da = params.diagnostic_answers;
   return {
     session_id: params.session_id,
+    event_id: params.event_id,
     contact: {
       first_name: params.first_name,
       last_name: params.last_name,

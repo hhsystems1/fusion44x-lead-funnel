@@ -494,7 +494,7 @@ describe("footer configuration", () => {
   );
 
   it("renders the logo image in the footer", () => {
-    expect(footerContent).toContain("<img");
+    expect(footerContent).toContain("<Image");
     expect(footerContent).toContain("assets.logo.src");
   });
 

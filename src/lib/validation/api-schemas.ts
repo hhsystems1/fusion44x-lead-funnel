@@ -103,6 +103,7 @@ const primaryGoalSchema = z.enum(PRIMARY_GOAL_CODES);
 
 export const leadCreateSchema = z.object({
   session_id: uuidField,
+  event_id: uuidField.optional(),
   contact: z.object({
     first_name: textField(100),
     last_name: textField(100),

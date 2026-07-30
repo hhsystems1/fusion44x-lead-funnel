@@ -242,6 +242,7 @@ const STEP_ORDER = [
   "diagnostic_completed",
   "contact_step_viewed",
   "contact_submitted",
+  "lead_created",
   "calendar_viewed",
   "time_slot_selected",
   "booking_completed",
@@ -648,6 +649,7 @@ export interface LeadDetail extends LeadRow {
   installation_type: string;
   pool_size: string;
   current_treatment: string;
+  current_issues: string[];
   primary_goal: string;
   qualification_summary: string | null;
   consent_to_contact: boolean;
@@ -718,6 +720,26 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
 
   const raw = data as AnyRow;
 
+  const { data: answers } = await db
+    .from("lead_answers")
+    .select("answer_code")
+    .eq("lead_id", leadId)
+    .eq("question_id", "current-issues");
+
+  const currentIssues: string[] = ((answers ?? []) as AnyRow[]).map(
+    (a: AnyRow) => a.answer_code as string,
+  );
+
+  const { data: apptData } = await db
+    .from("appointments")
+    .select("status")
+    .eq("lead_id", leadId)
+    .maybeSingle();
+
+  const appointmentStatus = apptData
+    ? (apptData as AnyRow).status as string
+    : null;
+
   return {
     id: raw.id as string,
     first_name: raw.first_name as string,
@@ -729,12 +751,13 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
     installation_type: raw.installation_type as string,
     pool_size: raw.pool_size as string,
     current_treatment: raw.current_treatment as string,
+    current_issues: currentIssues,
     primary_goal: raw.primary_goal as string,
     qualification_summary: raw.qualification_summary as string | null,
     status: raw.status as string,
     created_at: raw.created_at as string,
     diagnostic_completed: true,
-    appointment_status: null,
+    appointment_status: appointmentStatus,
     consent_to_contact: raw.consent_to_contact as boolean,
     consent_to_contact_at: raw.consent_to_contact_at as string | null,
     marketing_consent: raw.marketing_consent as boolean,

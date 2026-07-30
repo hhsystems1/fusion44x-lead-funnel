@@ -11,6 +11,8 @@ import {
   JsonParseError,
 } from "@/lib/server/request-protection";
 import { mapLeadRpcError } from "@/lib/server/lead-rpc-errors";
+import { tryCreateMetaCapiClient, createMetaPayload } from "@/lib/meta";
+import { MetaEvents } from "@/config/tracking-events";
 
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { session_id, contact, diagnostic, consent, source } = parsed.data;
+  const { session_id, contact, diagnostic, consent, source, event_id } = parsed.data;
 
   const email = normalizeEmail(contact.email);
   const phone = normalizePhone(contact.phone);
@@ -106,10 +108,74 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  fireMetaContactEvent({
+    clientIp,
+    request,
+    event_id,
+    email,
+    phone,
+    first_name: contact.first_name,
+    last_name: contact.last_name,
+    zip_code: contact.zip_code,
+    session_id,
+    supabase,
+  });
+
   return NextResponse.json(
     { success: true, lead_id: leadId },
     { status: 201, headers: { "x-request-id": requestId } },
   );
+}
+
+async function fireMetaContactEvent(params: {
+  clientIp: string | null;
+  request: NextRequest;
+  event_id?: string;
+  email: string;
+  phone: string;
+  first_name: string;
+  last_name: string;
+  zip_code: string;
+  session_id: string;
+  supabase: ReturnType<typeof getServerSupabaseClient>;
+}) {
+  const client = tryCreateMetaCapiClient();
+  if (!client) return;
+
+  const metaEventId = params.event_id ?? crypto.randomUUID();
+  const clientUserAgent = params.request.headers.get("user-agent") ?? undefined;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sessionRow: any = await params.supabase
+    .from("funnel_sessions")
+    .select("fbc, fbp")
+    .eq("id", params.session_id)
+    .single()
+    .then((r) => r.data);
+
+  const payload = createMetaPayload({
+    event_name: MetaEvents.CONTACT,
+    event_id: metaEventId,
+    event_source_url: params.request.headers.get("referer") ?? undefined,
+    action_source: "website",
+    customer_info: {
+      email: params.email,
+      phone: params.phone,
+      first_name: params.first_name,
+      last_name: params.last_name,
+      zip_code: params.zip_code,
+      client_ip_address: params.clientIp ?? undefined,
+      client_user_agent: clientUserAgent,
+      fbc: sessionRow?.fbc as string | undefined,
+      fbp: sessionRow?.fbp as string | undefined,
+    },
+  });
+
+  try {
+    await client.sendEvent(payload);
+  } catch {
+    // CAPI failures must never break the lead creation flow
+  }
 }
 
 export async function GET() {
