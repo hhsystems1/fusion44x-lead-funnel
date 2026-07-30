@@ -9,7 +9,7 @@ export function Footer() {
     <footer className="w-full border-t border-neutral-200 bg-brand-navy px-5 py-10 sm:px-6 md:px-8">
       <div className="mx-auto max-w-5xl text-center">
         {assets.logo.src ? (
-          <div className="mx-auto flex justify-center w-full max-w-[200px]">
+          <div className="mx-auto flex justify-center w-full max-w-[100px]">
             <Image
               src={assets.logo.src}
               alt={assets.logo.alt}
