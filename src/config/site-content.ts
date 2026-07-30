@@ -98,33 +98,33 @@ export const siteContent = {
     callouts: [
       {
         number: 1,
-        title: "Probe Cap",
-        text: "Seals the treatment container and secures the probe assembly.",
+        title: "Treatment Solution Container",
+        text: "Holds a measured amount of muriatic acid solution used in the Hydro-pH-Infusion process.",
       },
       {
         number: 2,
         title: "Fusion44X Probe",
-        text: "The proprietary electrolysis chamber generates hydrogen bubbles while the system operates.",
+        text: "The probe sits in the container and uses electrolysis to help generate negatively charged molecular hydrogen.",
       },
       {
         number: 3,
-        title: "Treatment Container",
-        text: "Holds the required treatment solution for the Hydro-pH-Infusion process.",
+        title: "Hydrogen Infusion Process",
+        text: "As water circulates through the pump and filters, molecular hydrogen is infused into the pool water to help target algae, bacteria, and other contaminants at the source while supporting balanced pH.",
       },
       {
         number: 4,
         title: "Digital Meter and Controller",
-        text: "Displays the system reading and helps monitor operation.",
+        text: "Displays the system reading and helps monitor normal operation.",
       },
       {
         number: 5,
         title: "Pool Equipment Connection",
-        text: "The Fusion44X hardware integrates with compatible existing circulation equipment.",
+        text: "Connects with compatible existing pool plumbing and circulation equipment.",
       },
       {
         number: 6,
-        title: "Pump Runtime",
-        text: "The system operates while the pool pump is running.",
+        title: "Pump and Filter Circulation",
+        text: "The system works while the pool pump and filters are running, treating water during normal circulation.",
       },
     ],
     system_facts: [

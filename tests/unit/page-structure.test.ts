@@ -304,12 +304,12 @@ describe("how fusion44x works product section", () => {
   it("renders all 6 product callouts from config", () => {
     expect(hiwContent).toContain("callouts");
     expect(hiwContent).toContain("siteContent.how_fusion44x_works");
-    expect(siteContent).toContain("Probe Cap");
+    expect(siteContent).toContain("Treatment Solution Container");
     expect(siteContent).toContain("Fusion44X Probe");
-    expect(siteContent).toContain("Treatment Container");
+    expect(siteContent).toContain("Hydrogen Infusion Process");
     expect(siteContent).toContain("Digital Meter and Controller");
     expect(siteContent).toContain("Pool Equipment Connection");
-    expect(siteContent).toContain("Pump Runtime");
+    expect(siteContent).toContain("Pump and Filter Circulation");
   });
 
   it("renders system facts from config", () => {
