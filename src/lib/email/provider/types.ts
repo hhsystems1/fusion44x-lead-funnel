@@ -17,7 +17,6 @@ export interface SendEmailInput {
   text: string;
   replyTo?: string;
   internalDiagnostic?: InternalDiagnosticLabels;
-  followUpDiagnostic?: InternalDiagnosticLabels;
 }
 
 export interface SendEmailResult {
@@ -35,5 +34,4 @@ export interface EmailProvider {
   readonly name: string;
   sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>;
   sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>;
-  sendBookingFollowUp(input: SendEmailInput): Promise<SendEmailResult>;
 }

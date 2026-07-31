@@ -3,7 +3,6 @@ import { Resend } from "resend";
 import type { EmailProvider, SendEmailInput, SendEmailResult } from "./types";
 import { renderBookingConfirmationHtml, renderBookingConfirmationText } from "@/lib/email/templates/booking-confirmation";
 import { renderInternalBookingNotificationHtml, renderInternalBookingNotificationText } from "@/lib/email/templates/internal-booking-notification";
-import { renderBookingFollowUpHtml, renderBookingFollowUpText } from "@/lib/email/templates/booking-followup";
 
 interface ResendSendParams {
   resend: Resend;
@@ -182,36 +181,6 @@ export function createResendEmailProvider(): EmailProvider {
         html,
         text,
         idempotencyKey: `internal-booking-notification-${input.deliveryId}`,
-        replyTo: input.replyTo?.trim() || replyTo,
-      });
-    },
-    async sendBookingFollowUp(input: SendEmailInput): Promise<SendEmailResult> {
-      const subject = `Get Ready for Your Fusion 44X Pool Consultation, ${input.recipientFirstName}`;
-
-      const html = renderBookingFollowUpHtml({
-        recipientFirstName: input.recipientFirstName,
-        confirmedStartTime: input.confirmedStartTime,
-        confirmedEndTime: input.confirmedEndTime,
-        timezone: input.timezone,
-        diagnostic: input.followUpDiagnostic,
-      });
-
-      const text = renderBookingFollowUpText({
-        recipientFirstName: input.recipientFirstName,
-        confirmedStartTime: input.confirmedStartTime,
-        confirmedEndTime: input.confirmedEndTime,
-        timezone: input.timezone,
-        diagnostic: input.followUpDiagnostic,
-      });
-
-      return sendViaResend({
-        resend,
-        fromAddress,
-        to: input.recipientEmail,
-        subject,
-        html,
-        text,
-        idempotencyKey: `booking-followup-${input.deliveryId}`,
         replyTo: input.replyTo?.trim() || replyTo,
       });
     },

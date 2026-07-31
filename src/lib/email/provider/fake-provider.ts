@@ -17,11 +17,5 @@ export function createFakeEmailProvider(): EmailProvider {
       void _input;
       return { messageId: `fake-${crypto.randomUUID()}`, status: "delivered" };
     },
-    async sendBookingFollowUp(
-      _input: SendEmailInput,
-    ): Promise<SendEmailResult> {
-      void _input;
-      return { messageId: `fake-${crypto.randomUUID()}`, status: "delivered" };
-    },
   };
 }

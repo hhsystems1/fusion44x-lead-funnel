@@ -22,11 +22,6 @@ vi.mock("@/lib/email/templates/internal-booking-notification", () => ({
   renderInternalBookingNotificationText: vi.fn(() => "Internal Text"),
 }));
 
-vi.mock("@/lib/email/templates/booking-followup", () => ({
-  renderBookingFollowUpHtml: vi.fn(() => "<html>Follow-up HTML</html>"),
-  renderBookingFollowUpText: vi.fn(() => "Follow-up Text"),
-}));
-
 describe("ResendEmailProvider", () => {
   let provider: ReturnType<typeof import("@/lib/email/provider/resend-provider").createResendEmailProvider>;
 
@@ -352,100 +347,6 @@ describe("ResendEmailProvider", () => {
       expect(internalCall.headers["Idempotency-Key"]).toMatch(/^internal-booking-notification-/);
       expect(customerCall.headers["Idempotency-Key"]).not.toBe(
         internalCall.headers["Idempotency-Key"]
-      );
-    });
-  });
-
-  describe("sendBookingFollowUp success", () => {
-    it("returns normalized result with messageId and status delivered", async () => {
-      mockSend.mockResolvedValue({
-        data: { id: "resend_followup_789" },
-        error: null,
-      });
-
-      const result = await provider.sendBookingFollowUp(validInput);
-
-      expect(result.status).toBe("delivered");
-      expect(result.messageId).toBe("resend_followup_789");
-    });
-
-    it("uses booking-followup-{deliveryId} idempotency key", async () => {
-      mockSend.mockResolvedValue({ data: { id: "msg_1" }, error: null });
-
-      await provider.sendBookingFollowUp(validInput);
-
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          headers: { "Idempotency-Key": "booking-followup-delivery-456" },
-        })
-      );
-    });
-
-    it("passes followUpDiagnostic to the follow-up template renderers", async () => {
-      mockSend.mockResolvedValue({ data: { id: "msg_1" }, error: null });
-
-      const { renderBookingFollowUpHtml, renderBookingFollowUpText } =
-        await import("@/lib/email/templates/booking-followup");
-
-      await provider.sendBookingFollowUp({
-        ...validInput,
-        followUpDiagnostic: {
-          waterFeature: "Pool only",
-          installationType: "In-ground",
-          poolSize: "10,001 – 15,000 gallons",
-          currentTreatment: "Chlorine",
-          primaryGoal: "Eliminate chemicals",
-          currentIssues: ["Algae growth"],
-        },
-      });
-
-      expect(renderBookingFollowUpHtml).toHaveBeenCalledWith(
-        expect.objectContaining({
-          recipientFirstName: "Jane",
-          diagnostic: expect.objectContaining({
-            currentTreatment: "Chlorine",
-          }),
-        })
-      );
-      expect(renderBookingFollowUpText).toHaveBeenCalledWith(
-        expect.objectContaining({
-          diagnostic: expect.objectContaining({
-            currentTreatment: "Chlorine",
-          }),
-        })
-      );
-    });
-
-    it("does not send calendar attachments for the follow-up", async () => {
-      mockSend.mockResolvedValue({ data: { id: "msg_1" }, error: null });
-
-      await provider.sendBookingFollowUp(validInput);
-
-      const call = mockSend.mock.calls[0][0];
-      expect(call).not.toHaveProperty("attachments");
-    });
-  });
-
-  describe("sendBookingFollowUp error handling", () => {
-    it("normalizes 429 rate limit to RATE_LIMITED retryable error", async () => {
-      mockSend.mockResolvedValue({
-        data: null,
-        error: { message: "Rate limit exceeded", statusCode: 429 },
-      });
-
-      await expect(provider.sendBookingFollowUp(validInput)).rejects.toEqual(
-        expect.objectContaining({ code: "RATE_LIMITED", retryable: true })
-      );
-    });
-
-    it("normalizes 401 to INVALID_CONFIG non-retryable error", async () => {
-      mockSend.mockResolvedValue({
-        data: null,
-        error: { message: "Unauthorized", statusCode: 401 },
-      });
-
-      await expect(provider.sendBookingFollowUp(validInput)).rejects.toEqual(
-        expect.objectContaining({ code: "INVALID_CONFIG", retryable: false })
       );
     });
   });

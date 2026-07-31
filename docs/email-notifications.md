@@ -16,17 +16,13 @@ src/lib/email/
 │   └── index.ts               # Re-exports
 ├── templates/
 │   ├── booking-confirmation.ts        # Pure-function HTML + plain-text renderers (customer)
-│   ├── internal-booking-notification.ts  # Pure-function HTML + plain-text renderers (internal)
-│   └── booking-followup.ts            # Pure-function HTML + plain-text renderers (customer follow-up)
+│   └── internal-booking-notification.ts  # Pure-function HTML + plain-text renderers (internal)
 ├── delivery.ts                # Integration_deliveries CRUD for customer email
 ├── notifications.ts           # prepareBookingConfirmation / sendBookingConfirmation (customer)
 ├── internal-delivery.ts       # Integration_deliveries CRUD for internal notification
 ├── internal-notifications.ts  # prepareInternalBookingNotification / sendInternalBookingNotification
 ├── internal-send-input.ts     # Build SendEmailInput for internal notification
 ├── internal-retry.ts          # Retry-safe service for internal notification
-├── follow-up-delivery.ts      # Integration_deliveries CRUD for booking follow-up email
-├── follow-up.ts               # scheduleBookingFollowUp / sendDueBookingFollowUps
-├── follow-up-send-input.ts    # Build SendEmailInput for booking follow-up
 ├── retry.ts                   # Retry-safe service with backoff + code classification (customer)
 └── index.ts                   # Existing file (unchanged scaffolding)
 ```
@@ -40,7 +36,6 @@ Defined in `src/lib/email/provider/types.ts`:
 - `sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>`
 - `sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>`
 - `readonly name: string` — provider identifier
-
 ### SendEmailInput
 
 | Field                | Type     | Description                          |
@@ -306,73 +301,6 @@ The `schedulePendingEmailDelivery()` function is called best-effort from
 `create-booking.ts` step 9, wrapped in a try/catch that never affects the
 booking result.
 
-## Booking Follow-Up Email (automated, ~5 min after confirmation)
-
-A personalized "Get Ready" email is sent to the customer automatically
-**about 5 minutes after** the booking confirmation email. It recaps the
-confirmed date/time and personalizes content from the customer's diagnostic
-answers ("Your Details"). This is a customer-facing email — separate from the
-internal notification.
-
-### Template
-
-File: `src/lib/email/templates/booking-followup.ts`
-
-- Pure functions `renderBookingFollowUpHtml(params)` /
-  `renderBookingFollowUpText(params)`
-- Content: confirmed date/time/duration/timezone, a "Your Details" recap built
-  from readable diagnostic labels, a "What to Expect" section, support contact
-- All user-controlled values HTML-escaped
-- Subject (set in the provider): `Get Ready for Your Fusion 44X Pool Consultation, {firstName}`
-
-### Scheduling
-
-File: `src/lib/email/follow-up.ts`
-
-- `scheduleBookingFollowUp({ appointmentId })` — creates a **pending**
-  `integration_deliveries` record with `event_type = 'booking_followup'` and
-  `next_attempt_at = now + 5 minutes` (idempotent: reuses an existing record)
-- Called best-effort from `create-booking.ts` step 9, right after the
-  confirmation and internal notifications; never affects the booking result
-- New `event_type` requires migration
-  `20260729000100_add_booking_followup_event_type.sql` (extends the
-  `event_type` CHECK constraint and adds a unique partial index
-  `idx_integration_deliveries_booking_followup_unique`)
-
-### Delivery (cron-driven)
-
-- `sendDueBookingFollowUps({ provider })` — lists due pending/failed
-  `booking_followup` deliveries, and for each:
-  1. **Gating**: only sends once the original `booking_confirmation` delivery
-     for the same appointment is `delivered`. If it is still pending/failed it
-     marks the follow-up retryable (retried on a later tick); if it is missing
-     or terminal, the follow-up is marked dead-letter.
-  2. Re-prepares the follow-up (re-fetches appointment + lead + diagnostics,
-     ensures the appointment is still `confirmed`)
-  3. Claims via the existing `claim_email_delivery` RPC (respects
-     `next_attempt_at`), sends via `provider.sendBookingFollowUp`, and marks
-     delivered/failed with the existing RPCs
-- The claim/send/fail path reuses the same state machine and backoff logic as
-  the confirmation and internal emails
-
-### Cron Route
-
-- Route: `GET /api/cron/booking-followups` (`src/app/api/cron/booking-followups/route.ts`)
-- Scheduled by `vercel.json` every minute (`* * * * *`), so the actual send
-  lands ~5–6 minutes after booking
-- Protected by a `Bearer` header matching `CRON_SECRET`; returns `401` otherwise
-- No-op `200` when no email provider is configured
-- Vercel Cron requires a paid plan for production
-
-### Idempotency
-
-```
-Idempotency-Key: booking-followup-<deliveryId>
-```
-
-Same rules as the other emails: duplicate calls are idempotent, `delivered` is
-terminal-success, `failed` records remain retryable via backoff.
-
 ## Resend Provider Setup
 
 ### Installation
@@ -414,7 +342,6 @@ The Resend provider uses the **delivery ID** as the Resend `Idempotency-Key` hea
 ```
 Idempotency-Key: booking-confirmation-<deliveryId>          # customer
 Idempotency-Key: internal-booking-notification-<deliveryId>  # internal
-Idempotency-Key: booking-followup-<deliveryId>               # customer follow-up
 ```
 
 This ensures the same logical delivery never produces duplicate sends during
@@ -505,7 +432,6 @@ Set in Vercel/Production:
 | `EMAIL_FROM` | Yes | Verified sender address |
 | `EMAIL_REPLY_TO` | No | Optional reply-to address |
 | `INTERNAL_BOOKING_NOTIFICATION_TO` | No | Internal notification recipient (e.g. support@...) |
-| `CRON_SECRET` | No | Authorizes the `/api/cron/booking-followups` route (required for the follow-up cron) |
 
 ### How to Disable Sending Safely
 
@@ -526,7 +452,6 @@ EMAIL_FROM=consultations@fusion44x.com
 EMAIL_REPLY_TO=consultations@fusion44x.com
 EMAIL_API_KEY=re_xxxxxxxxxxxx  # provider-specific
 INTERNAL_BOOKING_NOTIFICATION_TO=support@fusion44x.com
-CRON_SECRET=<long random string>  # required for the follow-up cron route
 ```
 
 ### Implementing a Provider
