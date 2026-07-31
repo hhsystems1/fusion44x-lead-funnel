@@ -13,7 +13,7 @@ export const assets = {
     placeholder: "Hero Product Image",
   },
   hero_video: {
-    src: "BY2L2uy3hH0",
+    src: "/brand/hero-loop-video.mp4",
     placeholder: "Hero Video",
   },
   product_photo: {

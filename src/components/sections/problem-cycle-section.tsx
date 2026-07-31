@@ -8,6 +8,7 @@ import {
   RefreshCw,
   RotateCcw,
   TestTube2,
+  X,
 } from "lucide-react";
 import { siteContent } from "@/config/site-content";
 import { useFunnel } from "@/lib/funnel/funnel-context";
@@ -252,12 +253,12 @@ export function ProblemCycleSection() {
                         transform: "translate(-50%, -50%)",
                       }}
                     >
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[8px] font-bold leading-none text-brand-navy sm:text-[10px]">
+                      <div className="flex flex-col items-center gap-0.5 max-w-[48px] sm:max-w-none">
+                        <span className="text-[7px] font-bold leading-none text-brand-navy sm:text-[10px]">
                           {i + 1}
                         </span>
-                        <Icon className="h-3.5 w-3.5 text-brand-aqua sm:h-5 sm:w-5" />
-                        <span className="text-[8px] font-semibold leading-tight text-brand-navy sm:text-[11px]">
+                        <Icon className="h-3 w-3 text-brand-aqua sm:h-5 sm:w-5" />
+                        <span className="text-[7px] font-semibold leading-tight text-brand-navy sm:text-[11px]">
                           {step}
                         </span>
                       </div>
@@ -270,7 +271,7 @@ export function ProblemCycleSection() {
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-neutral-500">
               {chemical_examples.map((ex, i) => (
                 <span key={i} className="inline-flex items-center gap-1">
-                  <span className="h-1 w-1 rounded-full bg-neutral-300" />
+                  <X className="h-3 w-3 text-red-500" strokeWidth={2.5} />
                   {ex}
                 </span>
               ))}
