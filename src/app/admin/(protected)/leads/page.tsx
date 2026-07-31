@@ -7,9 +7,43 @@ import { LeadStageSelect } from "@/components/admin/lead-stage-select";
 import {
   getLeadsList,
   type DateFilter as DF,
+  type LeadRow,
 } from "@/lib/admin/queries";
-import { parseFilterParams, formatDateTime, maskEmail, maskPhone } from "../utils";
-import { answerLabel } from "@/lib/funnel/answer-labels";
+import { parseFilterParams, formatDateTime } from "../utils";
+import { answerLabel, answerLabels } from "@/lib/funnel/answer-labels";
+
+function DiagnosticSummary({ lead }: { lead: LeadRow }) {
+  const hasDiagnostic =
+    lead.water_feature ||
+    lead.installation_type ||
+    lead.pool_size ||
+    lead.current_treatment ||
+    lead.primary_goal ||
+    lead.current_issues.length > 0;
+
+  if (!hasDiagnostic) {
+    return <span className="text-gray-400">No diagnostic yet</span>;
+  }
+
+  const setup = [
+    answerLabel("water-feature", lead.water_feature),
+    answerLabel("installation-type", lead.installation_type),
+    answerLabel("pool-size", lead.pool_size),
+  ].filter((value) => value !== "—");
+
+  const treatment = answerLabel("current-treatment", lead.current_treatment);
+  const goal = answerLabel("primary-goal", lead.primary_goal);
+  const issues = answerLabels("current-issues", lead.current_issues);
+
+  return (
+    <div className="text-xs text-gray-600 space-y-0.5">
+      {setup.length > 0 && <div>{setup.join(" · ")}</div>}
+      {treatment !== "—" && <div>{treatment}</div>}
+      {goal !== "—" && <div>{goal}</div>}
+      {issues.length > 0 && <div>{issues.join(", ")}</div>}
+    </div>
+  );
+}
 
 async function LeadsTable({
   filter,
@@ -35,22 +69,13 @@ async function LeadsTable({
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Lead ID
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Name
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Email
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Phone
+                  Lead
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
                   Diagnostic
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Tags
+                  Source
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
                   Stage
@@ -70,34 +95,29 @@ async function LeadsTable({
                   className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
                 >
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/leads/${l.id}`}
-                      className="font-mono text-xs text-brand-aqua hover:underline"
-                    >
-                      {l.id.substring(0, 8)}...
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900">{l.first_name}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {maskEmail(l.email)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {maskPhone(l.phone)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {answerLabel("current-treatment", l.current_treatment)}
-                    {l.primary_goal
-                      ? ` · ${answerLabel("primary-goal", l.primary_goal)}`
-                      : ""}
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/leads/${l.id}`}
+                        className="font-medium text-brand-aqua hover:underline"
+                      >
+                        {l.first_name} {l.last_name}
+                      </Link>
+                      <StatusBadge status={l.status} />
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">{l.email}</div>
+                    <div className="text-xs text-gray-500">
+                      {l.phone || "No phone"}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <TagPill label={l.status} />
+                    <DiagnosticSummary lead={l} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col items-start gap-1">
                       <TagPill label={l.source ?? "direct"} tone="aqua" />
-                      <TagPill
-                        label={`${l.view_count} view${l.view_count === 1 ? "" : "s"}`}
-                        tone="muted"
-                      />
+                      <span className="text-xs text-gray-500">
+                        {l.view_count} view{l.view_count === 1 ? "" : "s"}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -118,7 +138,7 @@ async function LeadsTable({
               {result.leads.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={6}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     No leads found for this date range.

@@ -632,6 +632,7 @@ export async function getFunnelReport(
 export interface LeadRow {
   id: string;
   first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   status: string;
@@ -642,8 +643,12 @@ export interface LeadRow {
   created_at: string;
   diagnostic_completed: boolean;
   appointment_status: string | null;
+  water_feature: string;
+  installation_type: string;
+  pool_size: string;
   current_treatment: string;
   primary_goal: string;
+  current_issues: string[];
 }
 
 export interface LeadDetail extends LeadRow {
@@ -676,7 +681,7 @@ export async function getLeadsList(
 
   const { data, count } = await db
     .from("leads")
-    .select("id, first_name, email, phone, status, source, stage, lead_origin, created_at, session_id, current_treatment, primary_goal", { count: "exact" })
+    .select("id, first_name, last_name, email, phone, status, source, stage, lead_origin, created_at, session_id, water_feature, installation_type, pool_size, current_treatment, primary_goal", { count: "exact" })
     .gte("created_at", fromISO)
     .lte("created_at", toISO)
     .order("created_at", { ascending: false })
@@ -691,6 +696,9 @@ export async function getLeadsList(
     (l: AnyRow) => l.session_id as string | null,
   );
   const viewCounts: Record<string, number> = {};
+
+  // Get current-issues answers (multi-select, stored in lead_answers)
+  const issuesByLead: Record<string, string[]> = {};
 
   if (leadIds.length > 0) {
     const apptPromise = db
@@ -709,9 +717,16 @@ export async function getLeadsList(
           )
       : Promise.resolve({ data: [] });
 
-    const [apptResult, viewResult] = await Promise.all([
+    const issuesPromise = db
+      .from("lead_answers")
+      .select("lead_id, answer_code")
+      .eq("question_id", "current-issues")
+      .in("lead_id", leadIds);
+
+    const [apptResult, viewResult, issuesResult] = await Promise.all([
       apptPromise,
       viewPromise,
+      issuesPromise,
     ]);
 
     for (const a of (apptResult.data ?? []) as AnyRow[]) {
@@ -721,11 +736,18 @@ export async function getLeadsList(
       const sid = ev.session_id as string;
       viewCounts[sid] = (viewCounts[sid] ?? 0) + 1;
     }
+    for (const ans of (issuesResult.data ?? []) as AnyRow[]) {
+      const lid = ans.lead_id as string;
+      const code = ans.answer_code as string;
+      if (!issuesByLead[lid]) issuesByLead[lid] = [];
+      issuesByLead[lid].push(code);
+    }
   }
 
   const leads: LeadRow[] = ((data ?? []) as AnyRow[]).map((l: AnyRow) => ({
     id: l.id as string,
     first_name: l.first_name as string,
+    last_name: l.last_name as string,
     email: l.email as string,
     phone: (l.phone as string) ?? "",
     status: l.status as string,
@@ -736,8 +758,12 @@ export async function getLeadsList(
     created_at: l.created_at as string,
     diagnostic_completed: true,
     appointment_status: appointmentStatuses[l.id as string] ?? null,
+    water_feature: (l.water_feature as string) ?? "",
+    installation_type: (l.installation_type as string) ?? "",
+    pool_size: (l.pool_size as string) ?? "",
     current_treatment: (l.current_treatment as string) ?? "",
     primary_goal: (l.primary_goal as string) ?? "",
+    current_issues: issuesByLead[l.id as string] ?? [],
   }));
 
   return { leads, total: count ?? 0, page, pageSize };
@@ -1086,20 +1112,27 @@ export async function exportLeadsCsv(filter: DateFilter): Promise<string> {
   const columns = [
     "id",
     "first_name",
+    "last_name",
     "email",
     "phone",
     "status",
     "source",
     "stage",
+    "lead_origin",
+    "water_feature",
+    "installation_type",
+    "pool_size",
+    "current_treatment",
+    "primary_goal",
+    "current_issues",
     "view_count",
-    "created_at",
     "appointment_status",
+    "created_at",
   ];
   return toCsv(
     result.leads.map((l) => ({
       ...l,
-      email: l.email ? `${l.email.substring(0, 3)}***@***` : "",
-      phone: l.phone ? "***-***-" + l.phone.slice(-4) : "",
+      current_issues: l.current_issues.join("; "),
     })),
     columns,
   );
