@@ -224,9 +224,9 @@ export function ProblemCycleSection() {
                 })()}
 
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
-                  <div className="flex flex-col items-center gap-1">
-                    <Infinity className="h-9 w-9 text-brand-aqua" />
-                    <span className="text-center text-xs font-bold leading-snug tracking-wider text-brand-navy">
+                  <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                    <Infinity className="h-5 w-5 text-brand-aqua sm:h-9 sm:w-9" />
+                    <span className="text-center text-[7px] font-bold leading-tight tracking-wider text-brand-navy sm:text-xs sm:leading-snug">
                       THE CYCLE<br />NEVER ENDS
                     </span>
                   </div>
@@ -257,7 +257,7 @@ export function ProblemCycleSection() {
                           {i + 1}
                         </span>
                         <Icon className="h-3.5 w-3.5 text-brand-aqua sm:h-5 sm:w-5" />
-                        <span className="whitespace-nowrap text-[9px] font-semibold text-brand-navy sm:text-[11px]">
+                        <span className="text-[8px] font-semibold leading-tight text-brand-navy sm:text-[11px]">
                           {step}
                         </span>
                       </div>
