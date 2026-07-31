@@ -119,7 +119,7 @@ export function HowFusion44xWorksSection() {
 
             <svg
               viewBox="0 0 1024 1024"
-              className="pointer-events-none absolute inset-0 hidden h-full w-full md:block"
+              className="pointer-events-none absolute inset-0 block h-full w-full"
               aria-hidden="true"
             >
               {markers.map((m) => (

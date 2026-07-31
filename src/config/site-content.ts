@@ -98,13 +98,13 @@ export const siteContent = {
     callouts: [
       {
         number: 1,
-        title: "Treatment Solution Container",
-        text: "Holds a measured amount of muriatic acid solution used in the Hydro-pH-Infusion process.",
+        title: "Fusion44X Probe",
+        text: "The probe sits in the container and uses electrolysis to help generate negatively charged molecular hydrogen.",
       },
       {
         number: 2,
-        title: "Fusion44X Probe",
-        text: "The probe sits in the container and uses electrolysis to help generate negatively charged molecular hydrogen.",
+        title: "Treatment Solution Container",
+        text: "Holds a measured amount of muriatic acid solution used in the Hydro-pH-Infusion process.",
       },
       {
         number: 3,

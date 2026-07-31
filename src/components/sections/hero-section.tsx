@@ -65,8 +65,8 @@ export function HeroSection() {
             {assets.hero_video.src ? (
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
                 <iframe
-                  src={`https://www.youtube.com/embed/${assets.hero_video.src}?autoplay=1&loop=1&mute=1&controls=0&playlist=${assets.hero_video.src}`}
-                  className="absolute inset-0 h-full w-full"
+                  src={`https://www.youtube.com/embed/${assets.hero_video.src}?autoplay=1&loop=1&mute=1&controls=0&playlist=${assets.hero_video.src}&modestbranding=1&disablekb=1&rel=0`}
+                  className="pointer-events-none absolute inset-0 h-full w-full"
                   allow="autoplay; fullscreen"
                 />
               </div>
