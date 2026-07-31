@@ -640,10 +640,49 @@ describe("Internal notification HTML template rendering", () => {
     expect(html).not.toContain("open-tracking");
   });
 
-  it("contains no diagnostic answers", () => {
+  it("renders diagnostic labels when provided", () => {
+    const html = renderInternalBookingNotificationHtml({
+      ...internalParams,
+      diagnostic: {
+        waterFeature: "Pool only",
+        installationType: "In-ground",
+        poolSize: "Small",
+        currentTreatment: "Chlorine",
+        primaryGoal: "I want to eliminate chlorine, salt, and harsh chemicals",
+        currentIssues: ["Skin or eye irritation", "Algae growth"],
+      },
+    });
+    expect(html).toContain("Pool Diagnostic");
+    expect(html).toContain("Pool only");
+    expect(html).toContain("In-ground");
+    expect(html).toContain("Chlorine");
+    expect(html).toContain(
+      "I want to eliminate chlorine, salt, and harsh chemicals",
+    );
+    expect(html).toContain("Skin or eye irritation");
+    expect(html).toContain("Algae growth");
+  });
+
+  it("omits diagnostic section when not provided", () => {
     const html = renderInternalBookingNotificationHtml(internalParams);
-    expect(html).not.toContain("diagnostic");
-    expect(html).not.toContain("pool_size");
+    expect(html).not.toContain("Pool Diagnostic");
+  });
+
+  it("escapes HTML in diagnostic labels", () => {
+    const html = renderInternalBookingNotificationHtml({
+      ...internalParams,
+      diagnostic: {
+        waterFeature: '<script>alert(1)</script>',
+        installationType: "In-ground",
+        poolSize: "Small",
+        currentTreatment: "Chlorine",
+        primaryGoal: "Goal",
+        currentIssues: ["<b>bold</b>"],
+      },
+    });
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>bold</b>");
+    expect(html).toContain("&lt;script&gt;");
   });
 
   it("has internal notification title", () => {
@@ -712,6 +751,30 @@ describe("Internal notification plain-text template rendering", () => {
     const text = renderInternalBookingNotificationText(internalParams);
     expect(text).toContain("Tuesday, July 28, 2026");
     expect(text).toContain("10:00 AM");
+  });
+
+  it("renders diagnostic lines when provided", () => {
+    const text = renderInternalBookingNotificationText({
+      ...internalParams,
+      diagnostic: {
+        waterFeature: "Pool only",
+        installationType: "In-ground",
+        poolSize: "Small",
+        currentTreatment: "Chlorine",
+        primaryGoal: "I want to eliminate chlorine, salt, and harsh chemicals",
+        currentIssues: ["Skin or eye irritation", "Algae growth"],
+      },
+    });
+    expect(text).toContain("Pool Diagnostic");
+    expect(text).toContain("Water Feature:     Pool only");
+    expect(text).toContain("Installation Type: In-ground");
+    expect(text).toContain("Chlorine");
+    expect(text).toContain("Skin or eye irritation, Algae growth");
+  });
+
+  it("omits diagnostic lines when not provided", () => {
+    const text = renderInternalBookingNotificationText(internalParams);
+    expect(text).not.toContain("Pool Diagnostic");
   });
 
   it("contains no calendar links", () => {

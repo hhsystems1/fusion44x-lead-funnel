@@ -140,6 +140,37 @@ export const leadCreateSchema = z.object({
 
 export type LeadCreateInput = z.input<typeof leadCreateSchema>;
 
+export const exitPopupLeadSchema = z.object({
+  session_id: uuidField,
+  event_id: uuidField.optional(),
+  contact: z.object({
+    first_name: textField(100),
+    last_name: textField(100),
+    email: z.string().trim().max(320).email("Invalid email address"),
+    phone: z
+      .string()
+      .trim()
+      .max(30)
+      .regex(
+        /^[\d\s\-().+]*$/,
+        "Phone can only contain digits, spaces, and the characters -().+",
+      )
+      .optional()
+      .default(""),
+    zip_code: optionalTextField(20),
+  }),
+  consent: z.object({
+    consent_to_contact: z
+      .boolean()
+      .refine((val) => val === true, "consent_to_contact must be true"),
+    marketing_consent: z.boolean().default(false),
+    consent_text_version: textField(32),
+  }),
+  source: optionalTextField(128),
+});
+
+export type ExitPopupLeadInput = z.input<typeof exitPopupLeadSchema>;
+
 export function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }

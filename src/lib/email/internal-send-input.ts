@@ -19,6 +19,7 @@ export function buildInternalBookingNotificationSendInput(
     timezone: prepared.timezone,
     appointmentId: prepared.appointmentId,
     googleCalendarEventId,
+    diagnostic: prepared.diagnostic ?? undefined,
   });
 
   const text = renderInternalBookingNotificationText({
@@ -30,6 +31,7 @@ export function buildInternalBookingNotificationSendInput(
     timezone: prepared.timezone,
     appointmentId: prepared.appointmentId,
     googleCalendarEventId,
+    diagnostic: prepared.diagnostic ?? undefined,
   });
 
   return {
@@ -46,5 +48,6 @@ export function buildInternalBookingNotificationSendInput(
     html,
     text,
     replyTo: undefined,
+    internalDiagnostic: prepared.diagnostic ?? undefined,
   };
 }

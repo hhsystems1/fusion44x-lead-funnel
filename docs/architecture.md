@@ -26,3 +26,5 @@
 - Booking and email providers are swappable via adapter pattern.
 - Server and browser Meta events share event IDs for deduplication.
 - No business logic inside visual components.
+- The exit popup is a lightweight lead-capture path that writes to the same `leads` table (`lead_origin = 'exit_popup'`) with nullable diagnostic columns. A full funnel submission on the same session **upgrades the popup lead in place** instead of creating a second lead.
+- Leads are tagged, not status-tagged: `status` (qualification lifecycle) is separate from `stage` (manual sales pipeline, set from the admin dashboard) and `source` (auto-derived attribution). Funnel view counts are computed from `funnel_events` per session.

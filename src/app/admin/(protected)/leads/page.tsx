@@ -2,11 +2,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { DateFilter } from "../date-filter";
 import { StatusBadge } from "../metric-card";
+import { TagPill } from "@/components/admin/tag-pill";
+import { LeadStageSelect } from "@/components/admin/lead-stage-select";
 import {
   getLeadsList,
   type DateFilter as DF,
 } from "@/lib/admin/queries";
 import { parseFilterParams, formatDateTime, maskEmail, maskPhone } from "../utils";
+import { answerLabel } from "@/lib/funnel/answer-labels";
 
 async function LeadsTable({
   filter,
@@ -44,7 +47,13 @@ async function LeadsTable({
                   Phone
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
-                  Status
+                  Diagnostic
+                </th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                  Tags
+                </th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">
+                  Stage
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
                   Appointment
@@ -75,8 +84,24 @@ async function LeadsTable({
                   <td className="px-4 py-3 text-gray-600">
                     {maskPhone(l.phone)}
                   </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {answerLabel("current-treatment", l.current_treatment)}
+                    {l.primary_goal
+                      ? ` · ${answerLabel("primary-goal", l.primary_goal)}`
+                      : ""}
+                  </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={l.status} />
+                    <div className="flex flex-wrap gap-1">
+                      <TagPill label={l.status} />
+                      <TagPill label={l.source ?? "direct"} tone="aqua" />
+                      <TagPill
+                        label={`${l.view_count} view${l.view_count === 1 ? "" : "s"}`}
+                        tone="muted"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <LeadStageSelect leadId={l.id} value={l.stage} />
                   </td>
                   <td className="px-4 py-3">
                     {l.appointment_status ? (
@@ -93,7 +118,7 @@ async function LeadsTable({
               {result.leads.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     No leads found for this date range.

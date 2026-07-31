@@ -4,6 +4,9 @@ import Link from "next/link";
 import { getLeadDetail } from "@/lib/admin/queries";
 import { StatusBadge } from "../../metric-card";
 import { formatDateTime } from "../../utils";
+import { answerLabel, answerLabels } from "@/lib/funnel/answer-labels";
+import { LeadStageSelect } from "@/components/admin/lead-stage-select";
+import { TagPill } from "@/components/admin/tag-pill";
 
 async function LeadDetailContent({ leadId }: { leadId: string }) {
   const lead = await getLeadDetail(leadId);
@@ -23,6 +26,7 @@ async function LeadDetailContent({ leadId }: { leadId: string }) {
           {lead.first_name} {lead.last_name}
         </h1>
         <StatusBadge status={lead.status} />
+        <LeadStageSelect leadId={lead.id} value={lead.stage} />
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -32,11 +36,11 @@ async function LeadDetailContent({ leadId }: { leadId: string }) {
         </div>
         <div>
           <p className="text-xs text-gray-500">Phone</p>
-          <p>{lead.phone}</p>
+          <p>{lead.phone || "—"}</p>
         </div>
         <div>
           <p className="text-xs text-gray-500">Zip Code</p>
-          <p>{lead.zip_code}</p>
+          <p>{lead.zip_code || "—"}</p>
         </div>
         <div>
           <p className="text-xs text-gray-500">Last Name</p>
@@ -57,37 +61,54 @@ async function LeadDetailContent({ leadId }: { leadId: string }) {
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <h2 className="text-sm font-semibold text-gray-900 mb-3">Tags</h2>
+        <div className="flex flex-wrap gap-1.5">
+          <TagPill label={lead.status} />
+          <TagPill label={lead.source ?? "direct"} tone="aqua" />
+          <TagPill
+            label={`${lead.view_count} view${lead.view_count === 1 ? "" : "s"}`}
+            tone="muted"
+          />
+          {lead.lead_origin === "exit_popup" && (
+            <TagPill label="Exit popup" tone="muted" />
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h2 className="text-sm font-semibold text-gray-900 mb-3">
           Diagnostic Answers
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-xs text-gray-500">Water Feature</p>
-            <p>{lead.water_feature}</p>
+            <p>{answerLabel("water-feature", lead.water_feature)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Installation Type</p>
-            <p>{lead.installation_type}</p>
+            <p>{answerLabel("installation-type", lead.installation_type)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Pool Size</p>
-            <p>{lead.pool_size}</p>
+            <p>{answerLabel("pool-size", lead.pool_size)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Current Treatment</p>
-            <p>{lead.current_treatment}</p>
+            <p>{answerLabel("current-treatment", lead.current_treatment)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Primary Goal</p>
-            <p>{lead.primary_goal}</p>
+            <p>{answerLabel("primary-goal", lead.primary_goal)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Current Issues</p>
             {lead.current_issues.length > 0 ? (
               <ul className="list-disc list-inside">
-                {lead.current_issues.map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
+                {answerLabels("current-issues", lead.current_issues).map(
+                  (issue) => (
+                    <li key={issue}>{issue}</li>
+                  ),
+                )}
               </ul>
             ) : (
               <span className="text-gray-400">—</span>

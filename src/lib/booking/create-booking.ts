@@ -358,6 +358,7 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
       const { getEmailProvider } = await import("@/lib/email/provider");
       const { sendBookingConfirmation, prepareBookingConfirmation } = await import("@/lib/email/notifications");
       const { sendInternalBookingNotification, prepareInternalBookingNotification } = await import("@/lib/email/internal-notifications");
+      const { scheduleBookingFollowUp } = await import("@/lib/email/follow-up");
       
       const providerResult = getEmailProvider();
       
@@ -377,6 +378,9 @@ export async function createBooking(input: BookingCreateInput): Promise<CreateBo
         await schedulePendingEmailDelivery({ appointmentId: confirmedId });
         // Internal notification not scheduled when no provider - disabled
       }
+
+      // Automated follow-up email, scheduled to go out ~5 minutes after booking
+      await scheduleBookingFollowUp({ appointmentId: confirmedId });
     } catch {
       // non-fatal — email preparation/send failure must not affect booking
     }

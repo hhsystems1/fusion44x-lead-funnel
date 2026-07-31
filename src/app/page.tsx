@@ -12,6 +12,7 @@ import { NextStepSection } from "@/components/sections/next-step-section";
 import { FunnelExperience } from "@/components/funnel/funnel-experience";
 import { FaqSection } from "@/components/sections/faq-section";
 import { StickyAssessmentBar } from "@/components/sections/sticky-assessment-bar";
+import { ExitPopup } from "@/components/exit-popup/exit-popup";
 import { Footer } from "@/components/sections/footer";
 
 export default function Home() {
@@ -31,6 +32,7 @@ export default function Home() {
       </main>
       <Footer />
       <StickyAssessmentBar />
+      <ExitPopup />
     </FunnelProvider>
   );
 }

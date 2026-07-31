@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSupabaseClient } from "@/lib/supabase";
-import { leadCreateSchema, normalizeEmail, normalizePhone } from "@/lib/validation/api-schemas";
+import { exitPopupLeadSchema, normalizeEmail, normalizePhone } from "@/lib/validation/api-schemas";
 import {
   readJsonBody,
   extractClientIp,
@@ -14,7 +14,7 @@ import { mapLeadRpcError } from "@/lib/server/lead-rpc-errors";
 import { fireMetaContactEvent } from "@/lib/meta/contact-event";
 import { deriveLeadSource } from "@/lib/funnel/source";
 
-const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
+const RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 
 export async function POST(request: NextRequest) {
   const requestId = generateRequestId();
@@ -41,10 +41,10 @@ export async function POST(request: NextRequest) {
     throw err;
   }
 
-  const parsed = leadCreateSchema.safeParse(body);
+  const parsed = exitPopupLeadSchema.safeParse(body);
   if (!parsed.success) {
     console.warn(
-      "[leads] validation error requestId=%s errors=%j",
+      "[exit-popup] validation error requestId=%s errors=%j",
       requestId,
       parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
     );
@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { session_id, contact, diagnostic, consent, source, event_id } = parsed.data;
+  const { session_id, contact, consent, source, event_id } = parsed.data;
 
   const email = normalizeEmail(contact.email);
-  const phone = normalizePhone(contact.phone);
+  const phone = contact.phone ? normalizePhone(contact.phone) : "";
 
   const supabase = getServerSupabaseClient();
 
@@ -70,23 +70,16 @@ export async function POST(request: NextRequest) {
   const leadSource = source ?? deriveLeadSource(sessionRow);
 
   const { data: leadId, error: rpcError } = await supabase.rpc(
-    "create_lead_from_funnel_session",
+    "create_lead_from_popup",
     {
       p_session_id: session_id,
       p_first_name: contact.first_name,
       p_last_name: contact.last_name,
       p_email: email,
       p_phone: phone,
-      p_zip_code: contact.zip_code,
-      p_water_feature: diagnostic.water_feature,
-      p_installation_type: diagnostic.installation_type,
-      p_pool_size: diagnostic.pool_size,
-      p_current_treatment: diagnostic.current_treatment,
-      p_current_issues: diagnostic.current_issues,
-      p_primary_goal: diagnostic.primary_goal,
+      p_zip_code: contact.zip_code ?? null,
       p_consent_to_contact: consent.consent_to_contact,
       p_consent_text_version: consent.consent_text_version,
-      p_preferred_contact_method: contact.preferred_contact_method ?? null,
       p_marketing_consent: consent.marketing_consent,
       p_source: leadSource ?? null,
     } as never,
@@ -96,7 +89,7 @@ export async function POST(request: NextRequest) {
     const mapped = rpcError.code ? mapLeadRpcError(rpcError.code) : null;
     if (mapped) {
       console.warn(
-        "[leads] rpc error requestId=%s code=%s",
+        "[exit-popup] rpc error requestId=%s code=%s",
         requestId,
         rpcError.code,
       );
@@ -106,7 +99,7 @@ export async function POST(request: NextRequest) {
       );
     }
     console.error(
-      "[leads] unexpected rpc error requestId=%s code=%s",
+      "[exit-popup] unexpected rpc error requestId=%s code=%s",
       requestId,
       rpcError.code ?? "unknown",
     );
@@ -124,7 +117,7 @@ export async function POST(request: NextRequest) {
     phone,
     first_name: contact.first_name,
     last_name: contact.last_name,
-    zip_code: contact.zip_code,
+    zip_code: contact.zip_code ?? "",
     session_id,
     supabase,
   });

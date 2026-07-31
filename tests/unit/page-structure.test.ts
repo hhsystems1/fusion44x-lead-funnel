@@ -107,6 +107,10 @@ describe("page section order", () => {
     expect(pageContent).toContain("<StickyAssessmentBar />");
   });
 
+  it("includes the exit popup component", () => {
+    expect(pageContent).toContain("<ExitPopup />");
+  });
+
   it("adds bottom padding to main for sticky bar clearance", () => {
     expect(pageContent).toMatch(/pb-\d+/);
   });
@@ -145,7 +149,7 @@ describe("hero content", () => {
 
   it("uses the approved hero heading", () => {
     expect(siteContent).toContain(
-      "Cleaner, More Comfortable Pool Water",
+      "Healthy, Safe Pool Water",
     );
   });
 

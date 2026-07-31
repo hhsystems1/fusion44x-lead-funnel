@@ -10,14 +10,14 @@ export const siteContent = {
       "Fusion44X is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water in compatible pools and spas. Take our free pool assessment.",
     og_title: "Fusion44X — Cleaner Pool Water Without the Chemical Cycle",
     og_description:
-      "Ready for pool water you can feel better about? Take the free Fusion44X pool assessment and find out whether your setup is compatible.",
+      "Ready for pool water without the traditional chlorine and salt cycle? Take the free Fusion44X pool assessment and find out whether your setup is compatible.",
   },
   hero: {
     eyebrow: "Fusion44X Hydro-pH-Infusion System",
     heading:
-      "Cleaner, More Comfortable Pool Water—Without the Traditional Chlorine and Salt Cycle",
+      "Healthy, Safe Pool Water \u2014 Without the Traditional Chlorine and Salt Cycle",
     subheading:
-      "Fusion44X is a hardware-based water system designed to create hydrogen-rich, balanced water in compatible pools and spas—so your family can enjoy the water with greater confidence.",
+      "Fusion44X is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water in compatible pools and spas with zero chlorine, zero salt, no harsh chemicals, and no traditional pool chemicals.",
     cta_primary: "Get Your Free Pool Assessment",
     cta_secondary: "See How Fusion44X Works",
   },
@@ -31,7 +31,7 @@ export const siteContent = {
     eyebrow: "Real Pool Owners. Real Experiences.",
     heading: "Why Families Choose Fusion44X",
     subheading:
-      "Hear from pool and spa owners who wanted water they could feel better about letting their families enjoy.",
+      "Hear from pool and spa owners who wanted clean, balanced water for their families to enjoy.",
   },
   problem_cycle: {
     eyebrow: "The Real Concern",
@@ -53,7 +53,7 @@ export const siteContent = {
       },
       {
         heading: "Questions About What Is in the Water",
-        text: "When children, family, and friends use the pool, it is natural to want more confidence in the water.",
+        text: "When children, family, and friends use the pool, it is natural to want greater peace of mind about the water.",
       },
     ],
     chemical_cycle_steps: ["Add", "Test", "Wait", "React", "Test Again"],
@@ -72,7 +72,7 @@ export const siteContent = {
   solution: {
     eyebrow: "What Is Fusion44X?",
     heading:
-      "A Water System Designed for Families Who Want More Confidence in Their Pool",
+      "A Water System Designed for Families Who Want Healthy, Safe Pool Water",
     body: "Fusion44X is not another chemical to pour into your pool. It is a hardware-based Hydro-pH-Infusion system designed to create hydrogen-rich, balanced water throughout compatible pools and spas.",
     supporting:
       "Instead of relying on the traditional chlorine, salt, and weekly chemical cycle, Fusion44X works with compatible pool equipment to support a different way of treating the water.",
@@ -81,8 +81,8 @@ export const siteContent = {
       "Move away from chlorine",
       "Move away from saltwater chlorine generation",
       "Reduce the traditional chemical routine",
-      "Enjoy cleaner, more comfortable-feeling water",
-      "Feel more confident about the water your family uses",
+      "Enjoy clean, balanced water",
+      "Have greater peace of mind about the water your family uses",
       "Retrofit compatible existing pool equipment",
       "Receive direct manufacturer support",
     ],
@@ -194,6 +194,27 @@ export const siteContent = {
     error_invalid_phone: "Please enter a valid phone number",
     error_consent_required: "You must agree to be contacted to proceed",
   },
+  exit_popup: {
+    heading: "Wait \u2014 Get Your Free Pool Assessment",
+    subheading:
+      "Don\u2019t leave without your free Fusion44X pool assessment. Enter your details and a specialist will follow up with your personalized review.",
+    name: "Your Name",
+    email: "Email Address",
+    phone: "Phone Number",
+    phone_optional: "Phone Number (optional)",
+    consent:
+      "I agree to be contacted by Fusion44X about my pool assessment and product options.",
+    submit: "Get My Assessment",
+    submitting: "Submitting\u2026",
+    success_heading: "Thank You!",
+    success_message:
+      "Your details are in. A Fusion44X specialist will follow up with your free pool assessment.",
+    close: "No thanks, I\u2019ll continue browsing",
+    error_required: "This field is required",
+    error_invalid_email: "Please enter a valid email address",
+    error_invalid_phone: "Please enter a valid phone number",
+    error_consent_required: "You must agree to be contacted to proceed",
+  },
   booking: {
     heading: "Schedule Your Consultation",
     subheading:
@@ -258,7 +279,7 @@ export const siteContent = {
     cta_button: "Get My Free Pool Assessment",
   },
   sticky_cta: {
-    question: "Ready for water you can feel better about?",
+    question: "Ready for healthy, safe pool water?",
     question_mobile: "Need better pool water?",
     button: "Start My Free Assessment",
   },

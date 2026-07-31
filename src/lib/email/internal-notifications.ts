@@ -9,6 +9,8 @@ import {
   markInternalEmailDeliveryFailed,
 } from "@/lib/email/internal-delivery";
 import { buildInternalBookingNotificationSendInput } from "./internal-send-input";
+import type { InternalDiagnosticLabels } from "./templates/internal-booking-notification";
+import { answerLabel, answerLabels } from "@/lib/funnel/answer-labels";
 
 export interface PreparedInternalNotification {
   appointmentId: string;
@@ -22,6 +24,7 @@ export interface PreparedInternalNotification {
   timezone: string;
   bookingEventId: string | null;
   googleCalendarEventId: string | null;
+  diagnostic: InternalDiagnosticLabels | null;
 }
 
 export type SendInternalNotificationStatus =
@@ -67,7 +70,9 @@ export async function prepareInternalBookingNotification(params: {
   const leadId = row.lead_id as string;
   const { data: lead, error: leadError } = await supabase
     .from("leads")
-    .select("first_name, email, phone")
+    .select(
+      "first_name, email, phone, water_feature, installation_type, pool_size, current_treatment, primary_goal",
+    )
     .eq("id", leadId)
     .single();
 
@@ -83,6 +88,25 @@ export async function prepareInternalBookingNotification(params: {
   if (!EMAIL_REGEX.test(customerEmail)) {
     return null;
   }
+
+  const { data: answerRows } = await supabase
+    .from("lead_answers")
+    .select("answer_code")
+    .eq("lead_id", leadId)
+    .eq("question_id", "current-issues");
+
+  const currentIssues = ((answerRows ?? []) as Record<string, unknown>[]).map(
+    (a) => (a.answer_code as string) ?? "",
+  );
+
+  const diagnostic: InternalDiagnosticLabels = {
+    waterFeature: answerLabel("water-feature", (leadRow.water_feature as string) ?? ""),
+    installationType: answerLabel("installation-type", (leadRow.installation_type as string) ?? ""),
+    poolSize: answerLabel("pool-size", (leadRow.pool_size as string) ?? ""),
+    currentTreatment: answerLabel("current-treatment", (leadRow.current_treatment as string) ?? ""),
+    primaryGoal: answerLabel("primary-goal", (leadRow.primary_goal as string) ?? ""),
+    currentIssues: answerLabels("current-issues", currentIssues),
+  };
 
   // Get internal notification recipient
   const internalRecipient = process.env.INTERNAL_BOOKING_NOTIFICATION_TO?.trim();
@@ -102,6 +126,7 @@ export async function prepareInternalBookingNotification(params: {
     timezone: (row.timezone as string) || EMAIL_CONFIG.TIMEZONE,
     bookingEventId: (row.booking_event_id as string) ?? null,
     googleCalendarEventId: (row.external_event_id as string) ?? null,
+    diagnostic,
   };
 }
 

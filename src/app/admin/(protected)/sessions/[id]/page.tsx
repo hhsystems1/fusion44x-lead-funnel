@@ -58,10 +58,6 @@ async function SessionDetailContent({ sessionId }: { sessionId: string }) {
           <p>{session.device_category ?? "—"}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500">Browser</p>
-          <p>{session.browser ?? "—"}</p>
-        </div>
-        <div>
           <p className="text-xs text-gray-500">UTM Source</p>
           <p>{session.utm_source ?? "—"}</p>
         </div>

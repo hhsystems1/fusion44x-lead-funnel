@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServerSupabaseClient } from "@/lib/supabase";
+import type { LeadStage, AppointmentStage } from "@/lib/admin/stages";
 
 // Supabase without generated Database types returns `never` for query results.
 // We use `any` casts on query builder results to work around this.
@@ -179,7 +180,6 @@ export interface SessionRow {
   utm_content: string | null;
   utm_term: string | null;
   device_category: string | null;
-  browser: string | null;
   lead_id: string | null;
   lead: {
     id: string;
@@ -276,7 +276,7 @@ export async function getSessionList(
   let query: any = db
     .from("funnel_sessions")
     .select(
-      "id, anonymous_id, started_at, last_seen_at, status, page_version, referrer, landing_url, utm_source, utm_medium, utm_campaign, utm_content, utm_term, device_category, browser, lead_id, lead:leads(id, first_name, last_name, email, phone, status, created_at), appointment:appointments(id, status, start_time, end_time, timezone)",
+      "id, anonymous_id, started_at, last_seen_at, status, page_version, referrer, landing_url, utm_source, utm_medium, utm_campaign, utm_content, utm_term, device_category, lead_id, lead:leads!funnel_sessions_lead_id_fkey(id, first_name, last_name, email, phone, status, created_at), appointment:appointments(id, status, start_time, end_time, timezone)",
       { count: "exact" },
     )
     .gte("started_at", fromISO)
@@ -387,7 +387,6 @@ export async function getSessionList(
       utm_content: s.utm_content as string | null,
       utm_term: s.utm_term as string | null,
       device_category: s.device_category as string | null,
-      browser: s.browser as string | null,
       lead_id: s.lead_id as string | null,
       lead: rawLead ? {
         id: rawLead.id as string,
@@ -469,7 +468,7 @@ export async function getSessionDetail(
 
   const { data: session, error: sessionError } = await db
     .from("funnel_sessions")
-    .select("*, lead:leads(id, first_name, last_name, email, phone, zip_code, water_feature, installation_type, pool_size, current_treatment, primary_goal, status, created_at), appointment:appointments(id, status, start_time, end_time, timezone, external_event_id, created_at)")
+    .select("*, lead:leads!funnel_sessions_lead_id_fkey(id, first_name, last_name, email, phone, zip_code, water_feature, installation_type, pool_size, current_treatment, primary_goal, status, created_at), appointment:appointments(id, status, start_time, end_time, timezone, external_event_id, created_at)")
     .eq("id", sessionId)
     .single();
 
@@ -508,7 +507,6 @@ export async function getSessionDetail(
     utm_content: rawSession.utm_content as string | null,
     utm_term: rawSession.utm_term as string | null,
     device_category: rawSession.device_category as string | null,
-    browser: rawSession.browser as string | null,
     lead_id: rawSession.lead_id as string | null,
     lead: rawLead ? {
       id: rawLead.id as string,
@@ -637,9 +635,15 @@ export interface LeadRow {
   email: string;
   phone: string;
   status: string;
+  source: string | null;
+  stage: string | null;
+  lead_origin: string;
+  view_count: number;
   created_at: string;
   diagnostic_completed: boolean;
   appointment_status: string | null;
+  current_treatment: string;
+  primary_goal: string;
 }
 
 export interface LeadDetail extends LeadRow {
@@ -672,7 +676,7 @@ export async function getLeadsList(
 
   const { data, count } = await db
     .from("leads")
-    .select("id, first_name, email, phone, status, created_at, session_id", { count: "exact" })
+    .select("id, first_name, email, phone, status, source, stage, lead_origin, created_at, session_id, current_treatment, primary_goal", { count: "exact" })
     .gte("created_at", fromISO)
     .lte("created_at", toISO)
     .order("created_at", { ascending: false })
@@ -682,14 +686,40 @@ export async function getLeadsList(
   const leadIds = ((data ?? []) as AnyRow[]).map((l: AnyRow) => l.id as string);
   const appointmentStatuses: Record<string, string> = {};
 
+  // Get funnel view counts for each lead's session
+  const sessionIds = ((data ?? []) as AnyRow[]).map(
+    (l: AnyRow) => l.session_id as string | null,
+  );
+  const viewCounts: Record<string, number> = {};
+
   if (leadIds.length > 0) {
-    const { data: apptData } = await db
+    const apptPromise = db
       .from("appointments")
       .select("lead_id, status")
       .in("lead_id", leadIds);
 
-    for (const a of (apptData ?? []) as AnyRow[]) {
+    const viewPromise = sessionIds.some(Boolean)
+      ? db
+          .from("funnel_events")
+          .select("session_id")
+          .eq("event_name", "page_viewed")
+          .in(
+            "session_id",
+            sessionIds.filter((s): s is string => Boolean(s)),
+          )
+      : Promise.resolve({ data: [] });
+
+    const [apptResult, viewResult] = await Promise.all([
+      apptPromise,
+      viewPromise,
+    ]);
+
+    for (const a of (apptResult.data ?? []) as AnyRow[]) {
       appointmentStatuses[a.lead_id as string] = a.status as string;
+    }
+    for (const ev of (viewResult.data ?? []) as AnyRow[]) {
+      const sid = ev.session_id as string;
+      viewCounts[sid] = (viewCounts[sid] ?? 0) + 1;
     }
   }
 
@@ -697,11 +727,17 @@ export async function getLeadsList(
     id: l.id as string,
     first_name: l.first_name as string,
     email: l.email as string,
-    phone: l.phone as string,
+    phone: (l.phone as string) ?? "",
     status: l.status as string,
+    source: l.source as string | null,
+    stage: l.stage as string | null,
+    lead_origin: l.lead_origin as string ?? "funnel",
+    view_count: (l.session_id ? (viewCounts[l.session_id as string] ?? 0) : 0),
     created_at: l.created_at as string,
     diagnostic_completed: true,
     appointment_status: appointmentStatuses[l.id as string] ?? null,
+    current_treatment: (l.current_treatment as string) ?? "",
+    primary_goal: (l.primary_goal as string) ?? "",
   }));
 
   return { leads, total: count ?? 0, page, pageSize };
@@ -740,30 +776,58 @@ export async function getLeadDetail(leadId: string): Promise<LeadDetail | null> 
     ? (apptData as AnyRow).status as string
     : null;
 
+  let viewCount = 0;
+  if (raw.session_id) {
+    const { count } = await db
+      .from("funnel_events")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", raw.session_id as string)
+      .eq("event_name", "page_viewed");
+    viewCount = count ?? 0;
+  }
+
   return {
     id: raw.id as string,
     first_name: raw.first_name as string,
     last_name: raw.last_name as string,
     email: raw.email as string,
-    phone: raw.phone as string,
-    zip_code: raw.zip_code as string,
-    water_feature: raw.water_feature as string,
-    installation_type: raw.installation_type as string,
-    pool_size: raw.pool_size as string,
-    current_treatment: raw.current_treatment as string,
+    phone: (raw.phone as string) ?? "",
+    zip_code: (raw.zip_code as string) ?? "",
+    water_feature: (raw.water_feature as string) ?? "",
+    installation_type: (raw.installation_type as string) ?? "",
+    pool_size: (raw.pool_size as string) ?? "",
+    current_treatment: (raw.current_treatment as string) ?? "",
     current_issues: currentIssues,
-    primary_goal: raw.primary_goal as string,
+    primary_goal: (raw.primary_goal as string) ?? "",
     qualification_summary: raw.qualification_summary as string | null,
     status: raw.status as string,
+    stage: raw.stage as string | null,
+    source: raw.source as string | null,
+    lead_origin: (raw.lead_origin as string) ?? "funnel",
+    view_count: viewCount,
     created_at: raw.created_at as string,
     diagnostic_completed: true,
     appointment_status: appointmentStatus,
     consent_to_contact: raw.consent_to_contact as boolean,
     consent_to_contact_at: raw.consent_to_contact_at as string | null,
     marketing_consent: raw.marketing_consent as boolean,
-    source: raw.source as string | null,
     session_id: raw.session_id as string | null,
   };
+}
+
+// =============================================================================
+// Lead Stage Update
+// =============================================================================
+
+export async function updateLeadStage(
+  leadId: string,
+  stage: LeadStage | null,
+): Promise<boolean> {
+  const { error } = await supabase()
+    .from("leads")
+    .update({ stage } as never)
+    .eq("id", leadId);
+  return !error;
 }
 
 // =============================================================================
@@ -860,6 +924,21 @@ export async function getAppointmentsList(
   });
 
   return { appointments, total: count ?? 0, page, pageSize };
+}
+
+// =============================================================================
+// Appointment Stage Update
+// =============================================================================
+
+export async function updateAppointmentStatus(
+  appointmentId: string,
+  status: AppointmentStage,
+): Promise<boolean> {
+  const { error } = await supabase()
+    .from("appointments")
+    .update({ status } as never)
+    .eq("id", appointmentId);
+  return !error;
 }
 
 // =============================================================================
@@ -989,7 +1068,6 @@ export async function exportSessionsCsv(
     "utm_medium",
     "utm_campaign",
     "device_category",
-    "browser",
     "referrer",
   ];
   return toCsv(
@@ -1011,6 +1089,9 @@ export async function exportLeadsCsv(filter: DateFilter): Promise<string> {
     "email",
     "phone",
     "status",
+    "source",
+    "stage",
+    "view_count",
     "created_at",
     "appointment_status",
   ];

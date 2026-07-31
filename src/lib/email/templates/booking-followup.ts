@@ -1,5 +1,7 @@
 import "server-only";
 import { formatInTimeZone } from "date-fns-tz";
+import { EMAIL_CONFIG } from "@/config/email";
+import type { InternalDiagnosticLabels } from "@/lib/email/templates/internal-booking-notification";
 
 function escapeHtml(str: string): string {
   return str
@@ -18,50 +20,35 @@ function formatTimeInTimezone(iso: string, tz: string): string {
   return formatInTimeZone(new Date(iso), tz, "h:mm a");
 }
 
-export interface InternalDiagnosticLabels {
-  waterFeature: string;
-  installationType: string;
-  poolSize: string;
-  currentTreatment: string;
-  primaryGoal: string;
-  currentIssues: string[];
+function formatDurationMinutes(startIso: string, endIso: string): number {
+  const start = new Date(startIso).getTime();
+  const end = new Date(endIso).getTime();
+  return Math.round((end - start) / 60000);
 }
 
-export interface InternalBookingNotificationParams {
-  customerFirstName: string;
-  customerEmail: string;
-  customerPhone?: string;
+export interface BookingFollowUpTemplateParams {
+  recipientFirstName: string;
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
-  appointmentId: string;
-  googleCalendarEventId?: string;
   diagnostic?: InternalDiagnosticLabels;
 }
 
-export function renderInternalBookingNotificationHtml(
-  params: InternalBookingNotificationParams,
+export function renderBookingFollowUpHtml(
+  params: BookingFollowUpTemplateParams,
 ): string {
-  const firstName = escapeHtml(params.customerFirstName);
-  const email = escapeHtml(params.customerEmail);
-  const phone = params.customerPhone ? escapeHtml(params.customerPhone) : null;
+  const firstName = escapeHtml(params.recipientFirstName);
   const dateStr = formatDateInTimezone(params.confirmedStartTime, params.timezone);
   const startTimeStr = formatTimeInTimezone(params.confirmedStartTime, params.timezone);
   const endTimeStr = formatTimeInTimezone(params.confirmedEndTime, params.timezone);
+  const durationMin = formatDurationMinutes(
+    params.confirmedStartTime,
+    params.confirmedEndTime,
+  );
   const tzDisplay = escapeHtml(params.timezone);
-  const appointmentId = escapeHtml(params.appointmentId);
-  const gcalEventId = params.googleCalendarEventId
-    ? escapeHtml(params.googleCalendarEventId)
-    : null;
-
-  const phoneLine = phone
-    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Phone</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${phone}</td></tr>`
-    : "";
-
-  const gcalLine = gcalEventId
-    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">GCal Event ID</td><td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${gcalEventId}</td></tr>`
-    : "";
-
+  const title = escapeHtml(EMAIL_CONFIG.CONSULTATION_TITLE);
+  const company = escapeHtml(EMAIL_CONFIG.COMPANY_NAME);
+  const phone = escapeHtml(EMAIL_CONFIG.SUPPORT_PHONE);
   const diagnosticBlock = buildDiagnosticBlock(params.diagnostic);
 
   return `<!DOCTYPE html>
@@ -69,7 +56,7 @@ export function renderInternalBookingNotificationHtml(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>New Booking Notification</title>
+<title>Get Ready for Your Consultation</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Helvetica,Arial,sans-serif">
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f4f4f5">
@@ -77,55 +64,54 @@ export function renderInternalBookingNotificationHtml(
 <td align="center" style="padding:24px 16px">
 <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden">
 <tr>
-<td style="padding:32px 24px 16px;text-align:center;background-color:#7c2d12">
-<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">New Booking — Internal Notification</h1>
-<p style="margin:8px 0 0;font-size:14px;color:#fed7aa">A consultation has been confirmed</p>
+<td style="padding:32px 24px 16px;text-align:center;background-color:#1e3a5f">
+<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">${title}</h1>
+<p style="margin:8px 0 0;font-size:14px;color:#cbd5e1">Get ready for your consultation</p>
 </td>
 </tr>
 <tr>
 <td style="padding:24px">
-<p style="margin:0 0 16px;font-size:16px;color:#1e293b">A new Fusion 44X pool consultation has been booked.</p>
+<p style="margin:0 0 16px;font-size:16px;color:#1e293b">Hello ${firstName},</p>
+<p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6">Your Fusion 44X pool consultation is all set. Here's a recap of your details and a few things that will help us make the most of our time together.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
 <tr>
 <td style="padding:16px">
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Customer</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${firstName}</td>
-</tr>
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Email</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${email}</td>
-</tr>
-${phoneLine}
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Date</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:100px;vertical-align:top">Date</td>
 <td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${dateStr}</td>
 </tr>
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Time</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:100px;vertical-align:top">Time</td>
 <td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${startTimeStr} – ${endTimeStr}</td>
 </tr>
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Timezone</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${tzDisplay}</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:100px;vertical-align:top">Duration</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${durationMin} minutes</td>
 </tr>
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Appointment ID</td>
-<td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${appointmentId}</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:100px;vertical-align:top">Timezone</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${tzDisplay}</td>
 </tr>
-${gcalLine}
 </table>
 </td>
 </tr>
 </table>
 ${diagnosticBlock}
-<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6">This notification is for internal tracking only. The customer has received a separate confirmation email with calendar links.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:24px">
+<tr>
+<td style="padding:16px;background-color:#eff6ff;border-radius:6px">
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em">What to Expect</p>
+<p style="margin:0;font-size:14px;color:#475569;line-height:1.6">During your consultation we'll walk through your pool goals, review the options that fit your setup, and answer any questions you have. A few minutes before your call, please have your current pool routine or any product labels handy — they help us tailor our recommendations to your specific situation.</p>
+</td>
+</tr>
+</table>
+<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6">If you need to reschedule or have any questions, please contact us.</p>
 </td>
 </tr>
 <tr>
 <td style="padding:16px 24px;background-color:#f8fafc;border-top:1px solid #e2e8f0">
-<p style="margin:0;font-size:13px;color:#64748b;text-align:center">Fusion 44X Internal System</p>
+<p style="margin:0;font-size:13px;color:#64748b;text-align:center">${company} &middot; ${phone}</p>
 </td>
 </tr>
 </table>
@@ -162,7 +148,8 @@ function buildDiagnosticBlock(
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
 <tr>
 <td style="padding:16px">
-<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#7c2d12;text-transform:uppercase;letter-spacing:0.04em">Pool Diagnostic</p>
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em">Your Details</p>
+<p style="margin:0 0 8px;font-size:13px;color:#64748b">A quick recap of what you told us:</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
 ${rows}
 ${issuesLine}
@@ -172,41 +159,35 @@ ${issuesLine}
 </table>`;
 }
 
-export function renderInternalBookingNotificationText(
-  params: InternalBookingNotificationParams,
+export function renderBookingFollowUpText(
+  params: BookingFollowUpTemplateParams,
 ): string {
   const dateStr = formatDateInTimezone(params.confirmedStartTime, params.timezone);
   const startTimeStr = formatTimeInTimezone(params.confirmedStartTime, params.timezone);
   const endTimeStr = formatTimeInTimezone(params.confirmedEndTime, params.timezone);
-
-  const lines = [
-    "New Booking — Internal Notification",
-    "",
-    "A new Fusion 44X pool consultation has been booked.",
-    "",
-    `Customer:     ${params.customerFirstName}`,
-    `Email:        ${params.customerEmail}`,
-  ];
-
-  if (params.customerPhone) {
-    lines.push(`Phone:        ${params.customerPhone}`);
-  }
-
-  lines.push(
-    `Date:         ${dateStr}`,
-    `Time:         ${startTimeStr} – ${endTimeStr}`,
-    `Timezone:     ${params.timezone}`,
-    `Appointment:  ${params.appointmentId}`,
+  const durationMin = formatDurationMinutes(
+    params.confirmedStartTime,
+    params.confirmedEndTime,
   );
 
-  if (params.googleCalendarEventId) {
-    lines.push(`GCal Event ID: ${params.googleCalendarEventId}`);
-  }
+  const lines = [
+    `${EMAIL_CONFIG.CONSULTATION_TITLE} — Get Ready`,
+    "",
+    `Hello ${params.recipientFirstName},`,
+    "",
+    "Your Fusion 44X pool consultation is all set.",
+    "",
+    `Date:     ${dateStr}`,
+    `Time:     ${startTimeStr} – ${endTimeStr}`,
+    `Duration: ${durationMin} minutes`,
+    `Timezone: ${params.timezone}`,
+  ];
 
   if (params.diagnostic) {
     lines.push(
       "",
-      "Pool Diagnostic",
+      "Your Details",
+      "A quick recap of what you told us:",
       `Water Feature:     ${params.diagnostic.waterFeature}`,
       `Installation Type: ${params.diagnostic.installationType}`,
       `Pool Size:         ${params.diagnostic.poolSize}`,
@@ -222,10 +203,13 @@ export function renderInternalBookingNotificationText(
 
   lines.push(
     "",
-    "This notification is for internal tracking only.",
-    "The customer has received a separate confirmation email with calendar links.",
+    "What to Expect",
+    "We'll walk through your pool goals, review the options that fit your setup, and answer any questions you have. Please have your current pool routine or any product labels handy.",
     "",
-    "Fusion 44X Internal System",
+    "If you need to reschedule or have any questions, please contact us.",
+    "",
+    EMAIL_CONFIG.COMPANY_NAME,
+    EMAIL_CONFIG.SUPPORT_PHONE,
   );
 
   return lines.join("\n");

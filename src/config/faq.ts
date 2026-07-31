@@ -23,7 +23,7 @@ export const faqItems: FaqItem[] = [
     id: "why-families-choose",
     question: "Why do families choose Fusion44X?",
     answer:
-      "Many pool owners are looking for water that feels clean, comfortable, and better suited for the people they care about. Fusion44X offers an alternative to the traditional chlorine, salt, and weekly chemical cycle.",
+      "Many pool owners are looking for water that is clean, balanced, and better suited for the people they care about. Fusion44X offers an alternative to the traditional chlorine, salt, and weekly chemical cycle.",
   },
   {
     id: "existing-equipment",

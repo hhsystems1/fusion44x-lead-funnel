@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { DateFilter } from "../date-filter";
 import { StatusBadge } from "../metric-card";
+import { AppointmentStageSelect } from "@/components/admin/appointment-stage-select";
 import {
   getAppointmentsList,
   type DateFilter as DF,
@@ -43,6 +44,9 @@ async function AppointmentsTable({
                   Status
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
+                  Stage
+                </th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">
                   Calendar
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">
@@ -69,6 +73,12 @@ async function AppointmentsTable({
                   <td className="px-4 py-3">
                     <StatusBadge status={a.status} />
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <AppointmentStageSelect
+                      appointmentId={a.id}
+                      value={a.status}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     {a.google_calendar_status ? (
                       <StatusBadge status={a.google_calendar_status} />
@@ -91,7 +101,7 @@ async function AppointmentsTable({
               {result.appointments.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     No appointments found for this date range.

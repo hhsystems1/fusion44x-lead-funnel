@@ -5,6 +5,9 @@
 | File | Timestamp |
 |------|-----------|
 | `supabase/migrations/20260724_001_initial_funnel_schema.sql` | 2026-07-24 |
+| `supabase/migrations/20260731000100_exit_popup_and_lead_stages.sql` | 2026-07-31 |
+
+> Migrations are **not** applied automatically. Each feature doc lists its own migration file; apply them in filename order against the target Supabase project.
 
 ## Access Architecture
 
@@ -58,6 +61,8 @@ Stores contact details, diagnostic answers (+ qualification summary), consent re
 
 **Status lifecycle:** `new` → `contacted` → `qualified` → `scheduled` → `completed` | `disqualified` | `archived`
 
+> Note: `status` is the qualification lifecycle. `stage` (added by the exit-popup migration) is a separate manual sales-pipeline field managed from the admin dashboard — see below.
+
 ### Key columns
 
 | Column | Notes |
@@ -69,14 +74,35 @@ Stores contact details, diagnostic answers (+ qualification summary), consent re
 | `consent_to_contact` | Required explicit opt-in for follow-up |
 | `marketing_consent` | Separate optional opt-in for promotional communications |
 | `consent_text_version` | Which version of the consent text was shown |
+| `lead_origin` | How the lead was first captured: `funnel` (full diagnostic) or `exit_popup` (popup form). Defaults to `funnel`. |
+| `stage` | Manual sales-pipeline stage: `contacted` / `no_show` / `follow_up` / `won` / `lost`. Null = not staged yet. |
+| `source` | Auto-derived attribution: UTM source → referrer mapping → `direct` |
 | `assigned_to` | Future: CRM owner |
 | `crm_external_id` | Future: CRM record ID |
+
+### Nullability of diagnostic columns
+
+`phone`, `zip_code`, and the diagnostic columns (`water_feature`, `installation_type`, `pool_size`, `current_treatment`, `primary_goal`) are **nullable** so an exit-popup lead can be created before the full diagnostic is completed. When the visitor later completes the funnel, `create_lead_from_funnel_session` upgrades the existing lead in place rather than creating a duplicate.
+
+### CHECK constraints
+
+- `lead_origin IN ('funnel', 'exit_popup')`
+- `stage IN ('contacted', 'no_show', 'follow_up', 'won', 'lost')` (nullable)
 
 ### Indexes
 
 - `email` — dedup / lookup
 - `phone` — dedup / lookup
 - `(status, created_at)` — pipeline reporting
+
+### Lead capture RPCs
+
+| Function | Purpose |
+|----------|---------|
+| `create_lead_from_funnel_session(...)` | Creates a lead from the full diagnostic funnel. If the session is already linked to an `exit_popup` lead, it **upgrades that lead in place** with the diagnostic answers instead of raising `P0003`. Sessions linked to a funnel lead keep the `P0003` rejection. |
+| `create_lead_from_popup(...)` | Creates a lead from the exit popup (name/email/phone only). Locks the session `FOR UPDATE`, enforces `consent_to_contact` (`P0004`), is **idempotent** for existing `exit_popup` leads (returns the existing id), raises `P0003` for sessions linked to a funnel lead. Inserts a `lead_created` funnel event with `section_id = 'exit-popup'`. |
+
+Both functions are `SECURITY DEFINER`, run with `set search_path = ''`, and have `EXECUTE` revoked from `public` / `anon` / `authenticated` and granted **only** to `service_role`.
 
 ---
 

@@ -44,8 +44,7 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     options: [
       {
         code: "family_confidence",
-        label:
-          "I want water I can feel better about for my family",
+        label: "I want healthy, safe water for my family",
       },
       {
         code: "eliminate_chemicals",

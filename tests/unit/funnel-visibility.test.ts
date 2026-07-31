@@ -143,7 +143,7 @@ describe("Content assertions", () => {
 
   it("hero uses the approved consolidated heading", () => {
     expect(siteContent.hero.heading).toBe(
-      "Cleaner, More Comfortable Pool Water—Without the Traditional Chlorine and Salt Cycle",
+      "Healthy, Safe Pool Water \u2014 Without the Traditional Chlorine and Salt Cycle",
     );
   });
 

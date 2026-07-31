@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { InternalDiagnosticLabels } from "@/lib/email/templates/internal-booking-notification";
+
 export interface SendEmailInput {
   recipientEmail: string;
   recipientFirstName: string;
@@ -8,12 +10,14 @@ export interface SendEmailInput {
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
-  googleCalendarLink: string;
-  outlookCalendarLink: string;
-  icsContent: string;
+  googleCalendarLink?: string;
+  outlookCalendarLink?: string;
+  icsContent?: string;
   html: string;
   text: string;
   replyTo?: string;
+  internalDiagnostic?: InternalDiagnosticLabels;
+  followUpDiagnostic?: InternalDiagnosticLabels;
 }
 
 export interface SendEmailResult {
@@ -31,4 +35,5 @@ export interface EmailProvider {
   readonly name: string;
   sendBookingConfirmation(input: SendEmailInput): Promise<SendEmailResult>;
   sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult>;
+  sendBookingFollowUp(input: SendEmailInput): Promise<SendEmailResult>;
 }
