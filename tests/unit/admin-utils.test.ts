@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseFilterParams, maskEmail, maskPhone, formatDateTime, formatDate, stepLabel } from "@/app/admin/utils";
+import { parseFilterParams, maskEmail, maskPhone, formatDateTime, formatDate, stepLabel } from "@/app/admin/(protected)/utils";
 
 describe("Admin Dashboard Utilities", () => {
   describe("parseFilterParams", () => {

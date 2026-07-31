@@ -4,6 +4,11 @@ export const config = {
   matcher: ["/admin/:path*"],
 };
 
+function base64urlToBase64(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  return base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+}
+
 async function verifySessionToken(
   token: string,
   secret: string,
@@ -21,18 +26,26 @@ async function verifySessionToken(
       ["verify"],
     );
 
-    const dataBytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+    const messageBytes = encoder.encode(data);
     const sigBytes = Uint8Array.from(
-      signature.replace(/-/g, "+").replace(/_/g, "/"),
+      atob(base64urlToBase64(signature)),
       (c) => c.charCodeAt(0),
     );
 
-    const valid = await crypto.subtle.verify("HMAC", key, sigBytes, dataBytes);
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes,
+      messageBytes,
+    );
     if (!valid) return false;
 
     const payload = JSON.parse(
       new TextDecoder().decode(
-        Uint8Array.from(atob(data), (c) => c.charCodeAt(0)),
+        Uint8Array.from(
+          atob(base64urlToBase64(data)),
+          (c) => c.charCodeAt(0),
+        ),
       ),
     );
     if (typeof payload.exp !== "number" || Date.now() > payload.exp) {
