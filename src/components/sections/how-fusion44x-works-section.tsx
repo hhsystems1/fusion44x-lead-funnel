@@ -101,7 +101,7 @@ export function HowFusion44xWorksSection() {
           </p>
         </div>
 
-        <div className="mt-10 md:flex md:items-start md:gap-8 lg:gap-12">
+        <div className="mt-6 md:mt-10 md:flex md:items-start md:gap-8 lg:gap-12">
           <div className="relative w-full md:w-1/2 md:shrink-0">
             {assets.how_it_works_diagram.src ? (
               <Image
@@ -156,7 +156,7 @@ export function HowFusion44xWorksSection() {
             </svg>
           </div>
 
-          <div className="mt-6 md:mt-0 md:w-1/2">
+          <div className="mt-3 md:mt-0 md:w-1/2">
             <div className="space-y-3">
               {callouts.map((callout) => (
                 <div

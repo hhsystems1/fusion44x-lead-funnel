@@ -8,16 +8,16 @@ export const assets = {
     src: "/brand/fusion44x-favicon.png",
   },
   hero_image: {
-    src: "/brand/product-image.jpg",
+    src: "/brand/product-image.png",
     alt: "Fusion44X pool water treatment system",
     placeholder: "Hero Product Image",
   },
   hero_video: {
-    src: "1213733920",
+    src: "BY2L2uy3hH0",
     placeholder: "Hero Video",
   },
   product_photo: {
-    src: "/brand/product-image.jpg",
+    src: "/brand/product-image.png",
     alt: "Fusion44X Hydro-pH-Infusion system",
     placeholder: "Fusion44X Product Photo",
   },
