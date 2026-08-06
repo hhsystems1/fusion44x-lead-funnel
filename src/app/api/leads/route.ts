@@ -72,28 +72,74 @@ export async function POST(request: NextRequest) {
 
   const leadSource = source ?? deriveLeadSource(sessionRow);
 
-  const { data: leadId, error: rpcError } = await supabase.rpc(
-    "create_lead_from_funnel_session",
-    {
-      p_session_id: session_id,
-      p_first_name: contact.first_name,
-      p_last_name: contact.last_name,
-      p_email: email,
-      p_phone: phone,
-      p_zip_code: contact.zip_code,
-      p_water_feature: diagnostic.water_feature,
-      p_installation_type: diagnostic.installation_type,
-      p_pool_size: diagnostic.pool_size,
-      p_current_treatment: diagnostic.current_treatment,
-      p_current_issues: diagnostic.current_issues,
-      p_primary_goal: diagnostic.primary_goal,
-      p_consent_to_contact: consent.consent_to_contact,
-      p_consent_text_version: consent.consent_text_version,
-      p_preferred_contact_method: contact.preferred_contact_method ?? null,
-      p_marketing_consent: consent.marketing_consent,
-      p_source: leadSource ?? null,
-    } as never,
-  );
+  // Attempt RPC with a small retry loop for transient failures
+  let leadId: string | null = null;
+  let rpcError: { code?: string; message?: string } | null = null;
+  const maxRpcAttempts = 3;
+  for (let attempt = 1; attempt <= maxRpcAttempts; attempt += 1) {
+    const attemptStart = Date.now();
+    const res = await supabase.rpc(
+      "create_lead_from_funnel_session",
+      {
+        p_session_id: session_id,
+        p_first_name: contact.first_name,
+        p_last_name: contact.last_name,
+        p_email: email,
+        p_phone: phone,
+        p_zip_code: contact.zip_code,
+        p_water_feature: diagnostic.water_feature,
+        p_installation_type: diagnostic.installation_type,
+        p_pool_size: diagnostic.pool_size,
+        p_current_treatment: diagnostic.current_treatment,
+        p_current_issues: diagnostic.current_issues,
+        p_primary_goal: diagnostic.primary_goal,
+        p_consent_to_contact: consent.consent_to_contact,
+        p_consent_text_version: consent.consent_text_version,
+        p_preferred_contact_method: contact.preferred_contact_method ?? null,
+        p_marketing_consent: consent.marketing_consent,
+        p_source: leadSource ?? null,
+      } as never,
+    );
+
+    // Supabase client returns { data, error }
+    // @ts-ignore
+    leadId = (res.data as unknown) ?? null;
+    // @ts-ignore
+    rpcError = res.error ?? null;
+
+    const attemptDuration = Date.now() - attemptStart;
+
+    if (!rpcError) {
+      console.info({
+        event: "lead_rpc_success",
+        requestId,
+        session_id,
+        attempt,
+        durationMs: attemptDuration,
+        leadId,
+      });
+      break;
+    }
+
+    // Log rpc errors for diagnostics (structured)
+    console.warn({
+      event: "lead_rpc_error",
+      requestId,
+      session_id,
+      attempt,
+      durationMs: attemptDuration,
+      code: rpcError.code ?? null,
+      message: rpcError.message ?? null,
+    });
+
+    // Non-transient mapped errors should stop retries
+    if (rpcError.code && mapLeadRpcError(rpcError.code)) break;
+
+    // transient: small backoff then retry
+    if (attempt < maxRpcAttempts) {
+      await new Promise((r) => setTimeout(r, 200 * attempt));
+    }
+  }
 
   if (rpcError) {
     const mapped = rpcError.code ? mapLeadRpcError(rpcError.code) : null;
