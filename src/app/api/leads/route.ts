@@ -118,6 +118,12 @@ export async function POST(request: NextRequest) {
         durationMs: attemptDuration,
         leadId,
       });
+      try {
+        // update in-memory metrics for quick visibility
+        // lazy-import to avoid side-effects
+        const m = await import("@/lib/metrics");
+        m.incrementCounter("lead_rpc_success_total", { attempt: String(attempt) });
+      } catch {}
       break;
     }
 
@@ -131,6 +137,10 @@ export async function POST(request: NextRequest) {
       code: rpcError.code ?? null,
       message: rpcError.message ?? null,
     });
+    try {
+      const m = await import("@/lib/metrics");
+      m.incrementCounter("lead_rpc_error_total", { code: rpcError.code ?? "unknown" });
+    } catch {}
 
     // Non-transient mapped errors should stop retries
     if (rpcError.code && mapLeadRpcError(rpcError.code)) break;

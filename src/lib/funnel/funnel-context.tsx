@@ -132,6 +132,18 @@ interface FunnelContextValue {
               },
             });
           }
+          // best-effort server-side metric increment
+          try {
+            void fetch("/api/metrics", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: "contact_submit_failed_total",
+                labels: { attempts: attempt, last_status: lastResult?.status ?? null },
+              }),
+              keepalive: true,
+            });
+          } catch {}
           dispatch({ type: "CONTACT_SUBMIT_ERROR" });
         }
       } catch (err) {
