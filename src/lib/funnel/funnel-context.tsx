@@ -43,56 +43,89 @@ import { createBookingRequest } from "./booking-api";
 import { MetaEvents } from "@/config/tracking-events";
 
 interface FunnelContextValue {
-  state: FunnelState;
-  dispatch: React.Dispatch<FunnelAction>;
-  tracker: Tracker | null;
-  goToStep: (step: FunnelStepId) => void;
-  answerSingle: (question_id: DiagnosticQuestionId, code: string) => void;
-  answerMultiToggle: (question_id: DiagnosticQuestionId, code: string) => void;
-  diagNext: () => void;
-  diagBack: () => void;
-  completeDiagnostic: () => void;
-  submitContact: (data: ContactFormData) => Promise<void>;
-  isCurrentQuestionAnswered: () => boolean;
-  isDiagValid: () => boolean;
-  diagProgress: { current: number; total: number };
-  selectSlot: (start: string, end: string) => void;
-  submitBooking: (event_id: string) => Promise<void>;
-  resetFunnel: () => void;
-}
+      try {
+        const payload = buildLeadPayload({
+          session_id: sessionId,
+          event_id: metaEventId,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          email: data.email,
+          phone: data.phone,
+          zip_code: data.zip_code,
+          preferred_contact_method: data.preferred_contact_method,
+          diagnostic_answers: state.diagnostic_answers,
+          marketing_consent: data.marketing_consent ?? false,
+          source: params.source,
+        });
 
-function fbqTrack(
-  event: string,
-  eventId: string,
-  params?: Record<string, unknown>,
-) {
-  if (typeof window !== "undefined" && typeof window.fbq === "function") {
-    window.fbq("track", event, params, { eventID: eventId });
-  }
-}
+        // Retry transient failures (network or 5xx) a few times to improve UX
+        let attempt = 0;
+        let success = false;
+        let lastResult: { lead_id?: string; status: number; duplicate?: boolean } | null = null;
 
-function isDiagnosticComplete(answers: DiagnosticAnswers | null): boolean {
-  if (!answers) return false;
-  return (
-    !!answers.water_feature &&
-    !!answers.installation_type &&
-    !!answers.pool_size &&
-    !!answers.current_treatment &&
-    Array.isArray(answers.current_issues) &&
-    answers.current_issues.length > 0 &&
-    !!answers.primary_goal
-  );
-}
+        while (attempt < 3 && !success) {
+          attempt += 1;
+          try {
+            lastResult = await submitLeadApi(payload);
 
-const FunnelContext = createContext<FunnelContextValue | null>(null);
+            // Duplicate
+            if (lastResult.duplicate) {
+              dispatch({ type: "CONTACT_SUBMIT_DUPLICATE" });
+              success = true;
+              break;
+            }
 
-export function FunnelProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(funnelReducer, undefined, createInitialState);
+            // Success
+            if (lastResult.lead_id) {
+              if (tracker) {
+                tracker.track(InternalEvents.LEAD_CREATED, {
+                  step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
+                  lead_id: lastResult.lead_id,
+                });
+              }
 
-  const [tracker, setTracker] = useState<Tracker | null>(null);
-  const sessionInitRef = useRef(false);
-  const hasTrackedPageView = useRef(false);
-  const hasTrackedDiagStart = useRef(false);
+              dispatch({
+                type: "CONTACT_SUBMIT_SUCCESS",
+                lead_id: lastResult.lead_id,
+                first_name: data.first_name,
+                email: data.email,
+              });
+              dispatch({
+                type: "COMPLETE_STEP",
+                step: FUNNEL_STEPS.CONTACT_INFORMATION,
+              });
+              dispatch({ type: "GO_TO_STEP", step: FUNNEL_STEPS.BOOKING });
+              saveBookingStep(FUNNEL_STEPS.BOOKING);
+              success = true;
+              break;
+            }
+
+            // Client errors (4xx) shouldn't be retried
+            if (lastResult.status >= 400 && lastResult.status < 500) {
+              console.warn("[submitContact] API returned client error status=%d", lastResult.status);
+              break;
+            }
+
+            // Otherwise treat as transient and retry
+            console.warn("[submitContact] transient API status=%d attempt=%d", lastResult.status, attempt);
+          } catch (err) {
+            console.warn("[submitContact] network attempt=%d error=", attempt, err);
+          }
+
+          if (!success && attempt < 3) {
+            // exponential-ish backoff
+            await new Promise((r) => setTimeout(r, 300 * attempt));
+          }
+        }
+
+        if (!success) {
+          console.warn("[submitContact] all attempts failed", lastResult);
+          dispatch({ type: "CONTACT_SUBMIT_ERROR" });
+        }
+      } catch (err) {
+        console.warn("[submitContact] unexpected error", err);
+        dispatch({ type: "CONTACT_SUBMIT_ERROR" });
+      }
   const hasTrackedContactView = useRef(false);
   const hasCompletedDiagnosticRef = useRef(false);
   const prevQuestionRef = useRef<string | null>(null);
