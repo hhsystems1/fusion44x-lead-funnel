@@ -62,6 +62,7 @@ interface FunnelContextValue {
         let attempt = 0;
         let success = false;
         let lastResult: { lead_id?: string; status: number; duplicate?: boolean } | null = null;
+        let lastErrorMessage: string | null = null;
 
         while (attempt < 3 && !success) {
           attempt += 1;
@@ -108,8 +109,10 @@ interface FunnelContextValue {
 
             // Otherwise treat as transient and retry
             console.warn("[submitContact] transient API status=%d attempt=%d", lastResult.status, attempt);
+            lastErrorMessage = `status:${lastResult.status}`;
           } catch (err) {
             console.warn("[submitContact] network attempt=%d error=", attempt, err);
+            lastErrorMessage = String(err ?? "unknown");
           }
 
           if (!success && attempt < 3) {
@@ -120,6 +123,15 @@ interface FunnelContextValue {
 
         if (!success) {
           console.warn("[submitContact] all attempts failed", lastResult);
+          if (tracker) {
+            tracker.track(InternalEvents.CONTACT_SUBMIT_FAILED, {
+              metadata: {
+                attempts: attempt,
+                last_status: lastResult?.status ?? null,
+                last_error: lastErrorMessage,
+              },
+            });
+          }
           dispatch({ type: "CONTACT_SUBMIT_ERROR" });
         }
       } catch (err) {

@@ -21,6 +21,7 @@ export const InternalEvents = {
   DIAGNOSTIC_COMPLETED: "diagnostic_completed",
   CONTACT_STEP_VIEWED: "contact_step_viewed",
   CONTACT_SUBMITTED: "contact_submitted",
+  CONTACT_SUBMIT_FAILED: "contact_submit_failed",
   LEAD_CREATED: "lead_created",
   CALENDAR_VIEWED: "calendar_viewed",
   TIME_SLOT_SELECTED: "time_slot_selected",
