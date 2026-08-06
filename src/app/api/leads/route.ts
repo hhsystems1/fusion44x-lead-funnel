@@ -13,6 +13,9 @@ import {
 import { mapLeadRpcError } from "@/lib/server/lead-rpc-errors";
 import { fireMetaContactEvent } from "@/lib/meta/contact-event";
 import { deriveLeadSource } from "@/lib/funnel/source";
+import { createResendEmailProvider } from "@/lib/email/provider/resend-provider";
+import { sendContactSubmissionInternalNotification } from "@/lib/email/internal-notifications";
+import { answerLabel, answerLabels } from "@/lib/funnel/answer-labels";
 
 const RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
@@ -128,6 +131,30 @@ export async function POST(request: NextRequest) {
     session_id,
     supabase,
   });
+
+  try {
+    const provider = createResendEmailProvider();
+    await sendContactSubmissionInternalNotification(
+      {
+        leadId: String(leadId),
+        customerFirstName: contact.first_name,
+        customerEmail: email,
+        customerPhone: phone,
+        preferredContactMethod: contact.preferred_contact_method ?? null,
+        diagnostic: {
+          waterFeature: answerLabel("water-feature", diagnostic.water_feature),
+          installationType: answerLabel("installation-type", diagnostic.installation_type),
+          poolSize: answerLabel("pool-size", diagnostic.pool_size),
+          currentTreatment: answerLabel("current-treatment", diagnostic.current_treatment),
+          primaryGoal: answerLabel("primary-goal", diagnostic.primary_goal),
+          currentIssues: answerLabels("current-issues", diagnostic.current_issues),
+        },
+      },
+      provider,
+    );
+  } catch (err) {
+    console.warn("[leads] internal notification failed", err);
+  }
 
   return NextResponse.json(
     { success: true, lead_id: leadId },

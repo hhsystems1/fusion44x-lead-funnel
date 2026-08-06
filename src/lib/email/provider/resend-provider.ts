@@ -147,30 +147,37 @@ export function createResendEmailProvider(): EmailProvider {
       });
     },
     async sendInternalBookingNotification(input: SendEmailInput): Promise<SendEmailResult> {
-      const subject = `Internal: New Booking — ${input.recipientFirstName} (${input.appointmentId})`;
+      const isContactSubmission = input.internalNotificationType === "contact_submission";
+      const subject = isContactSubmission
+        ? `Lead Submitted — ${input.recipientFirstName}`
+        : `Internal: New Booking — ${input.recipientFirstName} (${input.appointmentId})`;
 
       const html = renderInternalBookingNotificationHtml({
         customerFirstName: input.recipientFirstName,
-        customerEmail: input.googleCalendarLink ?? "", // using this field to pass customer email
-        customerPhone: input.outlookCalendarLink || undefined, // using this field to pass customer phone
-        confirmedStartTime: input.confirmedStartTime,
-        confirmedEndTime: input.confirmedEndTime,
-        timezone: input.timezone,
-        appointmentId: input.appointmentId,
-        googleCalendarEventId: input.icsContent || undefined, // using this field to pass Google Calendar event ID
-        diagnostic: input.internalDiagnostic,
-      });
-
-      const text = renderInternalBookingNotificationText({
-        customerFirstName: input.recipientFirstName,
         customerEmail: input.googleCalendarLink ?? "",
         customerPhone: input.outlookCalendarLink || undefined,
+        preferredContactMethod: input.internalNotificationType === "contact_submission" ? input.preferredContactMethod || undefined : undefined,
         confirmedStartTime: input.confirmedStartTime,
         confirmedEndTime: input.confirmedEndTime,
         timezone: input.timezone,
         appointmentId: input.appointmentId,
         googleCalendarEventId: input.icsContent || undefined,
         diagnostic: input.internalDiagnostic,
+        notificationType: input.internalNotificationType,
+      });
+
+      const text = renderInternalBookingNotificationText({
+        customerFirstName: input.recipientFirstName,
+        customerEmail: input.googleCalendarLink ?? "",
+        customerPhone: input.outlookCalendarLink || undefined,
+        preferredContactMethod: input.internalNotificationType === "contact_submission" ? input.preferredContactMethod || undefined : undefined,
+        confirmedStartTime: input.confirmedStartTime,
+        confirmedEndTime: input.confirmedEndTime,
+        timezone: input.timezone,
+        appointmentId: input.appointmentId,
+        googleCalendarEventId: input.icsContent || undefined,
+        diagnostic: input.internalDiagnostic,
+        notificationType: input.internalNotificationType,
       });
 
       return sendViaResend({

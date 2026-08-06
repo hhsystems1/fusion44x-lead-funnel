@@ -6,6 +6,7 @@ export interface SendEmailInput {
   recipientEmail: string;
   recipientFirstName: string;
   appointmentId: string;
+  internalNotificationType?: "contact_submission" | "booking_confirmation";
   deliveryId: string;
   confirmedStartTime: string;
   confirmedEndTime: string;
@@ -13,6 +14,7 @@ export interface SendEmailInput {
   googleCalendarLink?: string;
   outlookCalendarLink?: string;
   icsContent?: string;
+  preferredContactMethod?: string;
   html: string;
   text: string;
   replyTo?: string;

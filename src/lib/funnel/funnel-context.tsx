@@ -482,6 +482,13 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         if (result.duplicate) {
           dispatch({ type: "CONTACT_SUBMIT_DUPLICATE" });
         } else if (result.lead_id) {
+          if (tracker) {
+            tracker.track(InternalEvents.LEAD_CREATED, {
+              step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
+              lead_id: result.lead_id,
+            });
+          }
+
           dispatch({
             type: "CONTACT_SUBMIT_SUCCESS",
             lead_id: result.lead_id,

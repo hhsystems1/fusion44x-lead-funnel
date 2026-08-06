@@ -3,6 +3,14 @@ import { z } from "zod";
 const textField = (max: number) =>
   z.string().trim().min(1, "Required").max(max);
 
+function normalizeContactFormData(data: Record<string, unknown>): Record<string, unknown> {
+  const normalized = { ...data };
+  if (normalized.preferred_contact_method === "") {
+    delete normalized.preferred_contact_method;
+  }
+  return normalized;
+}
+
 export const contactFormSchema = z.object({
   first_name: textField(100),
   last_name: textField(100),
@@ -29,7 +37,8 @@ export type ContactFormData = z.input<typeof contactFormSchema>;
 export function validateContactForm(
   data: Record<string, unknown>,
 ): { valid: boolean; errors: Record<string, string> } {
-  const result = contactFormSchema.safeParse(data);
+  const normalized = normalizeContactFormData(data);
+  const result = contactFormSchema.safeParse(normalized);
   if (result.success) {
     return { valid: true, errors: {} };
   }
@@ -42,4 +51,8 @@ export function validateContactForm(
     }
   }
   return { valid: false, errors };
+}
+
+export function isContactFormReady(data: Record<string, unknown>): boolean {
+  return validateContactForm(data).valid;
 }

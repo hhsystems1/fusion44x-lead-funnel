@@ -12,13 +12,17 @@ import { buildInternalBookingNotificationSendInput } from "./internal-send-input
 import type { InternalDiagnosticLabels } from "./templates/internal-booking-notification";
 import { answerLabel, answerLabels } from "@/lib/funnel/answer-labels";
 
+export type InternalNotificationType = "contact_submission" | "booking_confirmation";
+
 export interface PreparedInternalNotification {
+  notificationType: InternalNotificationType;
   appointmentId: string;
   leadId: string;
   recipientEmail: string;
   customerFirstName: string;
   customerEmail: string;
   customerPhone: string | null;
+  preferredContactMethod?: string | null;
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
@@ -115,6 +119,7 @@ export async function prepareInternalBookingNotification(params: {
   }
 
   return {
+    notificationType: "booking_confirmation",
     appointmentId: row.id as string,
     leadId,
     recipientEmail: internalRecipient,
@@ -276,6 +281,44 @@ export async function sendInternalBookingNotification(
     status: "delivered",
     messageId: result.messageId,
   };
+}
+
+export async function sendContactSubmissionInternalNotification(params: {
+  leadId: string;
+  customerFirstName: string;
+  customerEmail: string;
+  customerPhone?: string | null;
+  preferredContactMethod?: string | null;
+  diagnostic: InternalDiagnosticLabels | null;
+}, provider: EmailProvider): Promise<void> {
+  const internalRecipient = process.env.INTERNAL_BOOKING_NOTIFICATION_TO?.trim();
+  if (!internalRecipient || !EMAIL_REGEX.test(internalRecipient)) {
+    return;
+  }
+
+  const prepared: PreparedInternalNotification = {
+    notificationType: "contact_submission",
+    appointmentId: params.leadId,
+    leadId: params.leadId,
+    recipientEmail: internalRecipient,
+    customerFirstName: params.customerFirstName,
+    customerEmail: params.customerEmail,
+    customerPhone: params.customerPhone ?? null,
+    preferredContactMethod: params.preferredContactMethod ?? null,
+    confirmedStartTime: "",
+    confirmedEndTime: "",
+    timezone: EMAIL_CONFIG.TIMEZONE,
+    bookingEventId: null,
+    googleCalendarEventId: null,
+    diagnostic: params.diagnostic,
+  };
+
+  try {
+    const sendInput = buildInternalBookingNotificationSendInput(prepared, `contact-${params.leadId}`);
+    await provider.sendInternalBookingNotification(sendInput);
+  } catch {
+    // Best-effort only; contact submission should not fail the lead flow.
+  }
 }
 
 export async function schedulePendingInternalEmailDelivery(params: {

@@ -14,6 +14,7 @@ export function buildInternalBookingNotificationSendInput(
     customerFirstName: prepared.customerFirstName,
     customerEmail: prepared.customerEmail,
     customerPhone,
+    preferredContactMethod: prepared.preferredContactMethod,
     confirmedStartTime: prepared.confirmedStartTime,
     confirmedEndTime: prepared.confirmedEndTime,
     timezone: prepared.timezone,
@@ -26,6 +27,7 @@ export function buildInternalBookingNotificationSendInput(
     customerFirstName: prepared.customerFirstName,
     customerEmail: prepared.customerEmail,
     customerPhone,
+    preferredContactMethod: prepared.preferredContactMethod,
     confirmedStartTime: prepared.confirmedStartTime,
     confirmedEndTime: prepared.confirmedEndTime,
     timezone: prepared.timezone,
@@ -45,9 +47,11 @@ export function buildInternalBookingNotificationSendInput(
     googleCalendarLink: prepared.customerEmail,
     outlookCalendarLink: customerPhone ?? "",
     icsContent: googleCalendarEventId ?? "",
+    preferredContactMethod: prepared.preferredContactMethod ?? undefined,
     html,
     text,
     replyTo: undefined,
     internalDiagnostic: prepared.diagnostic ?? undefined,
+    internalNotificationType: prepared.notificationType,
   };
 }

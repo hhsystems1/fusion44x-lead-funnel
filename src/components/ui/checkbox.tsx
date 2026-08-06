@@ -22,12 +22,18 @@ export function Checkbox({
           id={inputId}
           type="checkbox"
           aria-invalid={!!error}
+          aria-required={props.required}
           aria-describedby={error ? errorId : undefined}
           className={`mt-1 h-4 w-4 rounded border-neutral-300 text-brand-aqua focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-aqua ${className}`}
           {...props}
         />
         <label htmlFor={inputId} className="text-sm text-brand-navy/80">
           {label}
+          {props.required && (
+            <span className="ml-1 text-red-500" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
       </div>
       {error && (

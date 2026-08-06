@@ -55,6 +55,14 @@ export function ReviewConfirm({
   onConfirm,
 }: ReviewConfirmProps) {
   const isSubmitting = submissionState === "submitting";
+  const canConfirm = Boolean(
+    selectedDate &&
+      startTime &&
+      endTime &&
+      firstName &&
+      email &&
+      !isSubmitting,
+  );
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -108,7 +116,7 @@ export function ReviewConfirm({
 
       <button
         onClick={onConfirm}
-        disabled={isSubmitting}
+        disabled={!canConfirm}
         className="mt-5 w-full rounded-lg bg-brand-aqua px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-brand-aqua-light disabled:cursor-not-allowed disabled:opacity-50 shadow-sm shadow-brand-aqua/20"
       >
         {isSubmitting ? siteContent.booking.confirming : siteContent.booking.confirm}

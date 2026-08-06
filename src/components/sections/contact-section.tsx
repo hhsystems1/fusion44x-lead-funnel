@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState, type FormEvent } from "react";
+import { useRef, useEffect, useState, useMemo, type FormEvent } from "react";
 import { siteContent } from "@/config/site-content";
 import { useFunnel } from "@/lib/funnel/funnel-context";
 import { TextInput } from "@/components/ui/text-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CtaButton } from "@/components/ui/cta-button";
 import { ErrorMessage } from "@/components/ui/error-message";
+import { isContactFormReady } from "@/lib/funnel/contact-validation";
 
 interface FormState {
   first_name: string;
@@ -49,8 +50,20 @@ export function ContactStage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  const isReady = useMemo(() => {
+    return isContactFormReady({
+      ...form,
+      preferred_contact_method: form.preferred_contact_method || undefined,
+    });
+  }, [form]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!isReady) {
+      setHasSubmitted(true);
+      return;
+    }
+
     setHasSubmitted(true);
 
     await submitContact({
@@ -229,6 +242,7 @@ export function ContactStage() {
             size="lg"
             className="w-full"
             loading={state.submission_state === "submitting"}
+            disabled={!isReady}
           >
             {state.submission_state === "submitting"
               ? siteContent.contact.submitting

@@ -100,6 +100,13 @@ describe("HTML template rendering", () => {
     expect(html).toContain(EMAIL_CONFIG.SUPPORT_PHONE);
   });
 
+  it("includes the next-step guidance for the customer", () => {
+    const html = renderBookingConfirmationHtml(validParams);
+    expect(html).toContain("What to do next");
+    expect(html).toContain("Reply to this email");
+    expect(html).toContain("support@fusion44x.com");
+  });
+
   it("contains no JavaScript", () => {
     const html = renderBookingConfirmationHtml(validParams);
     expect(html).not.toContain("<script");
@@ -205,6 +212,39 @@ describe("plain-text rendering", () => {
     const text = renderBookingConfirmationText(validParams);
     expect(text).not.toContain("diagnostic");
     expect(text).not.toContain("pool_size");
+  });
+
+  it("includes next-step guidance in the text version", () => {
+    const text = renderBookingConfirmationText(validParams);
+    expect(text).toContain("What to do next");
+    expect(text).toContain("Reply to this email");
+    expect(text).toContain("support@fusion44x.com");
+  });
+});
+
+describe("Internal notification template", () => {
+  it("renders a contact-submission summary with diagnostic details", () => {
+    const html = renderInternalBookingNotificationHtml({
+      customerFirstName: "Jane",
+      customerEmail: "jane@example.com",
+      customerPhone: "555-1234",
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      appointmentId: "appt_123",
+      diagnostic: {
+        waterFeature: "Inground pool",
+        installationType: "New build",
+        poolSize: "20x40",
+        currentTreatment: "Chlorine",
+        primaryGoal: "Cleaner water",
+        currentIssues: ["Algae", "Cloudy water"],
+      },
+      notificationType: "contact_submission",
+    });
+    expect(html).toContain("Lead Submitted");
+    expect(html).toContain("Pool Diagnostic");
+    expect(html).toContain("Inground pool");
   });
 });
 

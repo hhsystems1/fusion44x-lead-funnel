@@ -31,12 +31,14 @@ export interface InternalBookingNotificationParams {
   customerFirstName: string;
   customerEmail: string;
   customerPhone?: string;
+  preferredContactMethod?: string;
   confirmedStartTime: string;
   confirmedEndTime: string;
   timezone: string;
   appointmentId: string;
   googleCalendarEventId?: string;
   diagnostic?: InternalDiagnosticLabels;
+  notificationType?: "contact_submission" | "booking_confirmation";
 }
 
 export function renderInternalBookingNotificationHtml(
@@ -53,6 +55,10 @@ export function renderInternalBookingNotificationHtml(
   const gcalEventId = params.googleCalendarEventId
     ? escapeHtml(params.googleCalendarEventId)
     : null;
+  const preferredContactMethod = params.preferredContactMethod
+    ? escapeHtml(params.preferredContactMethod)
+    : null;
+  const isContactSubmission = params.notificationType === "contact_submission";
 
   const phoneLine = phone
     ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Phone</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${phone}</td></tr>`
@@ -62,7 +68,11 @@ export function renderInternalBookingNotificationHtml(
     ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">GCal Event ID</td><td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${gcalEventId}</td></tr>`
     : "";
 
-  const diagnosticBlock = buildDiagnosticBlock(params.diagnostic);
+  const preferredContactLine = preferredContactMethod
+    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Preferred Contact</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${preferredContactMethod}</td></tr>`
+    : "";
+
+  const diagnosticBlock = params.diagnostic ? buildDiagnosticBlock(params.diagnostic) : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -78,13 +88,13 @@ export function renderInternalBookingNotificationHtml(
 <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden">
 <tr>
 <td style="padding:32px 24px 16px;text-align:center;background-color:#7c2d12">
-<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">New Booking — Internal Notification</h1>
-<p style="margin:8px 0 0;font-size:14px;color:#fed7aa">A consultation has been confirmed</p>
+<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">${isContactSubmission ? "Lead Submitted — Internal Notification" : "New Booking — Internal Notification"}</h1>
+<p style="margin:8px 0 0;font-size:14px;color:#fed7aa">${isContactSubmission ? "A new lead submitted the contact form" : "A consultation has been confirmed"}</p>
 </td>
 </tr>
 <tr>
 <td style="padding:24px">
-<p style="margin:0 0 16px;font-size:16px;color:#1e293b">A new Fusion 44X pool consultation has been booked.</p>
+<p style="margin:0 0 16px;font-size:16px;color:#1e293b">${isContactSubmission ? "A new Fusion 44X lead submitted their contact form and diagnostic answers." : "A new Fusion 44X pool consultation has been booked."}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
 <tr>
 <td style="padding:16px">
@@ -98,7 +108,8 @@ export function renderInternalBookingNotificationHtml(
 <td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${email}</td>
 </tr>
 ${phoneLine}
-<tr>
+${preferredContactLine}
+${isContactSubmission ? "" : `<tr>
 <td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Date</td>
 <td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${dateStr}</td>
 </tr>
@@ -114,13 +125,13 @@ ${phoneLine}
 <td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Appointment ID</td>
 <td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${appointmentId}</td>
 </tr>
-${gcalLine}
+${gcalLine}`}
 </table>
 </td>
 </tr>
 </table>
 ${diagnosticBlock}
-<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6">This notification is for internal tracking only. The customer has received a separate confirmation email with calendar links.</p>
+<p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6">${isContactSubmission ? "This notification is for internal tracking only. The customer has received a separate confirmation email." : "This notification is for internal tracking only. The customer has received a separate confirmation email with calendar links."}</p>
 </td>
 </tr>
 <tr>
@@ -223,7 +234,9 @@ export function renderInternalBookingNotificationText(
   lines.push(
     "",
     "This notification is for internal tracking only.",
-    "The customer has received a separate confirmation email with calendar links.",
+    params.notificationType === "contact_submission"
+      ? "The customer has received a separate confirmation email."
+      : "The customer has received a separate confirmation email with calendar links.",
     "",
     "Fusion 44X Internal System",
   );

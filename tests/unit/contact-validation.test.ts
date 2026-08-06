@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   contactFormSchema,
   validateContactForm,
+  isContactFormReady,
   type ContactFormData,
 } from "@/lib/funnel/contact-validation";
 
@@ -135,5 +136,21 @@ describe("validateContactForm", () => {
     } as unknown as Record<string, unknown>);
     expect(result.valid).toBe(false);
     expect(result.errors.consent_to_contact).toBeDefined();
+  });
+
+  it("reports readiness based on full required input", () => {
+    expect(isContactFormReady(validData as unknown as Record<string, unknown>)).toBe(true);
+    expect(
+      isContactFormReady({
+        ...validData,
+        consent_to_contact: false,
+      } as unknown as Record<string, unknown>),
+    ).toBe(false);
+    expect(
+      isContactFormReady({
+        ...validData,
+        preferred_contact_method: "",
+      } as unknown as Record<string, unknown>),
+    ).toBe(true);
   });
 });
