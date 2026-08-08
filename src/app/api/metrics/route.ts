@@ -16,6 +16,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const text = metrics.getPrometheusText();
+  const text = await metrics.getPrometheusText();
   return new NextResponse(text, { status: 200, headers: { "Content-Type": "text/plain; version=0.0.4" } });
 }
