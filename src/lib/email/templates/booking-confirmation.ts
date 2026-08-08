@@ -117,9 +117,9 @@ export function renderBookingConfirmationHtml(
 </td>
 </tr>
 </table>
-<div style="margin:24px 0 0;padding:16px;border:1px solid #dbeafe;border-radius:8px;background:#eff6ff">
+  <div style="margin:24px 0 0;padding:16px;border:1px solid #dbeafe;border-radius:8px;background:#eff6ff">
   <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#1d4ed8">What to do next</p>
-  <p style="margin:0 0 8px;font-size:14px;color:#475569;line-height:1.6">Reply to this email and send a picture of your pool plus any additional information that might help us prepare for our call.</p>
+  <p style="margin:0 0 8px;font-size:14px;color:#475569;line-height:1.6">Reply to this email and send a picture of your pool and pump system, plus any additional information that might help us prepare for our call.</p>
   <p style="margin:0;font-size:14px;color:#1d4ed8;font-weight:600">Reply to: support@fusion44x.com</p>
 </div>
 <p style="margin:16px 0 0;font-size:14px;color:#475569;line-height:1.6">If you need to reschedule or have any questions, please contact us.</p>
@@ -167,7 +167,7 @@ export function renderBookingConfirmationText(
     `Apple/Other: Download the attached .ics file or use the link above.`,
     "",
     "What to do next",
-    "Reply to this email and send a picture of your pool plus any additional information that might help us prepare for our call.",
+    "Reply to this email and send a picture of your pool and pump system, plus any additional information that might help us prepare for our call.",
     "Reply to: support@fusion44x.com",
     "",
     "If you need to reschedule or have any questions, please contact us.",
