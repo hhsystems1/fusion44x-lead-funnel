@@ -1,4 +1,5 @@
 import type { DiagnosticAnswers } from "@/types/funnel";
+import { MetaEvents } from "@/config/tracking-events";
 
 export interface LeadSubmitPayload {
   session_id: string;
@@ -27,6 +28,24 @@ export interface LeadSubmitPayload {
   source?: string;
 }
 
+function fireVerifiedLeadBrowserEvent(eventId?: string) {
+  if (!eventId || typeof window === "undefined") return;
+
+  try {
+    const fbq = (window as typeof window & { fbq?: (...args: unknown[]) => void }).fbq;
+    if (typeof fbq === "function") {
+      fbq(
+        "track",
+        MetaEvents.LEAD,
+        { content_name: "Lead Contact Form" },
+        { eventID: eventId },
+      );
+    }
+  } catch {
+    // Browser tracking must never break the lead creation flow.
+  }
+}
+
 export async function submitLead(
   payload: LeadSubmitPayload,
 ): Promise<{ lead_id?: string; status: number; duplicate?: boolean }> {
@@ -45,6 +64,11 @@ export async function submitLead(
   }
 
   const data = (await response.json()) as { lead_id: string };
+
+  // Fire the browser Lead only after the backend confirms that a lead exists.
+  // The same event_id is also sent by CAPI so Meta can deduplicate both copies.
+  fireVerifiedLeadBrowserEvent(payload.event_id);
+
   return { lead_id: data.lead_id, status: 201 };
 }
 

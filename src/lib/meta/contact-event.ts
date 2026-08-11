@@ -32,7 +32,7 @@ export async function fireMetaContactEvent(params: ContactEventParams) {
     .then((r) => r.data);
 
   const payload = createMetaPayload({
-    event_name: MetaEvents.CONTACT,
+    event_name: MetaEvents.LEAD,
     event_id: metaEventId,
     event_source_url: params.request.headers.get("referer") ?? undefined,
     action_source: "website",

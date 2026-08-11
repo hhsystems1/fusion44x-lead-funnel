@@ -49,6 +49,7 @@ export const ALL_INTERNAL_EVENT_NAMES: InternalEventName[] =
 
 export const MetaEvents = {
   CONTACT: "Contact",
+  LEAD: "Lead",
   SCHEDULE: "Schedule",
 } as const;
 
