@@ -7,11 +7,13 @@
 -- server-side after a lead row is actually created.
 --
 -- Historical rows keep their values; only new inserts are affected.
+-- The check is added NOT VALID so pre-existing 'contact_submitted' rows
+-- don't block the constraint from being enforced on new writes.
 --
 -- This migration is NOT applied automatically. See docs/database-schema.md.
 
 alter table public.funnel_events
-  drop constraint funnel_events_event_name_check;
+  drop constraint if exists funnel_events_event_name_check;
 
 alter table public.funnel_events
   add constraint funnel_events_event_name_check
@@ -42,4 +44,5 @@ alter table public.funnel_events
       'session_inactive',
       'page_hidden',
       'page_exit_attempted'
-    ));
+    ))
+    not valid;
