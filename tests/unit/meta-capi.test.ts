@@ -73,13 +73,13 @@ describe("createMetaPayload", () => {
 
   it("builds a valid Meta event payload structure", () => {
     const payload = createMetaPayload({
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "550e8400-e29b-41d4-a716-446655440000",
       action_source: "website",
       customer_info: minimalCustomerInfo,
     });
 
-    expect(payload.event_name).toBe("Contact");
+    expect(payload.event_name).toBe("Lead");
     expect(payload.event_id).toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(payload.event_time).toBeGreaterThan(0);
     expect(payload.action_source).toBe("website");
@@ -104,7 +104,7 @@ describe("createMetaPayload", () => {
 
   it("hashes user_data via createMetaUserData", () => {
     const payload = createMetaPayload({
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "id-3",
       action_source: "website",
       customer_info: {

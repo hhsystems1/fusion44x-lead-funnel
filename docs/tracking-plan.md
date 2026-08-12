@@ -26,7 +26,7 @@ No hardcoded event name strings anywhere else.
 - `diagnostic_completed`
 
 ### Contact
-- `contact_step_viewed`, `contact_submitted`
+- `contact_step_viewed`
 - `lead_created`
 
 ### Booking

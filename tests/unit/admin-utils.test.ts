@@ -65,7 +65,7 @@ describe("Admin Dashboard Utilities", () => {
       expect(stepLabel("page_viewed")).toBe("Page Viewed");
       expect(stepLabel("diagnostic_started")).toBe("Diagnostic Started");
       expect(stepLabel("diagnostic_completed")).toBe("Diagnostic Completed");
-      expect(stepLabel("contact_submitted")).toBe("Contact Submitted");
+      expect(stepLabel("lead_created")).toBe("Lead Created");
       expect(stepLabel("booking_completed")).toBe("Booking Completed");
       expect(stepLabel("confirmation_viewed")).toBe("Confirmation Viewed");
     });

@@ -52,7 +52,7 @@ export function stepLabel(step: string | null): string {
     question_viewed: "Questions",
     diagnostic_completed: "Diagnostic Completed",
     contact_step_viewed: "Contact Viewed",
-    contact_submitted: "Contact Submitted",
+    lead_created: "Lead Created",
     calendar_viewed: "Booking Viewed",
     time_slot_selected: "Slot Selected",
     booking_completed: "Booking Completed",

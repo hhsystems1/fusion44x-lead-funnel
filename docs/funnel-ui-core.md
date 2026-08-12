@@ -83,7 +83,7 @@ A browser tracker client at `src/lib/analytics/tracker.ts` sends events to `POST
 | `validation_error` | Contact form validation fails | `step_id`, `metadata.fields` |
 | `diagnostic_completed` | "See My Results" clicked | `step_id`, `metadata` (counts) |
 | `contact_step_viewed` | Contact section becomes visible | `step_id` |
-| `contact_submitted` | Contact form submitted | `step_id` |
+| `lead_created` | Lead row created (server-side RPC) | `step_id`, `lead_id` |
 
 Events never include PII. Answer codes are sent as `answer_code`, not in metadata.
 

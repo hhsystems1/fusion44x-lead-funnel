@@ -20,7 +20,6 @@ export const InternalEvents = {
   VALIDATION_ERROR: "validation_error",
   DIAGNOSTIC_COMPLETED: "diagnostic_completed",
   CONTACT_STEP_VIEWED: "contact_step_viewed",
-  CONTACT_SUBMITTED: "contact_submitted",
   CONTACT_SUBMIT_FAILED: "contact_submit_failed",
   LEAD_CREATED: "lead_created",
   CALENDAR_VIEWED: "calendar_viewed",
@@ -48,7 +47,6 @@ export const ALL_INTERNAL_EVENT_NAMES: InternalEventName[] =
 // Question answers must never appear in Meta event parameters.
 
 export const MetaEvents = {
-  CONTACT: "Contact",
   LEAD: "Lead",
   SCHEDULE: "Schedule",
 } as const;

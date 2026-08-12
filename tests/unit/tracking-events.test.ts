@@ -42,7 +42,7 @@ describe("InternalEvents", () => {
       "validation_error",
       "diagnostic_completed",
       "contact_step_viewed",
-      "contact_submitted",
+      "contact_submit_failed",
       "lead_created",
       "calendar_viewed",
       "time_slot_selected",
@@ -78,8 +78,8 @@ describe("MetaEvents", () => {
     }
   });
 
-  it("includes Contact and Schedule", () => {
-    expect(ALL_META_EVENT_NAMES).toContain("Contact");
+  it("includes Lead and Schedule", () => {
+    expect(ALL_META_EVENT_NAMES).toContain("Lead");
     expect(ALL_META_EVENT_NAMES).toContain("Schedule");
   });
 });
@@ -132,9 +132,9 @@ describe("InternalEventPayload shape", () => {
 });
 
 describe("MetaEventPayload shape", () => {
-  it("accepts a valid Contact payload", () => {
+  it("accepts a valid Lead payload", () => {
     const event: MetaEventPayload = {
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "uuid-123",
       event_time: 1721700000,
       event_source_url: "https://example.com/funnel",
@@ -154,7 +154,7 @@ describe("MetaEventPayload shape", () => {
       },
       custom_data: { source: "organic" },
     };
-    expect(event.event_name).toBe("Contact");
+    expect(event.event_name).toBe("Lead");
     expect(event.user_data.em).toEqual(["john@example.com"]);
     expect(event.user_data.client_ip_address).toBe("192.168.1.1");
     expect(event.user_data.fbp).toBeDefined();
@@ -177,13 +177,13 @@ describe("MetaEventPayload shape", () => {
 
   it("rejects an invalid event_name via type", () => {
     const valid: MetaEventPayload = {
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "u1",
       event_time: 1721700000,
       action_source: "website",
       user_data: {},
     };
-    expect(valid.event_name).toBe("Contact");
+    expect(valid.event_name).toBe("Lead");
   });
 });
 
@@ -229,7 +229,7 @@ describe("MetaEventPayload constraints", () => {
     ] as const;
 
     const payload: MetaEventPayload = {
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "uuid-all-fields",
       event_time: 1721700000,
       event_source_url: "https://example.com/funnel",
@@ -274,7 +274,7 @@ describe("MetaEventPayload constraints", () => {
     ];
 
     const payload: MetaEventPayload = {
-      event_name: "Contact",
+      event_name: "Lead",
       event_id: "uuid-no-diag",
       event_time: 1721700000,
       action_source: "website",

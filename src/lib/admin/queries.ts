@@ -103,7 +103,7 @@ export async function getOverviewMetrics(
     db.from("funnel_sessions").select("id", { count: "exact", head: true }).gte("started_at", fromISO).lte("started_at", toISO),
     db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "diagnostic_started").gte("occurred_at", fromISO).lte("occurred_at", toISO),
     db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "diagnostic_completed").gte("occurred_at", fromISO).lte("occurred_at", toISO),
-    db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "contact_submitted").gte("occurred_at", fromISO).lte("occurred_at", toISO),
+    db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "lead_created").gte("occurred_at", fromISO).lte("occurred_at", toISO),
     db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "lead_created").gte("occurred_at", fromISO).lte("occurred_at", toISO),
     db.from("funnel_events").select("id", { count: "exact", head: true }).eq("event_name", "calendar_viewed").gte("occurred_at", fromISO).lte("occurred_at", toISO),
     db.from("appointments").select("id", { count: "exact", head: true }).eq("status", "confirmed").gte("created_at", fromISO).lte("created_at", toISO),
@@ -241,7 +241,6 @@ const STEP_ORDER = [
   "question_viewed",
   "diagnostic_completed",
   "contact_step_viewed",
-  "contact_submitted",
   "lead_created",
   "calendar_viewed",
   "time_slot_selected",
@@ -336,7 +335,7 @@ export async function getSessionList(
         db.from("funnel_events").select("session_id").eq("event_name", "page_viewed").in("session_id", sessionIds),
         db.from("funnel_events").select("session_id, event_name").in("session_id", sessionIds),
         db.from("funnel_events").select("session_id").eq("event_name", "diagnostic_completed").in("session_id", sessionIds),
-        db.from("funnel_events").select("session_id").eq("event_name", "contact_submitted").in("session_id", sessionIds),
+        db.from("funnel_events").select("session_id").eq("event_name", "lead_created").in("session_id", sessionIds),
         db.from("funnel_events").select("session_id").eq("event_name", "booking_completed").in("session_id", sessionIds),
       ]);
 
@@ -528,7 +527,7 @@ export async function getSessionDetail(
     event_count: eventRows.length,
     furthest_step: computeFurthestStep(eventRows),
     diagnostic_completed: eventRows.some((e) => e.event_name === "diagnostic_completed"),
-    contact_submitted: eventRows.some((e) => e.event_name === "contact_submitted"),
+    contact_submitted: eventRows.some((e) => e.event_name === "lead_created"),
     has_booking: eventRows.some((e) => e.event_name === "booking_completed"),
   };
 
@@ -584,7 +583,7 @@ export async function getFunnelReport(
     { name: "Diagnostic Started", eventName: "diagnostic_started" },
     { name: "Diagnostic Completed", eventName: "diagnostic_completed" },
     { name: "Contact Viewed", eventName: "contact_step_viewed" },
-    { name: "Contact Submitted", eventName: "contact_submitted" },
+    { name: "Lead Created", eventName: "lead_created" },
     { name: "Booking Viewed", eventName: "calendar_viewed" },
     { name: "Slot Selected", eventName: "time_slot_selected" },
     { name: "Booking Completed", eventName: "booking_completed" },

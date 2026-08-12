@@ -446,21 +446,12 @@ export function FunnelProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (tracker) {
-        tracker.track(InternalEvents.CONTACT_SUBMITTED, {
-          step_id: FUNNEL_STEPS.CONTACT_INFORMATION,
-        });
-      }
-
       let metaEventId: string;
       try {
         metaEventId = crypto.randomUUID();
       } catch {
         metaEventId = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
       }
-      fbqTrack(MetaEvents.CONTACT, metaEventId, {
-        content_name: "Lead Contact Form",
-      });
 
       try {
         const payload = buildLeadPayload({
