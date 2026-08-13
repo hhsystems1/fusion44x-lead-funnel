@@ -32,6 +32,7 @@ export function formatDateTime(iso: string): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/New_York",
   });
 }
 
@@ -41,7 +42,23 @@ export function formatDate(iso: string): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "America/New_York",
   });
+}
+
+export function formatTimezoneLabel(timezone: string | null | undefined): string {
+  if (!timezone) return "Eastern Time";
+  const normalized = timezone.trim();
+  if (
+    normalized === "America/New_York" ||
+    normalized === "EST" ||
+    normalized === "EDT" ||
+    /eastern/i.test(normalized) ||
+    /new_york/i.test(normalized)
+  ) {
+    return "Eastern Time";
+  }
+  return normalized;
 }
 
 export function stepLabel(step: string | null): string {

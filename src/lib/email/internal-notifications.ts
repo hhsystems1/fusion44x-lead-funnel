@@ -20,8 +20,10 @@ export interface PreparedInternalNotification {
   leadId: string;
   recipientEmail: string;
   customerFirstName: string;
+  customerLastName?: string | null;
   customerEmail: string;
   customerPhone: string | null;
+  zipCode?: string | null;
   preferredContactMethod?: string | null;
   confirmedStartTime: string;
   confirmedEndTime: string;
@@ -75,7 +77,7 @@ export async function prepareInternalBookingNotification(params: {
   const { data: lead, error: leadError } = await supabase
     .from("leads")
     .select(
-      "first_name, email, phone, water_feature, installation_type, pool_size, current_treatment, primary_goal",
+      "first_name, last_name, email, phone, zip_code, water_feature, installation_type, pool_size, current_treatment, primary_goal",
     )
     .eq("id", leadId)
     .single();
@@ -87,7 +89,9 @@ export async function prepareInternalBookingNotification(params: {
   const leadRow = lead as Record<string, unknown>;
   const customerEmail = (leadRow.email as string) ?? "";
   const customerFirstName = ((leadRow.first_name as string) ?? "").trim();
+  const customerLastName = ((leadRow.last_name as string) ?? "").trim();
   const customerPhone = (leadRow.phone as string)?.trim() ?? null;
+  const zipCode = ((leadRow.zip_code as string) ?? "").trim();
 
   if (!EMAIL_REGEX.test(customerEmail)) {
     return null;
@@ -124,8 +128,10 @@ export async function prepareInternalBookingNotification(params: {
     leadId,
     recipientEmail: internalRecipient,
     customerFirstName,
+    customerLastName,
     customerEmail,
     customerPhone,
+    zipCode,
     confirmedStartTime: row.start_time as string,
     confirmedEndTime: row.end_time as string,
     timezone: (row.timezone as string) || EMAIL_CONFIG.TIMEZONE,

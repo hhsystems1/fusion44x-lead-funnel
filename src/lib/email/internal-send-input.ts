@@ -12,8 +12,10 @@ export function buildInternalBookingNotificationSendInput(
 
   const html = renderInternalBookingNotificationHtml({
     customerFirstName: prepared.customerFirstName,
+    customerLastName: prepared.customerLastName ?? undefined,
     customerEmail: prepared.customerEmail,
     customerPhone,
+    zipCode: prepared.zipCode ?? undefined,
     preferredContactMethod: prepared.preferredContactMethod ?? undefined,
     confirmedStartTime: prepared.confirmedStartTime,
     confirmedEndTime: prepared.confirmedEndTime,
@@ -25,8 +27,10 @@ export function buildInternalBookingNotificationSendInput(
 
   const text = renderInternalBookingNotificationText({
     customerFirstName: prepared.customerFirstName,
+    customerLastName: prepared.customerLastName ?? undefined,
     customerEmail: prepared.customerEmail,
     customerPhone,
+    zipCode: prepared.zipCode ?? undefined,
     preferredContactMethod: prepared.preferredContactMethod ?? undefined,
     confirmedStartTime: prepared.confirmedStartTime,
     confirmedEndTime: prepared.confirmedEndTime,

@@ -622,22 +622,40 @@ describe("Internal notification HTML template rendering", () => {
     expect(html).not.toContain("Phone");
   });
 
-  it("renders appointment ID", () => {
+  it("omits internal ID rows from the booking email", () => {
     const html = renderInternalBookingNotificationHtml(internalParams);
-    expect(html).toContain("appt-123");
+    expect(html).not.toContain("Appointment ID");
+    expect(html).not.toContain("GCal Event ID");
+    expect(html).not.toContain("appt-123");
+    expect(html).not.toContain("gcal-456");
   });
 
-  it("renders GCal event ID when provided", () => {
-    const html = renderInternalBookingNotificationHtml(internalParams);
-    expect(html).toContain("gcal-456");
-  });
-
-  it("omits GCal event ID row when not provided", () => {
+  it("uses the booking confirmation copy and order", () => {
     const html = renderInternalBookingNotificationHtml({
       ...internalParams,
-      googleCalendarEventId: undefined,
+      diagnostic: {
+        waterFeature: "Pool Only",
+        installationType: "In-Ground",
+        poolSize: "Small",
+        currentTreatment: "Chlorine",
+        primaryGoal: "I keep dealing with algae or water-quality problems",
+        currentIssues: ["Algae growth", "Frequent chemical adjustment", "Scaling or staining"],
+      },
     });
-    expect(html).not.toContain("GCal Event ID");
+    expect(html).toContain("New Pool Consultation Booked");
+    expect(html).toContain("A new Fusion 44X pool consultation has been scheduled.");
+    expect(html).toContain("Customer");
+    expect(html).toContain("Name");
+    expect(html).toContain("Email");
+    expect(html).toContain("Phone");
+    expect(html).toContain("Appointment");
+    expect(html).toContain("Date");
+    expect(html).toContain("Time");
+    expect(html).toContain("Time Zone");
+    expect(html).toContain("Pool Diagnostic");
+    expect(html).toContain("Water Feature");
+    expect(html).toContain("Primary Goal");
+    expect(html).toContain("Current Issues");
   });
 
   it("renders confirmed date", () => {
@@ -651,9 +669,9 @@ describe("Internal notification HTML template rendering", () => {
     expect(html).toContain("10:30 AM");
   });
 
-  it("renders timezone", () => {
+  it("renders timezone as Eastern Time", () => {
     const html = renderInternalBookingNotificationHtml(internalParams);
-    expect(html).toContain("America/New_York");
+    expect(html).toContain("Eastern Time");
   });
 
   it("contains no calendar links", () => {
@@ -725,10 +743,10 @@ describe("Internal notification HTML template rendering", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  it("has internal notification title", () => {
+  it("has the updated internal notification title", () => {
     const html = renderInternalBookingNotificationHtml(internalParams);
-    expect(html).toContain("New Booking");
-    expect(html).toContain("Internal Notification");
+    expect(html).toContain("New Pool Consultation Booked");
+    expect(html).not.toContain("New Booking");
   });
 
   it("is valid HTML", () => {
@@ -774,17 +792,37 @@ describe("Internal notification plain-text template rendering", () => {
     expect(text).not.toContain("Phone:");
   });
 
-  it("renders GCal event ID when provided", () => {
-    const text = renderInternalBookingNotificationText(internalParams);
-    expect(text).toContain("gcal-456");
-  });
-
   it("omits GCal event ID when not provided", () => {
     const text = renderInternalBookingNotificationText({
       ...internalParams,
       googleCalendarEventId: undefined,
     });
     expect(text).not.toContain("GCal Event ID");
+  });
+
+  it("renders booking details in the expected order", () => {
+    const text = renderInternalBookingNotificationText({
+      ...internalParams,
+      diagnostic: {
+        waterFeature: "Pool Only",
+        installationType: "In-Ground",
+        poolSize: "Small",
+        currentTreatment: "Chlorine",
+        primaryGoal: "I keep dealing with algae or water-quality problems",
+        currentIssues: ["Algae growth", "Frequent chemical adjustment", "Scaling or staining"],
+      },
+    });
+    expect(text).toContain("New Pool Consultation Booked");
+    expect(text).toContain("A new Fusion 44X pool consultation has been scheduled.");
+    expect(text).toContain("Customer");
+    expect(text).toContain("Name:         Jane");
+    expect(text).toContain("Email:        jane@example.com");
+    expect(text).toContain("Phone:        (555) 123-4567");
+    expect(text).toContain("Appointment");
+    expect(text).toContain("Date:         Tuesday, July 28, 2026");
+    expect(text).toContain("Time:         10:00 AM – 10:30 AM");
+    expect(text).toContain("Time Zone:    Eastern Time");
+    expect(text).toContain("Pool Diagnostic");
   });
 
   it("renders date and time", () => {
@@ -806,10 +844,11 @@ describe("Internal notification plain-text template rendering", () => {
       },
     });
     expect(text).toContain("Pool Diagnostic");
-    expect(text).toContain("Water Feature:     Pool only");
+    expect(text).toContain("Water Feature: Pool only");
     expect(text).toContain("Installation Type: In-ground");
     expect(text).toContain("Chlorine");
-    expect(text).toContain("Skin or eye irritation, Algae growth");
+    expect(text).toContain("Skin or eye irritation");
+    expect(text).toContain("Algae growth");
   });
 
   it("omits diagnostic lines when not provided", () => {

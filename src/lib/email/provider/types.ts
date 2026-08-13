@@ -5,6 +5,9 @@ import type { InternalDiagnosticLabels } from "@/lib/email/templates/internal-bo
 export interface SendEmailInput {
   recipientEmail: string;
   recipientFirstName: string;
+  customerLastName?: string;
+  customerEmail?: string;
+  zipCode?: string;
   appointmentId: string;
   internalNotificationType?: "contact_submission" | "booking_confirmation";
   deliveryId: string;

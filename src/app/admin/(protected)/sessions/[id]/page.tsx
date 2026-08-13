@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { StatusBadge } from "../../metric-card";
 import {
   formatDateTime,
+  formatTimezoneLabel,
   stepLabel,
 } from "../../utils";
 
@@ -155,7 +156,7 @@ async function SessionDetailContent({ sessionId }: { sessionId: string }) {
             </div>
             <div>
               <p className="text-xs text-gray-500">Timezone</p>
-              <p>{session.appointment.timezone}</p>
+              <p>{formatTimezoneLabel(session.appointment.timezone)}</p>
             </div>
           </div>
         </div>

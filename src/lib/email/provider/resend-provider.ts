@@ -154,8 +154,10 @@ export function createResendEmailProvider(): EmailProvider {
 
       const html = renderInternalBookingNotificationHtml({
         customerFirstName: input.recipientFirstName,
-        customerEmail: input.googleCalendarLink ?? "",
+        customerLastName: input.customerLastName || undefined,
+        customerEmail: input.customerEmail ?? input.googleCalendarLink ?? "",
         customerPhone: input.outlookCalendarLink || undefined,
+        zipCode: input.zipCode ?? undefined,
         preferredContactMethod: input.internalNotificationType === "contact_submission" ? input.preferredContactMethod || undefined : undefined,
         confirmedStartTime: input.confirmedStartTime,
         confirmedEndTime: input.confirmedEndTime,
@@ -168,8 +170,10 @@ export function createResendEmailProvider(): EmailProvider {
 
       const text = renderInternalBookingNotificationText({
         customerFirstName: input.recipientFirstName,
-        customerEmail: input.googleCalendarLink ?? "",
+        customerLastName: input.customerLastName || undefined,
+        customerEmail: input.customerEmail ?? input.googleCalendarLink ?? "",
         customerPhone: input.outlookCalendarLink || undefined,
+        zipCode: input.zipCode ?? undefined,
         preferredContactMethod: input.internalNotificationType === "contact_submission" ? input.preferredContactMethod || undefined : undefined,
         confirmedStartTime: input.confirmedStartTime,
         confirmedEndTime: input.confirmedEndTime,
