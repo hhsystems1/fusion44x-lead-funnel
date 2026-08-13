@@ -64,7 +64,7 @@ export type InstallationTypeCode =
 
 export const POOL_SIZE_CODES = [
   "small",
-  "average",
+  "medium",
   "large",
   "not_sure",
 ] as const;

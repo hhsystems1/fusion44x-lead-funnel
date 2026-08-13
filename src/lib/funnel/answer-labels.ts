@@ -21,7 +21,18 @@ export function answerLabel(
   code: string | null | undefined,
 ): string {
   if (!code) return "\u2014";
-  return QUESTION_LABELS[questionId]?.[code] ?? code;
+  if (questionId === "pool-size") {
+    const normalizedCode = code === "average" ? "medium" : code;
+    const mapped = QUESTION_LABELS[questionId]?.[normalizedCode];
+    if (mapped) return mapped;
+  }
+
+  const direct = QUESTION_LABELS[questionId]?.[code];
+  if (direct) return direct;
+
+  if (questionId === "pool-size" && code === "average") return "Medium";
+
+  return code;
 }
 
 export function answerLabels(

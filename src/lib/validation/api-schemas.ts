@@ -96,7 +96,10 @@ export type FunnelEventInput = z.input<typeof funnelEventSchema>;
 
 const waterFeatureSchema = z.enum(WATER_FEATURE_CODES);
 const installationTypeSchema = z.enum(INSTALLATION_TYPE_CODES);
-const poolSizeSchema = z.enum(POOL_SIZE_CODES);
+const poolSizeSchema = z
+  .enum(POOL_SIZE_CODES)
+  .or(z.literal("average"))
+  .transform((value) => (value === "average" ? "medium" : value));
 const currentTreatmentSchema = z.enum(CURRENT_TREATMENT_CODES);
 const currentIssuesSchema = z.array(z.enum(CURRENT_ISSUES_CODES)).min(1);
 const primaryGoalSchema = z.enum(PRIMARY_GOAL_CODES);

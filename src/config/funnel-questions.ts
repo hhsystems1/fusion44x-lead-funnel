@@ -74,7 +74,7 @@ export const diagnosticQuestions: DiagnosticQuestion[] = [
     title: "How would you describe the size of your pool?",
     options: [
       { code: "small", label: "Small" },
-      { code: "average", label: "Average size" },
+      { code: "medium", label: "Medium" },
       { code: "large", label: "Large" },
       { code: "not_sure", label: "I\u2019m not sure" },
     ],

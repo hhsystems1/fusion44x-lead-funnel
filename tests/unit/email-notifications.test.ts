@@ -228,6 +228,7 @@ describe("Internal notification template", () => {
       customerFirstName: "Jane",
       customerEmail: "jane@example.com",
       customerPhone: "555-1234",
+      zipCode: "12345",
       confirmedStartTime: "2026-07-28T14:00:00.000Z",
       confirmedEndTime: "2026-07-28T14:30:00.000Z",
       timezone: "America/New_York",
@@ -245,6 +246,40 @@ describe("Internal notification template", () => {
     expect(html).toContain("Lead Submitted");
     expect(html).toContain("Pool Diagnostic");
     expect(html).toContain("Inground pool");
+    expect(html).toContain("ZIP Code");
+    expect(html).toContain("12345");
+  });
+
+  it("preserves customer email, phone, and zip through the internal send input", () => {
+    const input = {
+      recipientEmail: "internal@example.com",
+      recipientFirstName: "Jane",
+      customerLastName: "Smith",
+      customerEmail: "jane@example.com",
+      customerPhone: "555-1234",
+      zipCode: "12345",
+      appointmentId: "appt_123",
+      deliveryId: "delivery_123",
+      confirmedStartTime: "2026-07-28T14:00:00.000Z",
+      confirmedEndTime: "2026-07-28T14:30:00.000Z",
+      timezone: "America/New_York",
+      preferredContactMethod: "Text",
+      html: "",
+      text: "",
+      internalNotificationType: "booking_confirmation" as const,
+      internalDiagnostic: {
+        waterFeature: "Inground pool",
+        installationType: "New build",
+        poolSize: "20x40",
+        currentTreatment: "Chlorine",
+        primaryGoal: "Cleaner water",
+        currentIssues: ["Algae"],
+      },
+    };
+
+    expect(input.customerEmail).toBe("jane@example.com");
+    expect(input.customerPhone).toBe("555-1234");
+    expect(input.zipCode).toBe("12345");
   });
 });
 

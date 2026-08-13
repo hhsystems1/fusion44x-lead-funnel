@@ -15,6 +15,8 @@ describe("answerLabel", () => {
     expect(answerLabel("current-treatment", "other")).toBe("Another system");
     expect(answerLabel("current-issues", "other")).toBe("Other issues");
     expect(answerLabel("installation-type", "not_sure")).toBe("I\u2019m not sure");
+    expect(answerLabel("pool-size", "medium")).toBe("Medium");
+    expect(answerLabel("pool-size", "average")).toBe("Medium");
   });
 
   it("falls back to the raw code for unknown codes", () => {

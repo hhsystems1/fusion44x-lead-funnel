@@ -54,6 +54,20 @@ function formatTimeInTimezone(iso, tz) {
   return formatInTimeZone(new Date(iso), tz, "h:mm a");
 }
 
+function formatTimezoneLabel(tz) {
+  const normalized = (tz || "America/New_York").trim();
+  if (
+    normalized === "America/New_York" ||
+    normalized === "EST" ||
+    normalized === "EDT" ||
+    /eastern/i.test(normalized) ||
+    /new_york/i.test(normalized)
+  ) {
+    return "Eastern Time";
+  }
+  return normalized;
+}
+
 function formatDurationMinutes(startIso, endIso) {
   const start = new Date(startIso).getTime();
   const end = new Date(endIso).getTime();
@@ -217,29 +231,37 @@ function renderBookingConfirmationText(params) {
 
 function renderInternalBookingNotificationHtml(params) {
   const firstName = escapeHtml(params.customerFirstName);
+  const lastName = params.customerLastName ? escapeHtml(params.customerLastName) : "";
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || firstName;
   const email = escapeHtml(params.customerEmail);
   const phone = params.customerPhone ? escapeHtml(params.customerPhone) : null;
+  const zipCode = params.zipCode ? escapeHtml(params.zipCode) : null;
   const dateStr = formatDateInTimezone(params.confirmedStartTime, params.timezone);
   const startTimeStr = formatTimeInTimezone(params.confirmedStartTime, params.timezone);
   const endTimeStr = formatTimeInTimezone(params.confirmedEndTime, params.timezone);
-  const tzDisplay = escapeHtml(params.timezone);
-  const appointmentId = escapeHtml(params.appointmentId);
-  const gcalEventId = params.googleCalendarEventId ? escapeHtml(params.googleCalendarEventId) : null;
+  const tzDisplay = escapeHtml(formatTimezoneLabel(params.timezone));
+  const preferredContactMethod = params.preferredContactMethod ? escapeHtml(params.preferredContactMethod) : null;
 
   const phoneLine = phone
-    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Phone</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${phone}</td></tr>`
+    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Phone</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${phone}</td></tr>`
     : "";
 
-  const gcalLine = gcalEventId
-    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">GCal Event ID</td><td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${gcalEventId}</td></tr>`
+  const zipLine = zipCode
+    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">ZIP Code</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${zipCode}</td></tr>`
     : "";
+
+  const preferredContactLine = preferredContactMethod
+    ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Preferred Contact</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${preferredContactMethod}</td></tr>`
+    : "";
+
+  const diagnosticRows = params.diagnostic ? buildDiagnosticRows(params.diagnostic) : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>New Booking Notification</title>
+<title>New Pool Consultation Booked</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Helvetica,Arial,sans-serif">
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f4f4f5">
@@ -247,48 +269,56 @@ function renderInternalBookingNotificationHtml(params) {
 <td align="center" style="padding:24px 16px">
 <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden">
 <tr>
-<td style="padding:32px 24px 16px;text-align:center;background-color:#7c2d12">
-<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">New Booking \u2014 Internal Notification</h1>
-<p style="margin:8px 0 0;font-size:14px;color:#fed7aa">A consultation has been confirmed</p>
+<td style="padding:32px 24px 16px;text-align:center;background-color:#0d3b66">
+<h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff">New Pool Consultation Booked</h1>
+<p style="margin:8px 0 0;font-size:14px;color:#dbeafe">A new Fusion 44X pool consultation has been scheduled.</p>
 </td>
 </tr>
 <tr>
 <td style="padding:24px">
-<p style="margin:0 0 16px;font-size:16px;color:#1e293b">A new Fusion 44X pool consultation has been booked.</p>
+<p style="margin:0 0 16px;font-size:16px;color:#1e293b">A new Fusion 44X pool consultation has been scheduled.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
 <tr>
 <td style="padding:16px">
+<p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#0d3b66;text-transform:uppercase;letter-spacing:0.04em">Customer</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Customer</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${firstName}</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Name</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${fullName}</td>
 </tr>
 <tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Email</td>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Email</td>
 <td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${email}</td>
 </tr>
 ${phoneLine}
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Date</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${dateStr}</td>
-</tr>
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Time</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${startTimeStr} \u2013 ${endTimeStr}</td>
-</tr>
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Timezone</td>
-<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${tzDisplay}</td>
-</tr>
-<tr>
-<td style="padding:4px 0;font-size:13px;color:#64748b;width:120px;vertical-align:top">Appointment ID</td>
-<td style="padding:4px 0;font-size:13px;color:#1e293b;font-family:monospace">${appointmentId}</td>
-</tr>
-${gcalLine}
+${zipLine}
+${preferredContactLine}
 </table>
 </td>
 </tr>
 </table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
+<tr>
+<td style="padding:16px">
+<p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#0d3b66;text-transform:uppercase;letter-spacing:0.04em">Appointment</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
+<tr>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Date</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${dateStr}</td>
+</tr>
+<tr>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Time</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${startTimeStr} – ${endTimeStr}</td>
+</tr>
+<tr>
+<td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">Time Zone</td>
+<td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${tzDisplay}</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+${diagnosticRows}
 <p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6">This notification is for internal tracking only. The customer has received a separate confirmation email with calendar links.</p>
 </td>
 </tr>
@@ -305,17 +335,51 @@ ${gcalLine}
 </html>`;
 }
 
+function buildDiagnosticRows(diagnostic) {
+  const propertyRows = [
+    ["Water Feature", diagnostic.waterFeature],
+    ["Installation Type", diagnostic.installationType],
+    ["Pool Size", diagnostic.poolSize],
+    ["Current Treatment", diagnostic.currentTreatment],
+  ]
+    .map(([label, value]) => `<tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:140px;vertical-align:top">${escapeHtml(label)}</td><td style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${escapeHtml(value)}</td></tr>`)
+    .join("");
+
+  const primaryGoalRow = diagnostic.primaryGoal
+    ? `<tr><td colspan="2" style="padding:10px 0 0;font-size:13px;color:#64748b;font-weight:700">Primary Goal</td></tr><tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">${escapeHtml(diagnostic.primaryGoal)}</td></tr>`
+    : "";
+
+  const issuesRows = diagnostic.currentIssues && diagnostic.currentIssues.length > 0
+    ? `<tr><td colspan="2" style="padding:10px 0 0;font-size:13px;color:#64748b;font-weight:700">Current Issues</td></tr>${diagnostic.currentIssues.map((issue) => `<tr><td colspan="2" style="padding:4px 0;font-size:14px;color:#1e293b;font-weight:600">• ${escapeHtml(issue)}</td></tr>`).join("")}`
+    : "";
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f8fafc;border-radius:6px;margin-bottom:24px">
+<tr>
+<td style="padding:16px">
+<p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#0d3b66;text-transform:uppercase;letter-spacing:0.04em">Pool Diagnostic</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
+${propertyRows}
+${primaryGoalRow}
+${issuesRows}
+</table>
+</td>
+</tr>
+</table>`;
+}
+
 function renderInternalBookingNotificationText(params) {
   const dateStr = formatDateInTimezone(params.confirmedStartTime, params.timezone);
   const startTimeStr = formatTimeInTimezone(params.confirmedStartTime, params.timezone);
   const endTimeStr = formatTimeInTimezone(params.confirmedEndTime, params.timezone);
+  const fullName = [params.customerFirstName, params.customerLastName].filter(Boolean).join(" ") || params.customerFirstName;
 
   const lines = [
-    "New Booking \u2014 Internal Notification",
+    "New Pool Consultation Booked",
     "",
-    "A new Fusion 44X pool consultation has been booked.",
+    "A new Fusion 44X pool consultation has been scheduled.",
     "",
-    `Customer:     ${params.customerFirstName}`,
+    "Customer",
+    `Name:         ${fullName}`,
     `Email:        ${params.customerEmail}`,
   ];
 
@@ -323,15 +387,37 @@ function renderInternalBookingNotificationText(params) {
     lines.push(`Phone:        ${params.customerPhone}`);
   }
 
+  if (params.zipCode) {
+    lines.push(`ZIP Code:     ${params.zipCode}`);
+  }
+
   lines.push(
+    "",
+    "Appointment",
     `Date:         ${dateStr}`,
-    `Time:         ${startTimeStr} \u2013 ${endTimeStr}`,
-    `Timezone:     ${params.timezone}`,
-    `Appointment:  ${params.appointmentId}`,
+    `Time:         ${startTimeStr} – ${endTimeStr}`,
+    `Time Zone:    ${formatTimezoneLabel(params.timezone)}`,
   );
 
-  if (params.googleCalendarEventId) {
-    lines.push(`GCal Event ID: ${params.googleCalendarEventId}`);
+  if (params.diagnostic) {
+    lines.push(
+      "",
+      "Pool Diagnostic",
+      `Water Feature: ${params.diagnostic.waterFeature}`,
+      `Installation Type: ${params.diagnostic.installationType}`,
+      `Pool Size: ${params.diagnostic.poolSize}`,
+      `Current Treatment: ${params.diagnostic.currentTreatment}`,
+      "",
+      "Primary Goal",
+      params.diagnostic.primaryGoal,
+    );
+
+    if (params.diagnostic.currentIssues && params.diagnostic.currentIssues.length > 0) {
+      lines.push("", "Current Issues");
+      for (const issue of params.diagnostic.currentIssues) {
+        lines.push(issue);
+      }
+    }
   }
 
   lines.push(
@@ -515,25 +601,45 @@ async function sendInternalTest() {
   const googleCalendarEventId = `gcal-event-${Date.now()}`;
 
   const html = renderInternalBookingNotificationHtml({
-    customerFirstName: "Test",
+    customerFirstName: "Alicia",
+    customerLastName: "Johnson",
     customerEmail: "customer@example.com",
     customerPhone: "(555) 123-4567",
+    zipCode: "12345",
     confirmedStartTime,
     confirmedEndTime,
     timezone,
     appointmentId,
     googleCalendarEventId,
+    diagnostic: {
+      waterFeature: "In-ground Pool",
+      installationType: "New Build",
+      poolSize: "18x36",
+      currentTreatment: "Salt Water Chlorine Generator",
+      primaryGoal: "Healthier water and less maintenance",
+      currentIssues: ["Green tint", "Cloudy water"],
+    },
   });
 
   const text = renderInternalBookingNotificationText({
-    customerFirstName: "Test",
+    customerFirstName: "Alicia",
+    customerLastName: "Johnson",
     customerEmail: "customer@example.com",
     customerPhone: "(555) 123-4567",
+    zipCode: "12345",
     confirmedStartTime,
     confirmedEndTime,
     timezone,
     appointmentId,
     googleCalendarEventId,
+    diagnostic: {
+      waterFeature: "In-ground Pool",
+      installationType: "New Build",
+      poolSize: "18x36",
+      currentTreatment: "Salt Water Chlorine Generator",
+      primaryGoal: "Healthier water and less maintenance",
+      currentIssues: ["Green tint", "Cloudy water"],
+    },
   });
 
   const resend = new Resend(apiKey);

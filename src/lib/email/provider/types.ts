@@ -7,6 +7,7 @@ export interface SendEmailInput {
   recipientFirstName: string;
   customerLastName?: string;
   customerEmail?: string;
+  customerPhone?: string;
   zipCode?: string;
   appointmentId: string;
   internalNotificationType?: "contact_submission" | "booking_confirmation";
